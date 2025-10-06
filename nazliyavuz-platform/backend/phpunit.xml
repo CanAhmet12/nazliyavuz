@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="Unit">
+            <directory suffix="Test.php">./tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory suffix="Test.php">./tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory suffix=".php">./app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_KEY" value="base64:2fl+K+kKqd8OeW4u5Xo2qF4Xo2qF4Xo2qF4Xo2qF4Xo="/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_DRIVER" value="array"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="MAIL_HOST" value="localhost"/>
+        <env name="MAIL_PORT" value="2525"/>
+        <env name="MAIL_USERNAME" value="null"/>
+        <env name="MAIL_PASSWORD" value="null"/>
+        <env name="MAIL_ENCRYPTION" value="null"/>
+        <env name="PUSHER_APP_ID" value=""/>
+        <env name="PUSHER_APP_KEY" value=""/>
+        <env name="PUSHER_APP_SECRET" value=""/>
+        <env name="PUSHER_HOST" value=""/>
+        <env name="PUSHER_PORT" value="443"/>
+        <env name="PUSHER_SCHEME" value="https"/>
+        <env name="PUSHER_APP_CLUSTER" value="mt1"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="SESSION_LIFETIME" value="120"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="REDIS_HOST" value="127.0.0.1"/>
+        <env name="REDIS_PASSWORD" value="null"/>
+        <env name="REDIS_PORT" value="6379"/>
+        <env name="CACHE_STORE" value="array"/>
+    </php>
+    <logging>
+        <log type="testdox-html" target="storage/logs/test-results.html"/>
+        <log type="testdox-text" target="storage/logs/test-results.txt"/>
+    </logging>
+    <coverage>
+        <include>
+            <directory suffix=".php">./app</directory>
+        </include>
+        <exclude>
+            <directory>./app/Console</directory>
+            <directory>./app/Exceptions</directory>
+            <directory>./app/Http/Middleware</directory>
+            <file>./app/Http/Kernel.php</file>
+        </exclude>
+        <report>
+            <html outputDirectory="storage/logs/coverage"/>
+            <text outputFile="storage/logs/coverage.txt"/>
+            <clover outputFile="storage/logs/coverage.xml"/>
+        </report>
+    </coverage>
+</phpunit>

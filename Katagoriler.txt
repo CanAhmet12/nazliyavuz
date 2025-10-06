@@ -1,0 +1,42 @@
+Kategoriler
+
+Tümü
+
+Okul Dersleri:
+(Matematik, Türkçe, Hayat Bilgisi, Fen Bilimleri, Sosyal Bilgiler, Din Kültürü, Görsel Sanatlar, Edebiyat, Tarih, Coğrafya, Fizik, Kimya, Biyoloji, Mantık, Felsefe, Okul Öncesi, Özel Eğitim)
+
+Fakülte Dersleri:
+(Tıp Fak., Hukuk Fak., Mühendislik Fak., Mimarlık Fak., Eğitim Fak., Sağlık Fak., Edebiyat Fak., Fen Fakültesi, Eczacılık Fak., Diş Hekimliği Fak., İşletme Fak., İletişim Fak., İlahiyat Fak., Hemşirelik Fak., Güzel Sanatlar Fak., Turizm Fak., Konservatuar)
+
+Yazılım:
+Mobil Yazılım, Web Yazılım, Robotik Kodlama, Oyun Geliştirme, Veri Tabanı, Yapay Zeka, Python, C#, JavaScript, Java, Ofis Programları, SEO/ASO, PHP, Android Geliştirme, iOS Geliştirme, Flutter, C++, React Native, Siber Güvenlik
+
+Sağlık ve Meditasyon:
+Kişisel Koçluk, Yaşam Koçluğu, Diyabetik Beslenme, Meditasyon, Estetik Kozmetik, Makyaj, Tırnak Sanatı, Alternatif Tıp, İlk Yardım, Yoga, Stil ve Moda, Aromaterapi, Fizyoterapist, Psikolog
+
+Spor:
+Yüzme, Futbol, Basketbol, Voleybol, Tenis, Masa Tenisi, Golf, Okçuluk, Badminton, Vücut Geliştirme, Kick Boks, Karate, Judo, Aikido, Güreş, Boks, Hentbol, Kayak, Snowboard, Buz Pateni, Kaykay, Binicilik, Dalış, Jimnastik
+
+Dans:
+Bale, Tango, Salsa, Samba, Valse, Oryantal, Zeybek, Hint Dansı, Break Dans, Koreografi, Hiphop, Düğün Dansları
+
+Sınava Hazırlık:
+KPSS, YKS, TEOG, LGS, YDS, İSG, TUS, DGS, EUS, TYT, AYT, YDT, YÖKDİL
+
+Müzik:
+Gitar, Bağlama, Piyano, Kemençe, Org, Klavye, Armonika, Klarnet, Ney, Saksafon, Bateri, Flüt, Darbuka, Cello, Keman, Ud, Akordeon, Mandolin, Çocuk Korosu, Koro, Kulak Eğitimi
+
+Kişisel Gelişim:
+Eğitim Koçluğu, Yaşam Koçluğu, Kariyer Koçluğu, Marka Yönetimi, Diksiyon, Etkili Konuşma, Hızlı Okuma, Ebeveyn Koçluğu, İlişki Koçluğu, Duygusal Zeka
+
+Sanat ve Hobiler:
+Resim, Tiyatro, Oyunculuk, Karikatür, Heykelcilik, Aşçılık, Fotoğrafçılık, Terzi, Moda Tasarımı, Drama, Satranç, Ebru Sanatı, Takı Tasarımı
+
+Direksiyon:
+Direksiyon/Otomobil, Direksiyon/Otobüs, Direksiyon/Kamyon, Direksiyon/Motosiklet
+
+Tasarım:
+Grafik Tasarım, Mimari Tasarım, Mühendislik Tasarımı, Mobil Tasarım, Web Tasarımı, 3D ve Animasyon, Logo Tasarımı, Sosyal Medya, Video Edit, Photoshop, UI/UX Tasarım, AutoCAD, Catia, SketchUp, SolidWorks, Revit, Fusion 360, Maya, Illustrator, SAP2000, IDECAD
+
+Dijital pazarlama :
+SEO , ASO , Sosyal medya reklamları , sanal asistanlık , google ads , Kampanya yönetimi
