@@ -93,6 +93,11 @@ ios/Runner/GeneratedPluginRegistrant.*
 *.bak
 *.backup
 
+# Large archive files
+*.tar.gz
+*.zip
+*.rar
+
 # Docker
 docker-compose.override.yml
 
