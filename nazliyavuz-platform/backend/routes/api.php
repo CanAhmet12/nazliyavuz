@@ -45,6 +45,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware(['throttle:5,1', 'sql_injection_protection']);
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/auth/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
     
     // Email verification and password reset (public)
     Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail'])->middleware('auth_rate_limit');

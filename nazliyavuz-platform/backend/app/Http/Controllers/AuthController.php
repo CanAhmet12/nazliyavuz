@@ -190,6 +190,35 @@ class AuthController extends Controller
     }
 
     /**
+     * Get current user
+     */
+    public function me(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Kullanıcı bulunamadı'
+                ], 401);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'user' => $user->toArray()
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Get current user error: ' . $e->getMessage());
+            
+            return response()->json([
+                'error' => true,
+                'message' => 'Kullanıcı bilgileri alınırken bir hata oluştu'
+            ], 500);
+        }
+    }
+
+    /**
      * Logout user
      */
     public function logout(): JsonResponse

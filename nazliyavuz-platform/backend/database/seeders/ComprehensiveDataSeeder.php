@@ -630,16 +630,20 @@ class ComprehensiveDataSeeder extends Seeder
                     $isFromStudent = rand(0, 1) == 1;
                     $senderId = $isFromStudent ? $student->id : $teacher->user_id;
                     
+                    $messages = [
+                        'Merhaba, ders hakkında sorularım var.',
+                        'Teşekkürler, çok faydalı oldu.',
+                        'Yarın ders var mı?',
+                        'Ödevimi tamamladım.',
+                        'Çok güzel anlattınız.',
+                    ];
+                    
                     Message::create([
                         'sender_id' => $senderId,
                         'receiver_id' => $isFromStudent ? $teacher->user_id : $student->id,
-                        'content' => [
-                            'Merhaba, ders hakkında sorularım var.',
-                            'Teşekkürler, çok faydalı oldu.',
-                            'Yarın ders var mı?',
-                            'Ödevimi tamamladım.',
-                            'Çok güzel anlattınız.',
-                        ][rand(0, 4)],
+                        'content' => $messages[rand(0, 4)],
+                        'message_type' => 'text',
+                        'is_read' => rand(0, 1) == 1,
                         'created_at' => now()->subDays(rand(0, 30))->addHours(rand(0, 23)),
                     ]);
                 }

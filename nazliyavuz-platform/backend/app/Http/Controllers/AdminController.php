@@ -50,68 +50,77 @@ class AdminController extends Controller
      */
     public function dashboard(): JsonResponse
     {
-        // Admin yetkisi zaten middleware tarafından kontrol ediliyor
+        try {
+            // Admin yetkisi zaten middleware tarafından kontrol ediliyor
 
-        $stats = [
-            'total_users' => User::count(),
-            'total_teachers' => User::where('role', 'teacher')->count(),
-            'total_students' => User::where('role', 'student')->count(),
-            'total_reservations' => Reservation::count(),
-            'pending_teachers' => User::where('role', 'teacher')
-                ->where('teacher_status', 'pending')
-                ->count(),
-            'active_reservations' => Reservation::whereIn('status', ['confirmed', 'in_progress'])
-                ->count(),
-            'completed_lessons' => Reservation::where('status', 'completed')->count(),
-            'total_revenue' => Reservation::where('status', 'completed')->sum('price'),
-            'average_rating' => \DB::table('ratings')->avg('rating') ?? 0,
-            'monthly_new_users' => User::where('created_at', '>=', now()->subMonth())->count(),
-            'monthly_revenue' => Reservation::where('status', 'completed')
-                ->where('created_at', '>=', now()->subMonth())
-                ->sum('price'),
-            'total_categories' => Category::count(),
-            'active_categories' => Category::where('is_active', true)->count(),
-        ];
-
-        // Son 7 günlük aktivite grafiği
-        $weeklyStats = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = now()->subDays($i)->format('Y-m-d');
-            $weeklyStats[] = [
-                'date' => $date,
-                'users' => User::whereDate('created_at', $date)->count(),
-                'reservations' => Reservation::whereDate('created_at', $date)->count(),
-                'revenue' => Reservation::where('status', 'completed')
-                    ->whereDate('created_at', $date)
-                    ->sum('price'),
+            $stats = [
+                'total_users' => User::count(),
+                'total_teachers' => User::where('role', 'teacher')->count(),
+                'total_students' => User::where('role', 'student')->count(),
+                'total_reservations' => Reservation::count(),
+                'pending_teachers' => User::where('role', 'teacher')
+                    ->where('teacher_status', 'pending')
+                    ->count(),
+                'active_reservations' => Reservation::whereIn('status', ['confirmed', 'in_progress'])
+                    ->count(),
+                'completed_lessons' => Reservation::where('status', 'completed')->count(),
+                'total_revenue' => Reservation::where('status', 'completed')->sum('price') ?? 0,
+                'average_rating' => \DB::table('ratings')->avg('rating') ?? 0,
+                'monthly_new_users' => User::where('created_at', '>=', now()->subMonth())->count(),
+                'monthly_revenue' => Reservation::where('status', 'completed')
+                    ->where('created_at', '>=', now()->subMonth())
+                    ->sum('price') ?? 0,
+                'total_categories' => Category::count(),
+                'active_categories' => Category::where('is_active', true)->count(),
             ];
+
+            // Son 7 günlük aktivite grafiği
+            $weeklyStats = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $date = now()->subDays($i)->format('Y-m-d');
+                $weeklyStats[] = [
+                    'date' => $date,
+                    'users' => User::whereDate('created_at', $date)->count(),
+                    'reservations' => Reservation::whereDate('created_at', $date)->count(),
+                    'revenue' => Reservation::where('status', 'completed')
+                        ->whereDate('created_at', $date)
+                        ->sum('price') ?? 0,
+                ];
+            }
+
+            $recentActivities = AuditLog::with('user')
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
+                ->get();
+
+            // Kategori dağılımı
+            $categoryStats = \DB::table('categories')
+                ->leftJoin('reservations', 'categories.id', '=', 'reservations.category_id')
+                ->select('categories.name', \DB::raw('COUNT(reservations.id) as reservation_count'))
+                ->groupBy('categories.id', 'categories.name')
+                ->orderBy('reservation_count', 'desc')
+                ->limit(5)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'stats' => $stats,
+                'recent_activities' => $recentActivities,
+                'analytics' => [
+                    'weekly_stats' => $weeklyStats,
+                    'category_distribution' => $categoryStats,
+                    'top_teachers' => $this->getTopTeachers(),
+                    'user_growth' => $this->getUserGrowthStats(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Dashboard error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Dashboard verileri yüklenirken hata oluştu',
+                'message' => $e->getMessage(),
+            ], 500);
         }
-
-        $recentActivities = AuditLog::with('user')
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get();
-
-        // Kategori dağılımı
-        $categoryStats = \DB::table('categories')
-            ->leftJoin('reservations', 'categories.id', '=', 'reservations.category_id')
-            ->select('categories.name', \DB::raw('COUNT(reservations.id) as reservation_count'))
-            ->groupBy('categories.id', 'categories.name')
-            ->orderBy('reservation_count', 'desc')
-            ->limit(5)
-            ->get();
-
-        return response()->json([
-            'success' => true,
-            'stats' => $stats,
-            'recent_activities' => $recentActivities,
-            'analytics' => [
-                'weekly_stats' => $weeklyStats,
-                'category_distribution' => $categoryStats,
-                'top_teachers' => $this->getTopTeachers(),
-                'user_growth' => $this->getUserGrowthStats(),
-            ],
-        ]);
     }
 
     /**
@@ -185,17 +194,26 @@ class AdminController extends Controller
      */
     public function getAnalytics(): JsonResponse
     {
-        $analytics = [
-            'user_growth' => $this->getUserGrowthData(),
-            'reservation_trends' => $this->getReservationTrends(),
-            'category_popularity' => $this->getCategoryPopularity(),
-            'teacher_performance' => $this->getTeacherPerformance(),
-        ];
+        try {
+            $analytics = [
+                'user_growth' => $this->getUserGrowthData(),
+                'reservation_trends' => $this->getReservationTrends(),
+                'category_popularity' => $this->getCategoryPopularity(),
+                'teacher_performance' => $this->getTeacherPerformance(),
+            ];
 
-        return response()->json([
-            'success' => true,
-            'analytics' => $analytics,
-        ]);
+            return response()->json([
+                'success' => true,
+                'analytics' => $analytics,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Analytics error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Analytics verileri yüklenirken hata oluştu',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -605,64 +623,84 @@ class AdminController extends Controller
     // Helper methods for analytics
     private function getUserGrowthData(): array
     {
-        $data = [];
-        for ($i = 11; $i >= 0; $i--) {
-            $date = now()->subMonths($i);
-            $count = User::whereYear('created_at', $date->year)
-                ->whereMonth('created_at', $date->month)
-                ->count();
-            $data[] = [
-                'month' => $date->format('Y-m'),
-                'count' => $count,
-            ];
+        try {
+            $data = [];
+            for ($i = 11; $i >= 0; $i--) {
+                $date = now()->subMonths($i);
+                $count = User::whereYear('created_at', $date->year)
+                    ->whereMonth('created_at', $date->month)
+                    ->count();
+                $data[] = [
+                    'month' => $date->format('Y-m'),
+                    'count' => $count,
+                ];
+            }
+            return $data;
+        } catch (\Exception $e) {
+            \Log::error('User growth data error: ' . $e->getMessage());
+            return [];
         }
-        return $data;
     }
 
     private function getReservationTrends(): array
     {
-        $data = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $count = Reservation::whereDate('created_at', $date)->count();
-            $data[] = [
-                'date' => $date->format('Y-m-d'),
-                'count' => $count,
-            ];
+        try {
+            $data = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $date = now()->subDays($i);
+                $count = Reservation::whereDate('created_at', $date)->count();
+                $data[] = [
+                    'date' => $date->format('Y-m-d'),
+                    'count' => $count,
+                ];
+            }
+            return $data;
+        } catch (\Exception $e) {
+            \Log::error('Reservation trends error: ' . $e->getMessage());
+            return [];
         }
-        return $data;
     }
 
     private function getCategoryPopularity(): array
     {
-        return Category::withCount('reservations')
-            ->orderBy('reservations_count', 'desc')
-            ->limit(10)
-            ->get()
-            ->map(function ($category) {
-                return [
-                    'name' => $category->name,
-                    'count' => $category->reservations_count,
-                ];
-            })
-            ->toArray();
+        try {
+            return Category::withCount('reservations')
+                ->orderBy('reservations_count', 'desc')
+                ->limit(10)
+                ->get()
+                ->map(function ($category) {
+                    return [
+                        'name' => $category->name,
+                        'count' => $category->reservations_count ?? 0,
+                    ];
+                })
+                ->toArray();
+        } catch (\Exception $e) {
+            \Log::error('Category popularity error: ' . $e->getMessage());
+            return [];
+        }
     }
 
     private function getTeacherPerformance(): array
     {
-        return Teacher::with('user')
-            ->withCount('reservations')
-            ->orderBy('reservations_count', 'desc')
-            ->limit(10)
-            ->get()
-            ->map(function ($teacher) {
-                return [
-                    'name' => $teacher->user->name,
-                    'reservations_count' => $teacher->reservations_count,
-                    'average_rating' => $teacher->average_rating,
-                ];
-            })
-            ->toArray();
+        try {
+            return Teacher::with('user')
+                ->withCount('reservations')
+                ->orderBy('reservations_count', 'desc')
+                ->limit(10)
+                ->get()
+                ->map(function ($teacher) {
+                    return [
+                        'name' => $teacher->user->name ?? 'Bilinmeyen',
+                        'reservations_count' => $teacher->reservations_count ?? 0,
+                        'average_rating' => $teacher->rating_avg ?? 0,
+                    ];
+                })
+                ->toArray();
+        } catch (\Exception $e) {
+            \Log::error('Teacher performance error: ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**

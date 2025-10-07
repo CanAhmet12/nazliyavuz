@@ -161,7 +161,15 @@ class UserController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'current_password' => 'required|string',
-                'new_password' => 'required|string|min:8|confirmed',
+                'new_password' => [
+                    'required',
+                    'string',
+                    'min:8',
+                    'confirmed',
+                    'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).+$/'
+                ],
+            ], [
+                'new_password.regex' => 'Şifre en az bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter içermelidir.'
             ]);
 
             if ($validator->fails()) {

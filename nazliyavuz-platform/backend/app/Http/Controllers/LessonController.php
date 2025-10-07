@@ -280,6 +280,181 @@ class LessonController extends Controller
     }
 
     /**
+     * Start lesson
+     */
+    public function startLesson(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'reservation_id' => 'required|integer|exists:reservations,id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'VALIDATION_ERROR',
+                        'message' => $validator->errors()
+                    ]
+                ], 400);
+            }
+
+            $user = Auth::user();
+            $reservationId = $request->reservation_id;
+
+            // Find the lesson by reservation
+            $lesson = Lesson::where('reservation_id', $reservationId)->first();
+
+            if (!$lesson) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'LESSON_NOT_FOUND',
+                        'message' => 'Ders bulunamadı'
+                    ]
+                ], 404);
+            }
+
+            // Check if user is authorized to start this lesson
+            if ($lesson->teacher_id !== $user->id && $lesson->student_id !== $user->id) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'FORBIDDEN',
+                        'message' => 'Bu dersi başlatma yetkiniz yok'
+                    ]
+                ], 403);
+            }
+
+            // Check if lesson is scheduled
+            if ($lesson->status !== 'scheduled') {
+                return response()->json([
+                    'error' => [
+                        'code' => 'INVALID_STATUS',
+                        'message' => 'Sadece planlanan dersler başlatılabilir'
+                    ]
+                ], 400);
+            }
+
+            // Update lesson
+            $lesson->update([
+                'status' => 'in_progress',
+                'started_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ders başarıyla başlatıldı',
+                'lesson' => $lesson->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error starting lesson: ' . $e->getMessage());
+
+            return response()->json([
+                'error' => [
+                    'code' => 'LESSON_START_ERROR',
+                    'message' => 'Ders başlatılırken bir hata oluştu'
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * End lesson
+     */
+    public function endLesson(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'reservation_id' => 'required|integer|exists:reservations,id',
+                'notes' => 'nullable|string|max:1000',
+                'rating' => 'nullable|integer|min:1|max:5',
+                'feedback' => 'nullable|string|max:500',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'VALIDATION_ERROR',
+                        'message' => $validator->errors()
+                    ]
+                ], 400);
+            }
+
+            $user = Auth::user();
+            $reservationId = $request->reservation_id;
+
+            // Find the lesson by reservation
+            $lesson = Lesson::where('reservation_id', $reservationId)->first();
+
+            if (!$lesson) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'LESSON_NOT_FOUND',
+                        'message' => 'Ders bulunamadı'
+                    ]
+                ], 404);
+            }
+
+            // Check if user is authorized to end this lesson
+            if ($lesson->teacher_id !== $user->id && $lesson->student_id !== $user->id) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'FORBIDDEN',
+                        'message' => 'Bu dersi bitirme yetkiniz yok'
+                    ]
+                ], 403);
+            }
+
+            // Check if lesson is in progress
+            if ($lesson->status !== 'in_progress') {
+                return response()->json([
+                    'error' => [
+                        'code' => 'INVALID_STATUS',
+                        'message' => 'Sadece devam eden dersler bitirilebilir'
+                    ]
+                ], 400);
+            }
+
+            // Calculate duration if started_at exists
+            $durationMinutes = null;
+            if ($lesson->started_at) {
+                $durationMinutes = $lesson->started_at->diffInMinutes(now());
+            }
+
+            // Update lesson
+            $lesson->update([
+                'status' => 'completed',
+                'ended_at' => now(),
+                'duration_minutes' => $durationMinutes,
+                'notes' => $request->notes,
+                'rating' => $request->rating,
+                'feedback' => $request->feedback,
+                'rated_at' => $request->rating ? now() : null,
+            ]);
+
+            // Update teacher's average rating if rating provided
+            if ($request->rating) {
+                $this->updateTeacherRating($lesson->teacher_id);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ders başarıyla tamamlandı',
+                'lesson' => $lesson->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error ending lesson: ' . $e->getMessage());
+
+            return response()->json([
+                'error' => [
+                    'code' => 'LESSON_END_ERROR',
+                    'message' => 'Ders bitirilirken bir hata oluştu'
+                ]
+            ], 500);
+        }
+    }
+
+    /**
      * Update teacher's average rating
      */
     private function updateTeacherRating(int $teacherId): void
