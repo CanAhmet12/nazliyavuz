@@ -445,7 +445,6 @@ class TeacherController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'bio' => 'required|string|min:50|max:1000',
-                'specialization' => 'required|string|max:255',
                 'price_hour' => 'required|numeric|min:50|max:1000',
                 'education' => 'nullable|array',
                 'education.*' => 'string|max:255',
@@ -454,8 +453,11 @@ class TeacherController extends Controller
                 'languages' => 'nullable|array',
                 'languages.*' => 'string|max:50',
                 'online_available' => 'boolean',
-                'categories' => 'required|array|min:1',
-                'categories.*' => 'integer|exists:categories,id',
+                'experience_years' => 'nullable|integer|min:0|max:50',
+                'main_categories' => 'required|array|min:1',
+                'main_categories.*' => 'integer|exists:categories,id',
+                'sub_categories' => 'required|array|min:1',
+                'sub_categories.*' => 'integer|exists:categories,id',
             ]);
 
             if ($validator->fails()) {
@@ -483,10 +485,15 @@ class TeacherController extends Controller
                 $teacherData['online_available'] = $request->input('online_available');
             }
             
+            if ($request->has('experience_years')) {
+                $teacherData['experience_years'] = $request->input('experience_years');
+            }
+            
             $teacher = Teacher::create($teacherData);
 
-            // Attach categories
-            $teacher->categories()->sync($request->categories);
+            // Attach main and sub categories
+            $allCategories = array_merge($request->main_categories, $request->sub_categories);
+            $teacher->categories()->sync($allCategories);
 
             // Update user's teacher_status to pending
             $user->update(['teacher_status' => 'pending']);

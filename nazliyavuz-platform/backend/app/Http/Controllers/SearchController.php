@@ -23,6 +23,7 @@ class SearchController extends Controller
             $maxPrice = $request->get('max_price');
             $rating = $request->get('rating');
             $location = $request->get('location');
+            $onlineOnly = $request->get('online_only');
             $sortBy = $request->get('sort_by', 'relevance');
             $page = $request->get('page', 1);
             $perPage = $request->get('per_page', 20);
@@ -58,6 +59,11 @@ class SearchController extends Controller
             // Apply location filter
             if ($location) {
                 $teachersQuery->where('location', 'like', "%{$location}%");
+            }
+            
+            // Apply online only filter
+            if ($onlineOnly) {
+                $teachersQuery->where('online_available', true);
             }
             
             // Apply sorting
@@ -99,6 +105,7 @@ class SearchController extends Controller
                     'max_price' => $maxPrice,
                     'rating' => $rating,
                     'location' => $location,
+                    'online_only' => $onlineOnly,
                     'sort_by' => $sortBy,
                 ]
             ]);

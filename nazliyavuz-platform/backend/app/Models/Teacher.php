@@ -20,6 +20,7 @@ class Teacher extends Model
         'certifications',
         'price_hour',
         'languages',
+        'experience_years',
         'rating_avg',
         'rating_count',
         'online_available',
