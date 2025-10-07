@@ -306,26 +306,20 @@ class _EnhancedReservationsScreenState extends State<EnhancedReservationsScreen>
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.25),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
+                            color: Colors.white.withValues(alpha: 0.3),
                             width: 1,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
                         ),
                         child: const Icon(
-                          Icons.calendar_today_rounded,
+                          Icons.event_available_rounded,
                           color: Colors.white,
-                          size: 26,
+                          size: 20,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -337,25 +331,39 @@ class _EnhancedReservationsScreenState extends State<EnhancedReservationsScreen>
                             const Text(
                               'Rezervasyonlarım',
                               style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w700,
                                 color: Colors.white,
+                                fontSize: 18,
+                                letterSpacing: -0.5,
                               ),
                             ),
-                            const SizedBox(height: 4),
                             Text(
                               '${_reservations.length} rezervasyon',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.white70,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.white),
-                        onPressed: _refreshData,
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(
+                            Icons.refresh_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          onPressed: _refreshData,
+                        ),
                       ),
                     ],
                   ),
@@ -664,7 +672,7 @@ class _EnhancedReservationsScreenState extends State<EnhancedReservationsScreen>
                     radius: 16,
                     backgroundColor: _getStatusColor(status).withOpacity(0.1),
                     child: Text(
-                      (reservation.student?.name?.substring(0, 1).toUpperCase()) ?? '?',
+                      (reservation.student?.name.substring(0, 1) ?? '?').toUpperCase(),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

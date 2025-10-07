@@ -622,11 +622,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
                   
                   const SizedBox(height: 20),
                   
-                  // Payment Section
-                  _buildPaymentSection(),
-                  
-                  const SizedBox(height: 20),
-                  
                   // Today's Schedule
                   _buildTodaysSchedule(),
                   
@@ -1103,18 +1098,10 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
         children: [
           Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: color.withOpacity( 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 20,
-                ),
+              Icon(
+                icon,
+                color: color,
+                size: 20,
               ),
               const Spacer(),
               Flexible(
@@ -1357,7 +1344,12 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
             ),
             GestureDetector(
               onTap: () {
-                // TODO: Navigate to all students
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TeacherStudentsScreen(),
+                  ),
+                );
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

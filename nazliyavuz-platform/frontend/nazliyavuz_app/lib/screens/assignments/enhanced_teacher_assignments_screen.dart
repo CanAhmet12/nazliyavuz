@@ -257,10 +257,6 @@ class _EnhancedTeacherAssignmentsScreenState extends State<EnhancedTeacherAssign
           ),
         ),
       ),
-      floatingActionButton: ScaleTransition(
-        scale: _scaleAnimation,
-        child: _buildFloatingActionButton(),
-      ),
     );
   }
 
@@ -301,29 +297,23 @@ class _EnhancedTeacherAssignmentsScreenState extends State<EnhancedTeacherAssign
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
+                            color: Colors.white.withValues(alpha: 0.3),
                             width: 1,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
                         ),
                         child: const Icon(
-                          Icons.assignment_rounded,
+                          Icons.task_alt_rounded,
                           color: Colors.white,
-                          size: 28,
+                          size: 20,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -332,34 +322,75 @@ class _EnhancedTeacherAssignmentsScreenState extends State<EnhancedTeacherAssign
                             const Text(
                               'Ödev Yönetimi',
                               style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w700,
                                 color: Colors.white,
-                                letterSpacing: 0.5,
+                                fontSize: 18,
+                                letterSpacing: -0.5,
                               ),
                             ),
-                            const SizedBox(height: 6),
                             Text(
                               '${_assignments.length} ödev atandı',
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                letterSpacing: 0.3,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 22),
-                          onPressed: _refreshData,
-                        ),
+                      // İki ikon yan yana
+                      Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(
+                                Icons.category_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                HapticFeedback.mediumImpact();
+                                // TODO: Navigate to category creation
+                              },
+                              tooltip: 'Yeni Kategori Oluştur',
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(
+                                Icons.add_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                HapticFeedback.mediumImpact();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const CreateAssignmentScreen(),
+                                  ),
+                                ).then((_) => _refreshData());
+                              },
+                              tooltip: 'Yeni Ödev Oluştur',
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -375,33 +406,52 @@ class _EnhancedTeacherAssignmentsScreenState extends State<EnhancedTeacherAssign
   Widget _buildStatisticsSection() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: _buildStatCard(
-              'Toplam Ödev',
-              '${_statistics['total_assignments'] ?? 0}',
-              Icons.assignment_rounded,
-              AppTheme.primaryBlue,
-            ),
+          // First row - 2 cards
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Toplam Ödev',
+                  '${_statistics['total_assignments'] ?? 0}',
+                  Icons.assignment_rounded,
+                  AppTheme.primaryBlue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'Atanan',
+                  '${_statistics['pending_assignments'] ?? 0}',
+                  Icons.assignment_rounded,
+                  AppTheme.accentOrange,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatCard(
-              'Atanan',
-              '${_statistics['pending_assignments'] ?? 0}',
-              Icons.assignment_rounded,
-              AppTheme.accentOrange,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatCard(
-              'Değerlendirilecek',
-              '${_statistics['submitted_assignments'] ?? 0}',
-              Icons.grade_rounded,
-              AppTheme.accentGreen,
-            ),
+          const SizedBox(height: 12),
+          // Second row - 2 cards
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Değerlendirilecek',
+                  '${_statistics['submitted_assignments'] ?? 0}',
+                  Icons.grade_rounded,
+                  AppTheme.accentGreen,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'Değerlendirilen',
+                  '${_statistics['graded_assignments'] ?? 0}',
+                  Icons.check_circle_rounded,
+                  AppTheme.accentPurple,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -819,37 +869,6 @@ class _EnhancedTeacherAssignmentsScreenState extends State<EnhancedTeacherAssign
     );
   }
 
-  Widget _buildFloatingActionButton() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: FloatingActionButton.extended(
-        onPressed: () {
-          HapticFeedback.mediumImpact();
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const CreateAssignmentScreen(),
-            ),
-          ).then((_) => _refreshData());
-        },
-        backgroundColor: AppTheme.accentPurple,
-        foregroundColor: Colors.white,
-        elevation: 12,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        icon: const Icon(Icons.add_task_rounded, size: 20),
-        label: const Text(
-          'Yeni Ödev Oluştur',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-            letterSpacing: 0.3,
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildLoadingState() {
     return const Center(
@@ -943,28 +962,6 @@ class _EnhancedTeacherAssignmentsScreenState extends State<EnhancedTeacherAssign
               color: Colors.grey[400],
             ),
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () {
-              HapticFeedback.mediumImpact();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CreateAssignmentScreen(),
-                ),
-              ).then((_) => _refreshData());
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accentPurple,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            icon: const Icon(Icons.add_task_rounded),
-            label: const Text('İlk Ödevi Oluştur'),
           ),
         ],
       ),

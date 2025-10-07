@@ -30,7 +30,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
       final result = await _apiService.getNotifications();
       setState(() {
-        _notifications = (result['data'] as List)
+        _notifications = (result['notifications'] as List)
             .map((json) => app_notification.Notification.fromJson(json))
             .toList();
         _isLoading = false;

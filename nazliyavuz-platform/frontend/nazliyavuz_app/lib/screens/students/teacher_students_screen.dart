@@ -4,6 +4,7 @@ import '../../models/user.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 import 'student_detail_screen.dart';
+import '../chat/teacher_chat_screen.dart';
 
 class TeacherStudentsScreen extends StatefulWidget {
   const TeacherStudentsScreen({super.key});
@@ -273,7 +274,12 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen>
             IconButton(
               onPressed: () {
                 HapticFeedback.lightImpact();
-                // Navigate to chat
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TeacherChatScreen(student: student),
+                  ),
+                );
               },
               icon: Icon(
                 Icons.chat_bubble_outline,

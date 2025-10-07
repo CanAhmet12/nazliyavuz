@@ -92,6 +92,16 @@ class _TeacherChatScreenState extends State<TeacherChatScreen> {
   }
 
   @override
+  void didUpdateWidget(TeacherChatScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // If student changed, reload chat
+    if (oldWidget.student.id != widget.student.id) {
+      _loadChat();
+    }
+  }
+
+  @override
   void dispose() {
     _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
@@ -534,6 +544,8 @@ class _TeacherChatScreenState extends State<TeacherChatScreen> {
           ),
           const SizedBox(width: 8),
           Container(
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: AppTheme.accentGreen,
               shape: BoxShape.circle,
@@ -546,6 +558,7 @@ class _TeacherChatScreenState extends State<TeacherChatScreen> {
               ],
             ),
             child: IconButton(
+              padding: EdgeInsets.zero,
               onPressed: _isSending ? null : _sendMessage,
               icon: _isSending
                   ? const SizedBox(
@@ -559,6 +572,7 @@ class _TeacherChatScreenState extends State<TeacherChatScreen> {
                   : const Icon(
                       Icons.send_rounded,
                       color: Colors.white,
+                      size: 20,
                     ),
             ),
           ),

@@ -38,7 +38,7 @@ class _StudentLessonsScreenState extends State<StudentLessonsScreen>
     {'value': '', 'label': 'Tümü', 'icon': Icons.all_inclusive_rounded, 'color': AppTheme.primaryBlue},
     {'value': 'upcoming', 'label': 'Yaklaşan', 'icon': Icons.schedule_rounded, 'color': AppTheme.accentOrange},
     {'value': 'in_progress', 'label': 'Devam Eden', 'icon': Icons.play_circle_rounded, 'color': AppTheme.accentGreen},
-    {'value': 'completed', 'label': 'Tamamlanan', 'icon': Icons.check_circle_rounded, 'color': AppTheme.primaryBlue},
+    {'value': 'completed', 'label': 'Tamamlanan', 'icon': Icons.check_circle_rounded, 'color': AppTheme.accentPurple},
   ];
 
   @override
@@ -1146,7 +1146,7 @@ Widget build(BuildContext context) {
   String _getStatusText(String status) {
     switch (status) {
       case 'scheduled':
-        return 'Planlandı';
+        return '';
       case 'in_progress':
         return 'Devam Eden';
       case 'completed':

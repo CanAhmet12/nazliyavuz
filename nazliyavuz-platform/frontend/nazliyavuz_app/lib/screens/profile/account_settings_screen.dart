@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import 'password_change_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -27,7 +28,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 subtitle: const Text('Hesap şifrenizi güncelleyin'),
                 trailing: const Icon(Icons.arrow_forward_ios_rounded),
                 onTap: () {
-                  // Navigate to password change
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PasswordChangeScreen(),
+                    ),
+                  );
                 },
               ),
               ListTile(

@@ -56,10 +56,23 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
       final popular = await _apiService.getPopularSearches();
       
       setState(() {
-        _categories = (filters['categories'] as List)
-            .map((json) => Category.fromJson(json))
-            .toList();
-        _languages = List<String>.from(filters['languages']);
+        // Null safety check for categories
+        if (filters['categories'] != null && filters['categories'] is List) {
+          _categories = (filters['categories'] as List)
+              .map((json) => Category.fromJson(json))
+              .toList();
+        } else {
+          _categories = [];
+        }
+        
+        // Null safety check for languages
+        if (filters['languages'] != null && filters['languages'] is List) {
+          _languages = List<String>.from(filters['languages']);
+        } else {
+          _languages = [];
+        }
+        
+        // Null safety check for popular searches
         _popularSearches = popular.map((p) => p.toString()).toList();
       });
     } catch (e) {
@@ -92,22 +105,33 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
         rating: _ratingMin,
         location: _selectedLocation,
         sortBy: _sortBy,
+        onlineOnly: _onlineOnly,
         page: _currentPage,
         perPage: 20,
       );
 
       setState(() {
-        if (isNewSearch) {
-          _teachers = (result['data'] as List)
+        // Null safety check for search results data
+        if (result['data'] != null && result['data'] is List) {
+          final teachersData = (result['data'] as List)
               .map((json) => Teacher.fromJson(json))
               .toList();
+          
+          if (isNewSearch) {
+            _teachers = teachersData;
+          } else {
+            _teachers.addAll(teachersData);
+          }
         } else {
-          _teachers.addAll((result['data'] as List)
-              .map((json) => Teacher.fromJson(json))
-              .toList());
+          if (isNewSearch) {
+            _teachers = [];
+          }
         }
         
-        _totalResults = result['meta']['total'];
+        // Null safety check for total results
+        _totalResults = result['meta'] != null && result['meta']['total'] != null 
+            ? result['meta']['total'] 
+            : 0;
         _isLoading = false;
       });
     } catch (e) {
@@ -142,7 +166,10 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
     try {
       final suggestions = await _apiService.getSearchSuggestions(query);
       setState(() {
-        _suggestions = suggestions.map((s) => s['text'] as String).toList();
+        _suggestions = suggestions
+            .where((s) => s['text'] != null)
+            .map((s) => s['text'] as String)
+            .toList();
         _showSuggestions = true;
         _isLoadingSuggestions = false;
       });
@@ -694,6 +721,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+            color: Colors.black87,
           ),
         ),
         const SizedBox(height: 8),

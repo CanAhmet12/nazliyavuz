@@ -197,7 +197,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -225,7 +225,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
           HapticFeedback.lightImpact();
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           decoration: BoxDecoration(
             color: isSelected ? AppTheme.primaryBlue.withOpacity(0.08) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
@@ -234,7 +234,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(3),
+                padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   color: isSelected ? AppTheme.primaryBlue : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
@@ -242,10 +242,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
                 child: Icon(
                   isSelected ? activeIcon : icon,
                   color: isSelected ? Colors.white : AppTheme.grey500,
-                  size: 20, // Daha büyük ikon
+                  size: 18,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(
                 label,
                 style: TextStyle(
@@ -381,13 +381,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
                       color: AppTheme.primaryBlue,
                       onTap: () {
                         Navigator.pop(context);
-                        // TODO: Navigate to chat with proper user selection
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) => const ChatScreen(),
-                        //   ),
-                        // );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ChatListScreen(),
+                          ),
+                        );
                       },
                     ),
                     _buildQuickActionCard(

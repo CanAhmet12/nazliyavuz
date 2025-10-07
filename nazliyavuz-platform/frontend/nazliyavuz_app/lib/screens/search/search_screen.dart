@@ -221,7 +221,7 @@ class _SearchScreenState extends State<SearchScreen>
 
   Widget _buildSearchAndFilters() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -234,18 +234,21 @@ class _SearchScreenState extends State<SearchScreen>
       ),
       child: Column(
         children: [
-          // Search Bar
-          _buildSearchBar(),
+          // Search Bar with Filter Buttons
+          Row(
+            children: [
+              Expanded(child: _buildSearchBar()),
+              const SizedBox(width: 8),
+              _buildAdvancedFiltersButton(),
+              const SizedBox(width: 8),
+              _buildSortButton(),
+            ],
+          ),
           
           const SizedBox(height: 12),
           
           // Quick Filters
           _buildQuickFilters(),
-          
-          const SizedBox(height: 8),
-          
-          // Advanced Filters Button
-          _buildAdvancedFiltersButton(),
         ],
       ),
     );
@@ -356,42 +359,44 @@ class _SearchScreenState extends State<SearchScreen>
   }
 
   Widget _buildAdvancedFiltersButton() {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _showAdvancedFilters,
-            icon: const Icon(Icons.tune_rounded, size: 16),
-            label: const Text(
-              'Filtreler',
-              style: TextStyle(fontSize: 12),
-            ),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: AppTheme.grey300),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-            ),
-          ),
+    return Container(
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: _showAdvancedFilters,
+        icon: const Icon(Icons.tune_rounded, size: 18),
+        label: const Text(
+          'Filtreler',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
-        const SizedBox(width: 8),
-        OutlinedButton.icon(
-          onPressed: _showSortOptions,
-          icon: const Icon(Icons.sort_rounded, size: 16),
-          label: Text(
-            _sortOptions.firstWhere((option) => option['value'] == _sortBy)['label'],
-            style: const TextStyle(fontSize: 12),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: AppTheme.grey300),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
-          style: OutlinedButton.styleFrom(
-            side: BorderSide(color: AppTheme.grey300),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 8),
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 8),
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildSortButton() {
+    return Container(
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: _showSortOptions,
+        icon: const Icon(Icons.sort_rounded, size: 16),
+        label: Text(
+          _sortOptions.firstWhere((option) => option['value'] == _sortBy)['label'],
+          style: const TextStyle(fontSize: 12),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: AppTheme.grey300),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+        ),
+      ),
     );
   }
 

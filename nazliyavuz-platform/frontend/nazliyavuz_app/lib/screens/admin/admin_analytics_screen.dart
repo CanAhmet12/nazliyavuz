@@ -67,7 +67,9 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
         _error = null;
       });
 
+      print('🔍 [ANALYTICS] Loading analytics data...');
       final data = await _apiService.getAdminAnalytics();
+      print('✅ [ANALYTICS] Data received: $data');
       
       if (mounted) {
         setState(() {
@@ -78,6 +80,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
         _animationController.forward();
       }
     } catch (e) {
+      print('❌ [ANALYTICS] Error loading analytics: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();

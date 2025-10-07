@@ -71,7 +71,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
         _error = null;
       });
 
+      print('🔍 [SETTINGS] Loading categories...');
       final data = await _apiService.getCategories();
+      print('✅ [SETTINGS] Categories received: $data');
       
       if (mounted) {
         setState(() {
@@ -80,6 +82,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
         });
       }
     } catch (e) {
+      print('❌ [SETTINGS] Error loading categories: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();

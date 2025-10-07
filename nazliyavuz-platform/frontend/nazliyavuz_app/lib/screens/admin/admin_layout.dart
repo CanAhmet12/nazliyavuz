@@ -361,7 +361,7 @@ class _AdminLayoutState extends State<AdminLayout>
           Text(
             _menuItems[_currentIndex].title,
             style: const TextStyle(
-              fontSize: 24,
+              fontSize: 18,
               fontWeight: FontWeight.w700,
               color: Colors.black87,
             ),

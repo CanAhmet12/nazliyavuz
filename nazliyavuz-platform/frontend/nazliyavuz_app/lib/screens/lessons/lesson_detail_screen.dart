@@ -366,8 +366,8 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
           Text(
             'Ders Bilgileri',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
               color: AppTheme.grey900,
             ),
           ),
@@ -384,7 +384,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
             '${widget.lesson.durationMinutes ?? 60} dakika',
           ),
           const SizedBox(height: 8),
-          _buildInfoRow(
+          _buildStatusRow(
             Icons.info_outline,
             'Durum',
             widget.lesson.statusText,
@@ -414,8 +414,8 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
           Text(
             'Katılımcılar',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
               color: AppTheme.grey900,
             ),
           ),
@@ -456,8 +456,8 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
           Text(
             'Ders Notları',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
               color: AppTheme.grey900,
             ),
           ),
@@ -509,8 +509,8 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
           Text(
             'Değerlendirme',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
               color: AppTheme.grey900,
             ),
           ),
@@ -561,6 +561,44 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
         const SizedBox(width: 8),
         Text(
           '$label: ',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.grey700,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.grey600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: AppTheme.grey600,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '$label',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.grey700,
+          ),
+        ),
+        const Text(
+          ': ',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,

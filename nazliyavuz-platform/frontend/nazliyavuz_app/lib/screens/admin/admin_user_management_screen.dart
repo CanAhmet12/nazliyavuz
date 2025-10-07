@@ -106,12 +106,14 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen>
         });
       }
 
+      print('🔍 [USER_MGMT] Loading users page: $_currentPage');
       final response = await _apiService.getAdminUsers(
         page: _currentPage,
         role: _selectedFilter == 'all' ? null : _selectedFilter,
         status: _selectedStatus == 'all' ? null : _selectedStatus,
         search: _searchController.text.isNotEmpty ? _searchController.text : null,
       );
+      print('✅ [USER_MGMT] Users received: ${response['users']?.length ?? 0}');
 
       if (mounted) {
         setState(() {
@@ -134,6 +136,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen>
         }
       }
     } catch (e) {
+      print('❌ [USER_MGMT] Error loading users: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();

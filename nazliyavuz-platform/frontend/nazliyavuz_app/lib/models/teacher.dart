@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'dart:convert';
 import 'user.dart';
 import 'category.dart';
 
@@ -65,16 +66,10 @@ class Teacher extends Equatable {
       userId: json['user_id'] ?? json['id'] ?? 0,
       id: json['id'],
       bio: json['bio']?.toString(),
-      education: json['education'] != null 
-          ? List<String>.from(json['education'] as List) 
-          : null,
-      certifications: json['certifications'] != null 
-          ? List<String>.from(json['certifications'] as List) 
-          : null,
+      education: _parseStringList(json['education']),
+      certifications: _parseStringList(json['certifications']),
       priceHour: _parseDouble(json['price_hour']),
-      languages: json['languages'] != null 
-          ? List<String>.from(json['languages'] as List) 
-          : null,
+      languages: _parseStringList(json['languages']),
       ratingAvg: _parseDouble(json['rating_avg']) ?? 0.0,
       ratingCount: json['rating_count'] ?? 0,
       user: json['user'] != null ? User.fromJson(json['user']) : 
@@ -109,6 +104,33 @@ class Teacher extends Equatable {
         return null;
       }
     }
+    return null;
+  }
+
+  static List<String>? _parseStringList(dynamic value) {
+    if (value == null) return null;
+    
+    // Eğer zaten List ise
+    if (value is List) {
+      return value.map((e) => e.toString()).toList();
+    }
+    
+    // Eğer String ise (JSON string olabilir)
+    if (value is String) {
+      try {
+        // JSON string'i parse et
+        final decoded = jsonDecode(value);
+        if (decoded is List) {
+          return decoded.map((e) => e.toString()).toList();
+        }
+        // Eğer tek bir string ise
+        return [value];
+      } catch (e) {
+        // JSON değilse, virgülle ayrılmış string olabilir
+        return value.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      }
+    }
+    
     return null;
   }
 

@@ -35,28 +35,88 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   
   final List<int> _durationOptions = [30, 60, 90, 120, 180, 240]; // 30 min to 4 hours
 
-  // Subject suggestions for autocomplete
-  final List<String> _subjectSuggestions = [
-    'Matematik - Fonksiyonlar', 'Matematik - Türev', 'Matematik - İntegral',
-    'Matematik - Trigonometri', 'Matematik - Logaritma', 'Matematik - Limit',
-    'Fizik - Mekanik', 'Fizik - Elektrik', 'Fizik - Manyetizma',
-    'Fizik - Optik', 'Fizik - Termodinamik', 'Fizik - Dalgalar',
-    'Kimya - Organik Kimya', 'Kimya - İnorganik Kimya', 'Kimya - Fizikokimya',
-    'Kimya - Analitik Kimya', 'Kimya - Biyokimya',
-    'Biyoloji - Hücre Biyolojisi', 'Biyoloji - Genetik', 'Biyoloji - Ekoloji',
-    'Biyoloji - Anatomi', 'Biyoloji - Fizyoloji',
-    'Türkçe - Dil Bilgisi', 'Türkçe - Kompozisyon', 'Türkçe - Edebiyat',
-    'İngilizce - Grammar', 'İngilizce - Speaking', 'İngilizce - Writing',
-    'İngilizce - Reading', 'İngilizce - Listening', 'İngilizce - IELTS',
-    'İngilizce - TOEFL', 'İngilizce - YDS',
-    'Almanca - Grammatik', 'Almanca - Konversation', 'Almanca - Schreiben',
-    'Tarih - Osmanlı Tarihi', 'Tarih - Cumhuriyet Tarihi', 'Tarih - Dünya Tarihi',
-    'Coğrafya - Fiziki Coğrafya', 'Coğrafya - Beşeri Coğrafya',
-    'Felsefe - Mantık', 'Felsefe - Etik', 'Felsefe - Metafizik',
-    'Ekonomi - Mikroekonomi', 'Ekonomi - Makroekonomi',
-    'Programlama - Python', 'Programlama - Java', 'Programlama - C++',
-    'Programlama - JavaScript', 'Programlama - React', 'Programlama - Flutter'
-  ];
+  // All subject suggestions by category
+  final Map<String, List<String>> _allSubjectSuggestions = {
+    'Matematik': [
+      'Fonksiyonlar', 'Türev', 'İntegral', 'Trigonometri', 'Logaritma', 'Limit',
+      'Analitik Geometri', 'Olasılık', 'İstatistik', 'Lineer Cebir', 'Diferansiyel Denklemler'
+    ],
+    'Fizik': [
+      'Mekanik', 'Elektrik', 'Manyetizma', 'Optik', 'Termodinamik', 'Dalgalar',
+      'Modern Fizik', 'Atom Fiziği', 'Nükleer Fizik', 'Katıhal Fiziği'
+    ],
+    'Kimya': [
+      'Organik Kimya', 'İnorganik Kimya', 'Fizikokimya', 'Analitik Kimya', 'Biyokimya',
+      'Polimer Kimyası', 'Çevre Kimyası', 'Endüstriyel Kimya'
+    ],
+    'Biyoloji': [
+      'Hücre Biyolojisi', 'Genetik', 'Ekoloji', 'Anatomi', 'Fizyoloji',
+      'Mikrobiyoloji', 'Botanik', 'Zooloji', 'Evrim', 'Moleküler Biyoloji'
+    ],
+    'Türkçe': [
+      'Dil Bilgisi', 'Kompozisyon', 'Edebiyat', 'Türk Dili', 'Yazım Kuralları',
+      'Noktalama', 'Kelime Bilgisi', 'Cümle Bilgisi'
+    ],
+    'İngilizce': [
+      'Grammar', 'Speaking', 'Writing', 'Reading', 'Listening', 'IELTS',
+      'TOEFL', 'YDS', 'Vocabulary', 'Pronunciation', 'Business English'
+    ],
+    'Almanca': [
+      'Grammatik', 'Konversation', 'Schreiben', 'Lesen', 'Hören', 'Goethe-Zertifikat',
+      'TestDaF', 'Wortschatz', 'Aussprache'
+    ],
+    'Fransızca': [
+      'Grammaire', 'Conversation', 'Écriture', 'Lecture', 'Écoute', 'DELF',
+      'DALF', 'Vocabulaire', 'Prononciation'
+    ],
+    'Tarih': [
+      'Osmanlı Tarihi', 'Cumhuriyet Tarihi', 'Dünya Tarihi', 'Türk Tarihi',
+      'Avrupa Tarihi', 'Orta Çağ Tarihi', 'Yakın Çağ Tarihi'
+    ],
+    'Coğrafya': [
+      'Fiziki Coğrafya', 'Beşeri Coğrafya', 'Türkiye Coğrafyası', 'Dünya Coğrafyası',
+      'Ekonomik Coğrafya', 'Siyasi Coğrafya', 'Çevre Coğrafyası'
+    ],
+    'Felsefe': [
+      'Mantık', 'Etik', 'Metafizik', 'Epistemoloji', 'Estetik', 'Siyaset Felsefesi',
+      'Din Felsefesi', 'Bilim Felsefesi'
+    ],
+    'Ekonomi': [
+      'Mikroekonomi', 'Makroekonomi', 'İktisat Teorisi', 'Para ve Banka',
+      'Uluslararası Ekonomi', 'Kalkınma Ekonomisi', 'Endüstriyel Ekonomi'
+    ],
+    'Programlama': [
+      'Python', 'Java', 'C++', 'JavaScript', 'React', 'Flutter', 'Dart',
+      'HTML/CSS', 'SQL', 'Node.js', 'Vue.js', 'Angular'
+    ],
+    'Müzik': [
+      'Piyano', 'Gitar', 'Keman', 'Çello', 'Flüt', 'Saksafon', 'Davul',
+      'Vokal', 'Kompozisyon', 'Müzik Teorisi', 'Armoni', 'Solfej'
+    ],
+    'Resim': [
+      'Yağlı Boya', 'Sulu Boya', 'Karakalem', 'Pastel', 'Akrilik', 'Dijital Sanat',
+      'Portre', 'Manzara', 'Soyut Sanat', 'Çizim Teknikleri'
+    ],
+    'Dans': [
+      'Bale', 'Modern Dans', 'Hip-Hop', 'Latin Dansları', 'Salsa', 'Bachata',
+      'Tango', 'Vals', 'Halk Dansları', 'Jazz Dans'
+    ],
+    'Spor': [
+      'Futbol', 'Basketbol', 'Voleybol', 'Tenis', 'Yüzme', 'Koşu',
+      'Fitness', 'Yoga', 'Pilates', 'Savunma Sanatları'
+    ]
+  };
+
+  // Get filtered subject suggestions based on selected category
+  List<String> get _subjectSuggestions {
+    if (_selectedCategory == null) return [];
+    
+    final categoryName = _selectedCategory!.name;
+    final subjects = _allSubjectSuggestions[categoryName] ?? [];
+    
+    // Return subjects with category prefix
+    return subjects.map((subject) => '$categoryName - $subject').toList();
+  }
 
   @override
   void initState() {
@@ -108,7 +168,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
               const SizedBox(height: 12),
               Autocomplete<String>(
                 optionsBuilder: (TextEditingValue textEditingValue) {
-                  if (textEditingValue.text.isEmpty) {
+                  if (textEditingValue.text.isEmpty || _selectedCategory == null) {
                     return const Iterable<String>.empty();
                   }
                   return _subjectSuggestions.where((String option) {
@@ -122,12 +182,18 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                   return TextFormField(
                     controller: _subjectController,
                     focusNode: focusNode,
+                    enabled: _selectedCategory != null, // Only enable when category is selected
                     decoration: InputDecoration(
-                      hintText: 'Örn: Matematik - Fonksiyonlar',
+                      hintText: _selectedCategory == null 
+                          ? 'Önce ders kategorisi seçin'
+                          : 'Örn: ${_selectedCategory!.name} - ${_allSubjectSuggestions[_selectedCategory!.name]?.first ?? 'Konu'}',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       prefixIcon: const Icon(Icons.book_rounded),
+                      suffixIcon: _selectedCategory == null 
+                          ? const Icon(Icons.lock_rounded, color: Colors.grey)
+                          : null,
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -427,6 +493,8 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                   onTap: () {
                     setState(() {
                       _selectedCategory = category;
+                      // Clear subject when category changes
+                      _subjectController.clear();
                     });
                     HapticFeedback.lightImpact();
                   },

@@ -252,14 +252,14 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header Card
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -309,7 +309,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
               // Form Fields
               // Title Field
@@ -346,7 +346,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                 ),
               ),
               
-              const SizedBox(height: 20),
+              const SizedBox(height: 28),
               
               // Description Field
               _buildFormSection(
@@ -383,13 +383,139 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                 ),
               ),
               
-              const SizedBox(height: 20),
+              const SizedBox(height: 28),
               
-              // Student Selection (if not pre-selected)
+              // Student Selection and Difficulty - Side by Side (if not pre-selected)
               if (widget.student == null) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildFormSection(
+                        'Öğrenci Seçimi',
+                        Icons.person_rounded,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.grey300),
+                          ),
+                          child: DropdownButtonFormField<int>(
+                            value: _selectedStudentId,
+                            decoration: const InputDecoration(
+                              hintText: 'Öğrenci seçin...',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: AppTheme.grey800,
+                            ),
+                            dropdownColor: Colors.white,
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: AppTheme.grey600,
+                            ),
+                            items: _students.map((student) => 
+                              DropdownMenuItem<int>(
+                                value: student.id,
+                                child: Text(
+                                  student.name,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ),
+                            ).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedStudentId = value;
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null) {
+                                return 'Öğrenci seçimi gerekli';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildFormSection(
+                        'Zorluk Seviyesi',
+                        Icons.trending_up_rounded,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.grey300),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedDifficulty,
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: AppTheme.grey800,
+                            ),
+                            dropdownColor: Colors.white,
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: AppTheme.grey600,
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'easy', 
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.trending_down, color: Colors.green, size: 16),
+                                    SizedBox(width: 8),
+                                    Text('Kolay'),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'medium', 
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.trending_flat, color: Colors.orange, size: 16),
+                                    SizedBox(width: 8),
+                                    Text('Orta'),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'hard', 
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.trending_up, color: Colors.red, size: 16),
+                                    SizedBox(width: 8),
+                                    Text('Zor'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedDifficulty = value!;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+              ] else ...[
+                // Difficulty only if student is pre-selected
                 _buildFormSection(
-                  'Öğrenci Seçimi',
-                  Icons.person_rounded,
+                  'Zorluk Seviyesi',
+                  Icons.trending_up_rounded,
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
@@ -397,31 +523,47 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppTheme.grey300),
                     ),
-                    child: DropdownButtonFormField<int>(
-                      value: _selectedStudentId,
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedDifficulty,
                       decoration: const InputDecoration(
-                        hintText: 'Öğrenci seçin...',
                         border: InputBorder.none,
                       ),
-                      items: _students.map((student) => 
-                        DropdownMenuItem<int>(
-                          value: student.id,
-                          child: Text(
-                            student.name,
-                            style: const TextStyle(fontSize: 16),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'easy', 
+                          child: Row(
+                            children: [
+                              Icon(Icons.trending_down, color: Colors.green, size: 16),
+                              SizedBox(width: 8),
+                              Text('Kolay'),
+                            ],
                           ),
                         ),
-                      ).toList(),
+                        DropdownMenuItem(
+                          value: 'medium', 
+                          child: Row(
+                            children: [
+                              Icon(Icons.trending_flat, color: Colors.orange, size: 16),
+                              SizedBox(width: 8),
+                              Text('Orta'),
+                            ],
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'hard', 
+                          child: Row(
+                            children: [
+                              Icon(Icons.trending_up, color: Colors.red, size: 16),
+                              SizedBox(width: 8),
+                              Text('Zor'),
+                            ],
+                          ),
+                        ),
+                      ],
                       onChanged: (value) {
                         setState(() {
-                          _selectedStudentId = value;
+                          _selectedDifficulty = value!;
                         });
-                      },
-                      validator: (value) {
-                        if (value == null) {
-                          return 'Öğrenci seçimi gerekli';
-                        }
-                        return null;
                       },
                     ),
                   ),
@@ -523,66 +665,8 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                 ),
               ),
               
-              const SizedBox(height: 20),
               
-              // Difficulty
-              _buildFormSection(
-                'Zorluk Seviyesi',
-                Icons.trending_up_rounded,
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.grey300),
-                  ),
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedDifficulty,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'easy', 
-                        child: Row(
-                          children: [
-                            Icon(Icons.trending_down, color: Colors.green, size: 16),
-                            SizedBox(width: 8),
-                            Text('Kolay'),
-                          ],
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: 'medium', 
-                        child: Row(
-                          children: [
-                            Icon(Icons.trending_flat, color: Colors.orange, size: 16),
-                            SizedBox(width: 8),
-                            Text('Orta'),
-                          ],
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: 'hard', 
-                        child: Row(
-                          children: [
-                            Icon(Icons.trending_up, color: Colors.red, size: 16),
-                            SizedBox(width: 8),
-                            Text('Zor'),
-                          ],
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedDifficulty = value!;
-                      });
-                    },
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 20),
+              const SizedBox(height: 28),
               
               // PDF Upload Section
               _buildFormSection(
@@ -608,29 +692,44 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                       const SizedBox(height: 12),
                       
                       if (_selectedPdfFile == null) ...[
+                        const SizedBox(height: 16),
                         InkWell(
                           onTap: _selectPdfFile,
                           child: Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                             decoration: BoxDecoration(
                               border: Border.all(
                                 color: AppTheme.primaryBlue,
                                 style: BorderStyle.solid,
-                                width: 2,
+                                width: 1.5,
                               ),
-                              borderRadius: BorderRadius.circular(12),
-                              color: AppTheme.primaryBlue.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(16),
+                              color: AppTheme.primaryBlue.withOpacity(0.08),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryBlue.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.upload_file_rounded,
-                                  color: AppTheme.primaryBlue,
-                                  size: 20,
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryBlue.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.upload_file_rounded,
+                                    color: AppTheme.primaryBlue,
+                                    size: 20,
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 12),
                                 Text(
                                   'PDF Dosyası Seç',
                                   style: TextStyle(
@@ -706,25 +805,32 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                 ),
               ),
               
-              const SizedBox(height: 32),
+              const SizedBox(height: 48),
               
               // Create Button
               Container(
                 width: double.infinity,
-                height: 56,
+                height: 60,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
+                      AppTheme.accentPurple,
                       AppTheme.primaryBlue,
-                      AppTheme.primaryBlue.withOpacity(0.8),
                     ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
+                      color: AppTheme.accentPurple.withOpacity(0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                    BoxShadow(
                       color: AppTheme.primaryBlue.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
@@ -734,7 +840,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                   ),
                   child: _isLoading
@@ -772,9 +878,10 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                             Text(
                               'Ödev Oluştur',
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
                                 color: Colors.white,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ],

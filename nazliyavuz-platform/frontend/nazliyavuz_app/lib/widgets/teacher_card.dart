@@ -170,51 +170,50 @@ class TeacherCard extends StatelessWidget {
             ),
           ),
           
-          // Online durumu
-          if (teacher.onlineAvailable)
-            Positioned(
-              top: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
+          // Online durumu - Sol üst köşe
+          Positioned(
+            top: 20,
+            left: 20,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: teacher.onlineAvailable ? const Color(0xFF4CAF50) : const Color(0xFFFF5722),
+                      shape: BoxShape.circle,
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF4CAF50),
-                        shape: BoxShape.circle,
-                      ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    teacher.onlineAvailable ? 'MÜSAİT' : 'MEŞGUL',
+                    style: TextStyle(
+                      color: teacher.onlineAvailable ? const Color(0xFF4CAF50) : const Color(0xFFFF5722),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
                     ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'ONLINE',
-                      style: TextStyle(
-                        color: Color(0xFF4CAF50),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
+          ),
           
-          // Favori butonu
+          // Favori butonu - Sağ üst köşe
           if (showFavoriteButton)
             Positioned(
               top: 20,
@@ -830,27 +829,54 @@ class TeacherGridCard extends StatelessWidget {
             ),
           ),
           
-          // Online durumu
-          if (teacher.onlineAvailable)
-            Positioned(
-              top: 12,
-              right: 12,
-              child: Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
+          // Online durumu - Sol üst köşe
+          Positioned(
+            top: 12,
+            left: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: teacher.onlineAvailable ? const Color(0xFF4CAF50) : const Color(0xFFFF5722),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    teacher.onlineAvailable ? 'MÜSAİT' : 'MEŞGUL',
+                    style: TextStyle(
+                      color: teacher.onlineAvailable ? const Color(0xFF4CAF50) : const Color(0xFFFF5722),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
               ),
             ),
+          ),
           
-          // Favori butonu
+          // Favori butonu - Sağ üst köşe
           if (showFavoriteButton)
             Positioned(
               top: 12,
-              left: 12,
+              right: 12,
               child: Container(
                 width: 32,
                 height: 32,

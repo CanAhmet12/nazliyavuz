@@ -72,7 +72,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         _error = null;
       });
 
+      print('🔍 [DASHBOARD] Loading dashboard data...');
       final data = await _apiService.getAdminDashboard();
+      print('✅ [DASHBOARD] Data received: $data');
       
       if (mounted) {
         setState(() {
@@ -83,6 +85,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         _animationController.forward();
       }
     } catch (e) {
+      print('❌ [DASHBOARD] Error loading dashboard: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();
@@ -191,7 +194,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   child: const Center(
                     child: Icon(
                       Icons.admin_panel_settings,
-                      size: 48,
+                      size: 20,
                       color: Colors.white,
                     ),
                   ),

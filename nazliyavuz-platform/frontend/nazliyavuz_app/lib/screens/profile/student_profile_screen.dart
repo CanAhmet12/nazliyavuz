@@ -159,16 +159,14 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
           _isUpdatingPhoto = true;
         });
 
-        // Photo update logic would go here
-        // For now, just update the loading state
+        // Upload photo to backend
+        final apiService = ApiService();
+        await apiService.updateProfilePhoto(image);
         
         if (mounted) {
           setState(() {
             _isUpdatingPhoto = false;
           });
-          
-          // Update auth state
-          context.read<AuthBloc>().add(const AuthLogoutRequested());
           
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

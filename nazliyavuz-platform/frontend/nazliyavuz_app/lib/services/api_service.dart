@@ -15,7 +15,7 @@ import '../models/assignment.dart';
 import '../models/lesson.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://nazliyavuz-backend-1050061286516.us-central1.run.app/api/v1';  // Cloud Run Production
+  static const String baseUrl = 'http://34.122.224.35:8000/api/v1';  // VM Backend External IP
   late Dio _dio;
   String? _token;
   
@@ -177,6 +177,15 @@ class ApiService {
   }
 
   // Auth endpoints
+  Future<Map<String, dynamic>> getCurrentUser() async {
+    try {
+      final response = await _dio.get('/auth/me');
+      return response.data['user'];
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
   Future<Map<String, dynamic>> register({
     required String name,
     required String email,
@@ -885,6 +894,7 @@ class ApiService {
     double? rating,
     String? location,
     String? sortBy,
+    bool? onlineOnly,
     int page = 1,
     int perPage = 20,
   }) async {
@@ -918,6 +928,9 @@ class ApiService {
       }
       if (sortBy != null) {
         queryParams['sort_by'] = sortBy;
+      }
+      if (onlineOnly != null) {
+        queryParams['online_only'] = onlineOnly;
       }
 
       final response = await _dio.get('/search/teachers', queryParameters: queryParams);
@@ -956,7 +969,11 @@ class ApiService {
         print('✅ [GET_SUGGESTIONS] Suggestions retrieved successfully!');
       }
 
-      return (response.data['suggestions'] as List).cast<Map<String, dynamic>>();
+      if (response.data['suggestions'] != null && response.data['suggestions'] is List) {
+        return (response.data['suggestions'] as List).cast<Map<String, dynamic>>();
+      } else {
+        return [];
+      }
     } on DioException catch (e) {
       if (kDebugMode) {
         print('❌ [GET_SUGGESTIONS] Failed to get suggestions');
@@ -983,7 +1000,11 @@ class ApiService {
         print('✅ [GET_POPULAR_SEARCHES] Popular searches retrieved successfully!');
       }
 
-      return (response.data['popular_searches'] as List).cast<String>();
+      if (response.data['popular_searches'] != null && response.data['popular_searches'] is List) {
+        return (response.data['popular_searches'] as List).cast<String>();
+      } else {
+        return [];
+      }
     } on DioException catch (e) {
       if (kDebugMode) {
         print('❌ [GET_POPULAR_SEARCHES] Failed to get popular searches');
@@ -1010,7 +1031,11 @@ class ApiService {
         print('✅ [GET_SEARCH_FILTERS] Search filters retrieved successfully!');
       }
 
-      return response.data['filters'];
+      if (response.data['filters'] != null) {
+        return response.data['filters'];
+      } else {
+        return {'categories': [], 'languages': []};
+      }
     } on DioException catch (e) {
       if (kDebugMode) {
         print('❌ [GET_SEARCH_FILTERS] Failed to get search filters');
@@ -1502,6 +1527,22 @@ class ApiService {
     }
   }
 
+
+  // Profile photo endpoints
+  Future<void> updateProfilePhoto(XFile image) async {
+    try {
+      final formData = FormData.fromMap({
+        'photo': await MultipartFile.fromFile(
+          image.path,
+          filename: image.name,
+        ),
+      });
+      
+      await _dio.post('/profile/photo', data: formData);
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
 
   // Push notification endpoints
   Future<void> registerPushToken(String token) async {

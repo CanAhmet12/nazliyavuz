@@ -230,10 +230,6 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
           ),
         ),
       ),
-      floatingActionButton: ScaleTransition(
-        scale: _scaleAnimation,
-        child: _buildTeacherFloatingActionButton(),
-      ),
     );
   }
 
@@ -274,65 +270,91 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12), // Padding'i artırdım
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16), // Radius'u artırdım
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
+                            color: Colors.white.withValues(alpha: 0.3),
                             width: 1,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
                         ),
                         child: const Icon(
-                          Icons.schedule_rounded, // İkonu değiştirdim
+                          Icons.schedule_rounded,
                           color: Colors.white,
-                          size: 28, // Boyutu artırdım
+                          size: 20,
                         ),
                       ),
-                      const SizedBox(width: 16), // Boşluğu artırdım
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
-                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Text(
                               'Ders Takvimim',
                               style: TextStyle(
-                                fontSize: 26, // Font boyutunu artırdım
-                                fontWeight: FontWeight.w800, // Font weight'i artırdım
+                                fontWeight: FontWeight.w700,
                                 color: Colors.white,
-                                letterSpacing: 0.5,
+                                fontSize: 18,
+                                letterSpacing: -0.5,
                               ),
                             ),
-                            const SizedBox(height: 6), // Boşluğu artırdım
                             Text(
                               '${_reservations.length} ders randevusu',
-                              style: const TextStyle(
-                                fontSize: 15, // Font boyutunu artırdım
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                letterSpacing: 0.3,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 22),
-                          onPressed: _refreshData,
-                        ),
+                      // İki ikon yan yana
+                      Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(
+                                Icons.schedule_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                HapticFeedback.mediumImpact();
+                                _showTeacherAvailabilityDialog();
+                              },
+                              tooltip: 'Müsaitlik Ayarla',
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(
+                                Icons.refresh_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              onPressed: _refreshData,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -408,30 +430,12 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10), // Padding'i artırdım
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  color.withOpacity(0.1),
-                  color.withOpacity(0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(12), // Radius'u artırdım
-              border: Border.all(
-                color: color.withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-            child: Icon(icon, color: color, size: 24), // İkon boyutunu artırdım
-          ),
+          Icon(icon, color: color, size: 24), // İkon boyutunu artırdım
           const SizedBox(height: 12), // Boşluğu artırdım
           Text(
             value,
             style: TextStyle(
-              fontSize: 22, // Font boyutunu artırdım
+              fontSize: 18, // Font boyutunu küçülttüm
               fontWeight: FontWeight.w800,
               color: color,
               letterSpacing: 0.5,
@@ -441,7 +445,7 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
           Text(
             title,
             style: const TextStyle(
-              fontSize: 13, // Font boyutunu artırdım
+              fontSize: 11, // Font boyutunu küçülttüm
               fontWeight: FontWeight.w600,
               color: AppTheme.grey600,
               letterSpacing: 0.2,
@@ -795,32 +799,6 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
     );
   }
 
-  Widget _buildTeacherFloatingActionButton() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: FloatingActionButton.extended(
-        onPressed: () {
-          HapticFeedback.mediumImpact();
-          _showTeacherAvailabilityDialog();
-        },
-        backgroundColor: AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
-        elevation: 12,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20), // Radius'u artırdım
-        ),
-        icon: const Icon(Icons.schedule_rounded, size: 20),
-        label: const Text(
-          'Müsaitlik Ayarla',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 15, // Font boyutunu artırdım
-            letterSpacing: 0.3,
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildTeacherLoadingState() {
     return const Center(
@@ -914,23 +892,6 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
               color: Colors.grey[400],
             ),
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () {
-              HapticFeedback.mediumImpact();
-              _showTeacherAvailabilityDialog();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accentGreen,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            icon: const Icon(Icons.schedule_rounded),
-            label: const Text('Müsaitlik Ayarla'),
           ),
         ],
       ),
@@ -1156,7 +1117,7 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
           SizedBox(
             width: 80,
             child: Text(
-              label,
+              '$label:',
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 color: AppTheme.grey600,
