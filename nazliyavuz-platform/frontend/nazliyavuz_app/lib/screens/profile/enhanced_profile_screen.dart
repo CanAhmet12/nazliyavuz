@@ -147,8 +147,6 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
     
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
-      setState(() => _isUpdatingPhoto = true);
-      
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 512,
@@ -156,10 +154,26 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
         imageQuality: 85,
       );
       
-      if (image != null) {
+      if (image == null) return;
+      
+      setState(() => _isUpdatingPhoto = true);
+      
+      // Backend'e yükle ve yeni URL'i al
+      final newPhotoUrl = await _apiService.updateProfilePhoto(image);
+      
+      if (mounted) {
+        // Local state'i hemen güncelle
         setState(() {
-          _userProfile['profile_photo_url'] = image.path;
+          _userProfile['profile_photo_url'] = newPhotoUrl;
+          _isUpdatingPhoto = false;
         });
+        
+        // Profil bilgilerini arka planda yeniden yükle
+        _loadUserProfile();
+        
+        // AuthBloc'tan da kullanıcı bilgilerini güncelle
+        final authBloc = context.read<AuthBloc>();
+        authBloc.add(const AuthRefreshRequested());
         
         scaffoldMessenger.showSnackBar(
           SnackBar(
@@ -179,25 +193,25 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
         );
       }
     } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error, color: Colors.white),
-              const SizedBox(width: 12),
-              Text('Hata: $e'),
-            ],
-          ),
-          backgroundColor: AppTheme.accentRed,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-    } finally {
       if (mounted) {
         setState(() => _isUpdatingPhoto = false);
+        
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Hata: $e')),
+              ],
+            ),
+            backgroundColor: AppTheme.accentRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
       }
     }
   }
@@ -532,24 +546,10 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  color.withValues(alpha: 0.1),
-                  color.withValues(alpha: 0.05),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 24,
-            ),
+          Icon(
+            icon,
+            color: color,
+            size: 24,
           ),
           const SizedBox(height: 12),
           Text(

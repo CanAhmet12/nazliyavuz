@@ -59,16 +59,45 @@ class TeacherController extends Controller
                 })
                 ->where('is_approved', 1);
             Log::info('✅ Base query created with relationships');
+            
+            // Debug: Count total teachers before filters
+            $totalTeachersBeforeFilters = $query->count();
+            Log::info('📊 Total teachers before filters: ' . $totalTeachersBeforeFilters);
 
             // Kategori filtresi
-            if ($request->has('category')) {
+            if ($request->has('category') && $request->category) {
                 Log::info('🏷️ Applying category filter', ['category' => $request->category]);
                 try {
-                    $query->whereHas('categories', function ($q) use ($request) {
-                        $q->where('name', 'like', '%' . $request->category . '%')
-                          ->orWhere('slug', 'like', '%' . $request->category . '%');
-                    });
-                    Log::info('✅ Category filter applied successfully');
+                    // Seçilen kategoriyi bul
+                    $selectedCategory = \App\Models\Category::where('slug', $request->category)
+                        ->orWhere('name', $request->category)
+                        ->first();
+                    
+                    if ($selectedCategory) {
+                        // Eğer ana kategori seçildiyse, tüm alt kategorilerini de dahil et
+                        $categoryIds = [$selectedCategory->id];
+                        
+                        // Alt kategorileri bul
+                        $childCategories = \App\Models\Category::where('parent_id', $selectedCategory->id)->get();
+                        foreach ($childCategories as $child) {
+                            $categoryIds[] = $child->id;
+                        }
+                        
+                        Log::info('📁 Category IDs to filter', ['category_ids' => $categoryIds]);
+                        
+                        // Öğretmenleri bu kategorilere göre filtrele
+                        $query->whereHas('categories', function ($q) use ($categoryIds) {
+                            $q->whereIn('categories.id', $categoryIds);
+                        });
+                        
+                        Log::info('✅ Category filter applied successfully');
+                    } else {
+                        Log::warning('⚠️ Category not found', ['category' => $request->category]);
+                    }
+                    
+                    // Debug: Count teachers after category filter
+                    $teachersAfterCategoryFilter = $query->count();
+                    Log::info('📊 Teachers after category filter: ' . $teachersAfterCategoryFilter);
                 } catch (\Exception $e) {
                     Log::error('💥 ERROR in category filter', [
                         'error' => $e->getMessage(),

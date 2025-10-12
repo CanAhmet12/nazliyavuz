@@ -631,6 +631,7 @@ class ApiService {
 
   Future<List<Teacher>> getTeachers({
     String? category,
+    List<int>? categoryIds,
     String? level,
     double? priceMin,
     double? priceMax,
@@ -648,9 +649,12 @@ class ApiService {
       };
 
       if (category != null && category.isNotEmpty) queryParams['category'] = category;
+      if (categoryIds != null && categoryIds.isNotEmpty) {
+        queryParams['category_ids'] = categoryIds.join(',');
+      }
       if (level != null) queryParams['level'] = level;
-      if (priceMin != null && priceMin > 0) queryParams['price_min'] = priceMin;
-      if (priceMax != null && priceMax < 1000) queryParams['price_max'] = priceMax;
+      if (priceMin != null && priceMin > 0) queryParams['min_price'] = priceMin;
+      if (priceMax != null && priceMax < 1000) queryParams['max_price'] = priceMax;
       if (minRating != null && minRating > 0) queryParams['min_rating'] = minRating;
       if (onlineOnly != null && onlineOnly) queryParams['online_only'] = onlineOnly;
       if (sortBy != null && sortBy.isNotEmpty) queryParams['sort_by'] = sortBy;
@@ -673,6 +677,10 @@ class ApiService {
           teachersData = response.data['data'] as List;
         } else if (response.data is List) {
           teachersData = response.data as List;
+        }
+        
+        if (kDebugMode) {
+          print('📡 Parsed teachers data length: ${teachersData.length}');
         }
       }
       
@@ -1529,7 +1537,7 @@ class ApiService {
 
 
   // Profile photo endpoints
-  Future<void> updateProfilePhoto(XFile image) async {
+  Future<String> updateProfilePhoto(XFile image) async {
     try {
       final formData = FormData.fromMap({
         'photo': await MultipartFile.fromFile(
@@ -1538,7 +1546,13 @@ class ApiService {
         ),
       });
       
-      await _dio.post('/profile/photo', data: formData);
+      final response = await _dio.post('/upload/profile-photo', data: formData);
+      
+      // Clear user cache to force reload
+      _currentUser = null;
+      
+      // Return the new profile photo URL
+      return response.data['profile_photo_url'] ?? '';
     } on DioException catch (e) {
       throw Exception(handleError(e));
     }
