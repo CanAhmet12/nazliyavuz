@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../models/user.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
+import '../chat/teacher_chat_screen.dart';
 
 class StudentDetailScreen extends StatefulWidget {
   final User student;
@@ -220,7 +221,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
                     child: IconButton(
                       onPressed: () {
                         HapticFeedback.lightImpact();
-                        // TODO: Navigate to chat
+                        _navigateToChat();
                       },
                       icon: const Icon(
                         Icons.chat_bubble_outline,
@@ -416,6 +417,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Container(
+      height: 100, // Fixed height for all cards
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -429,6 +431,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
         ],
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             icon,
@@ -718,5 +721,25 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  void _navigateToChat() {
+    try {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TeacherChatScreen(
+            student: widget.student,
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Mesaj sayfası açılırken hata oluştu: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

@@ -142,21 +142,11 @@ flutter run
 4. Push yapın (`git push origin feature/amazing-feature`)
 5. Pull Request oluşturun
 
-## 📄 Lisans
-
-Bu proje MIT lisansı altında lisanslanmıştır.
 
 ## 👥 Ekip
 
 - **Ahmet Can** - Full Stack Developer
 - **Nazlı Yavuz** - Project Manager
 
-## 📞 İletişim
-
-- **Email**: info@nazliyavuz.com
-- **Website**: https://nazliyavuz.com
-- **GitHub**: https://github.com/nazliyavuz/platform
-
----
 
 **Nazliyavuz Platform** - Eğitimde yeni nesil çözümler 🎓

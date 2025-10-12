@@ -170,14 +170,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
       pinned: true,
       backgroundColor: AppTheme.primaryBlue,
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
-          'Ödevlerim',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
+        title: null, // Remove duplicate title
         background: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -485,6 +478,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
         labelColor: AppTheme.primaryBlue,
         unselectedLabelColor: Colors.grey[600],
         labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+        dividerColor: Colors.transparent, // Remove divider below tabs
         tabs: _statusTabs.map((tab) => Tab(
           icon: Icon(tab['icon'], size: 20),
           text: tab['label'],

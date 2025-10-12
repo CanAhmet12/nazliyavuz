@@ -554,7 +554,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showAboutDialog() {
     showAboutDialog(
       context: context,
-      applicationName: 'Rota Akademi',
+      applicationName: 'TERENCE EĞİTİM',
       applicationVersion: '1.0.0',
       applicationIcon: Container(
         width: 60,
@@ -580,7 +580,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 16),
         const Text(
-          '© 2025 Rota Akademi. Tüm hakları saklıdır.',
+          '© 2025 TERENCE EĞİTİM. Tüm hakları saklıdır.',
         ),
       ],
     );

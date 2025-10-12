@@ -163,43 +163,20 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildHeader() {
     return Column(
       children: [
-        // Premium Logo
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppTheme.premiumGold,
-                AppTheme.primaryBlue,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.premiumGold.withOpacity( 0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Image.asset(
-            'assets/images/logo.png',
-            width: 40,
-            height: 40,
-            fit: BoxFit.contain,
-            // color: Colors.white, // Bu logo'yu beyaz yapıyor!
-            errorBuilder: (context, error, stackTrace) {
-              debugPrint('❌ [LOGIN] Logo error: $error');
-              return Icon(
-                Icons.school_rounded,
-                size: 40,
-                color: Colors.white,
-              );
-            },
-          ),
+        // Logo - Sadece resim, çerçevesiz
+        Image.asset(
+          'assets/images/logo.png',
+          width: 120,
+          height: 120,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            debugPrint('❌ [LOGIN] Logo error: $error');
+            return Icon(
+              Icons.school_rounded,
+              size: 120,
+              color: AppTheme.primaryBlue,
+            );
+          },
         ),
         
         const SizedBox(height: 16),
@@ -212,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen>
             end: Alignment.bottomRight,
           ).createShader(bounds),
           child: Text(
-            'Rota Akademi',
+            'TERENCE EĞİTİM',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.w800,
               color: Colors.white,

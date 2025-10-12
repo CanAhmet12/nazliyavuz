@@ -86,7 +86,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
         _buildContactCard(
           icon: Icons.email,
           title: 'E-posta',
-          subtitle: 'support@rotaakademi.com',
+          subtitle: 'support@terenceegitim.com',
           color: Colors.blue,
           onTap: () => _launchEmail(),
         ),
@@ -354,7 +354,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
 
   Future<void> _launchEmail() async {
     // Fallback: Copy email to clipboard
-    await Clipboard.setData(const ClipboardData(text: 'support@rotaakademi.com'));
+    await Clipboard.setData(const ClipboardData(text: 'support@terenceegitim.com'));
     if (mounted) {
       CustomWidgets.showSnackbar(
         context: context,

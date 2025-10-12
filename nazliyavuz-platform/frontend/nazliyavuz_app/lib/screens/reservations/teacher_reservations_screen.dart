@@ -405,6 +405,7 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
 
   Widget _buildTeacherStatCard(String title, String value, IconData icon, Color color) {
     return Container(
+      height: 120, // Sabit yükseklik ekle
       padding: const EdgeInsets.all(20), // Padding'i artırdım
       decoration: BoxDecoration(
         color: Colors.white,
@@ -428,7 +429,7 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center, // İçeriği ortala
         children: [
           Icon(icon, color: color, size: 24), // İkon boyutunu artırdım
           const SizedBox(height: 12), // Boşluğu artırdım
@@ -620,7 +621,7 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
                   ),
                 ),
                 const SizedBox(width: 8),
-                Flexible(
+                Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -647,7 +648,6 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
                     ],
                   ),
                 ),
-                const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
@@ -723,30 +723,39 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppTheme.premiumGold.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: AppTheme.premiumGold.withOpacity(0.3),
-                      width: 1,
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF10B981), // Daha belirgin yeşil
+                        const Color(0xFF059669),
+                      ],
                     ),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.attach_money_rounded,
-                        size: 14,
-                        color: AppTheme.premiumGold,
+                        size: 16,
+                        color: Colors.white,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         '₺${reservation.price.toInt()}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.premiumGold,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ],

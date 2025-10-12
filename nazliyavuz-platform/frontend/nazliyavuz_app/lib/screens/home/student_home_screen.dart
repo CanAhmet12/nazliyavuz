@@ -266,6 +266,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
   Widget _buildStudentFloatingActionButton() {
     return RepaintBoundary(
       child: Container(
+        margin: const EdgeInsets.only(bottom: 24), // Yukarı kaldırmak için margin eklendi
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           boxShadow: [
@@ -937,7 +938,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
                   '3',
                   Icons.play_circle_filled_rounded,
                   const Color(0xFF10B981),
-                  'Bu hafta',
+                  '',
                 ),
               ),
               const SizedBox(width: 12),
@@ -948,7 +949,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
                   '12',
                   Icons.check_circle_rounded,
                   const Color(0xFF3B82F6),
-                  'Bu ay',
+                  '',
                 ),
               ),
               const SizedBox(width: 12),
@@ -959,7 +960,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
                   '5',
                   Icons.people_rounded,
                   const Color(0xFF8B5CF6),
-                  'Toplam',
+                  '',
                 ),
               ),
             ],
@@ -988,38 +989,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
         children: [
           Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 20,
-                ),
-              ),
-              const Spacer(),
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+              Icon(
+                icon,
+                color: color,
+                size: 20,
               ),
             ],
           ),

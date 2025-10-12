@@ -303,7 +303,7 @@ class _AdminLayoutState extends State<AdminLayout>
                     Divider(color: Colors.white.withOpacity(0.2)),
                     const SizedBox(height: 16),
                     const Text(
-                      'Rota Akademi',
+                      'TERENCE EĞİTİM',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,

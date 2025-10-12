@@ -123,6 +123,26 @@ class Teacher extends Equatable {
         if (decoded is List) {
           return decoded.map((e) => e.toString()).toList();
         }
+        // Eğer tek bir object ise ve education bilgisi içeriyorsa
+        if (decoded is Map<String, dynamic>) {
+          final List<String> educationParts = [];
+          if (decoded['university'] != null) {
+            educationParts.add(decoded['university'].toString());
+          }
+          if (decoded['department'] != null) {
+            educationParts.add(decoded['department'].toString());
+          }
+          if (decoded['degree'] != null) {
+            educationParts.add(decoded['degree'].toString());
+          }
+          if (decoded['graduation_year'] != null) {
+            educationParts.add('(${decoded['graduation_year']})');
+          }
+          if (educationParts.isNotEmpty) {
+            return [educationParts.join(' - ')];
+          }
+          return [value];
+        }
         // Eğer tek bir string ise
         return [value];
       } catch (e) {

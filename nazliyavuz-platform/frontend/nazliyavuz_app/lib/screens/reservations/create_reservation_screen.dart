@@ -33,7 +33,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   int _selectedDuration = 60; // Default 1 hour
   bool _isLoading = false;
   
-  final List<int> _durationOptions = [30, 60, 90, 120, 180, 240]; // 30 min to 4 hours
+  final List<int> _durationOptions = [30, 40, 60, 90, 120, 180, 240]; // 30 min to 4 hours
 
   // All subject suggestions by category
   final Map<String, List<String>> _allSubjectSuggestions = {
@@ -163,6 +163,12 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
               _buildTeacherInfoCard(),
               const SizedBox(height: 24),
               
+              // Category Selection
+              _buildSectionHeader('Ders Kategorisi', Icons.category_rounded),
+              const SizedBox(height: 12),
+              _buildCategorySelector(),
+              const SizedBox(height: 24),
+              
               // Subject Field
               _buildSectionHeader('Ders Konusu', Icons.book_rounded),
               const SizedBox(height: 12),
@@ -237,12 +243,6 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                   );
                 },
               ),
-              const SizedBox(height: 24),
-              
-              // Category Selection
-              _buildSectionHeader('Ders Kategorisi', Icons.category_rounded),
-              const SizedBox(height: 12),
-              _buildCategorySelector(),
               const SizedBox(height: 24),
               
               // Date & Time Selection

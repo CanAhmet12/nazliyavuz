@@ -119,7 +119,8 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
   Future<void> _loadTeachers() async {
     try {
       if (kDebugMode) {
-        print('Loading teachers with params: page=$_currentPage, category=$_selectedCategory, minRating=$_minRating, onlineOnly=$_onlineOnly, sortBy=$_sortBy, search=$_searchQuery');
+        print('🔍 Loading teachers with params: page=$_currentPage, category=$_selectedCategory, minRating=$_minRating, onlineOnly=$_onlineOnly, sortBy=$_sortBy, search=$_searchQuery');
+        print('🏷️ Category filter: $_selectedCategory');
       }
       
       final teachers = await _apiService.getTeachers(
@@ -132,7 +133,10 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
       );
 
       if (kDebugMode) {
-        print('Loaded ${teachers.length} teachers');
+        print('📊 Loaded ${teachers.length} teachers');
+        if (teachers.isEmpty && _selectedCategory.isNotEmpty) {
+          print('⚠️ No teachers found for category: $_selectedCategory');
+        }
       }
 
       if (mounted) {
@@ -208,8 +212,14 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
   }
 
   void _applyFilters() {
+    if (kDebugMode) {
+      print('🔧 _applyFilters called with category: $_selectedCategory');
+    }
     _currentPage = 1;
     _hasMorePages = true;
+    setState(() {
+      _teachers = []; // Clear existing teachers before loading new ones
+    });
     _loadTeachers();
   }
 
@@ -462,7 +472,12 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
               ),
               onChanged: (value) {
                 setState(() => _searchQuery = value);
+                // Add a small delay to avoid too many API calls while typing
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  if (_searchQuery == value) {
                 _applyFilters();
+                  }
+                });
               },
             ),
           ),
@@ -650,7 +665,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
                         : null,
                     child: teacher.user?.profilePhotoUrl == null
                         ? Text(
-                            teacher.user?.name?.substring(0, 1).toUpperCase() ?? '?',
+                            teacher.user!.name.substring(0, 1).toUpperCase(),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -789,6 +804,10 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
                       setState(() {
                         _selectedCategory = isSelected ? '' : category.slug;
                       });
+                      if (kDebugMode) {
+                        print('🏷️ Category selected: ${category.slug}, isSelected: $isSelected, new category: $_selectedCategory');
+                        print('🏷️ About to call _applyFilters()');
+                      }
                       _applyFilters();
                       HapticFeedback.lightImpact();
                     },
@@ -919,10 +938,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
               if (index < _teachers.length) {
                 return TeacherCard(
                   teacher: _teachers[index],
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _navigateToTeacherDetail(_teachers[index]);
-                  },
+                  onTap: null, // Rezerve Et butonunun çalışması için null yapıyoruz
                 );
               } else if (_isLoadingMore) {
                 return const Padding(
@@ -939,401 +955,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
     }
   }
 
-  Widget _buildModernTeacherCard(Teacher teacher) {
-    final categoryName = (teacher.categories?.isNotEmpty == true) 
-        ? teacher.categories!.first.name 
-        : 'Genel';
-    final categoryColors = _getCategoryColors(categoryName);
-    
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        _navigateToTeacherDetail(teacher);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-            BoxShadow(
-              color: categoryColors[0].withOpacity(0.05),
-              blurRadius: 40,
-              offset: const Offset(0, 16),
-            ),
-          ],
-        ),
-        child: SizedBox(
-          height: 200, // Fixed height to prevent overflow
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Profile Section with Enhanced Design
-              Expanded(
-                flex: 4,
-                child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                ),
-                child: Stack(
-                  children: [
-                    // Enhanced Background Gradient
-                    Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: categoryColors,
-                        ),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                      ),
-                    ),
-                    // Decorative Elements
-                    Positioned(
-                      top: -20,
-                      right: -20,
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: -30,
-                      left: -30,
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.08),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                    // Profile Content
-                    Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Enhanced Profile Photo
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
-                            ),
-                            child: CircleAvatar(
-                              radius: 32,
-                              backgroundColor: Colors.grey[100],
-                              backgroundImage: teacher.user?.profilePhotoUrl != null
-                                  ? NetworkImage(teacher.user!.profilePhotoUrl!)
-                                  : null,
-                              child: teacher.user?.profilePhotoUrl == null
-                                  ? Text(
-                                      teacher.user?.name?.substring(0, 1).toUpperCase() ?? '?',
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppTheme.primaryBlue,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // Enhanced Rating Badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.star_rounded,
-                                  size: 14,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  teacher.ratingAvg.toStringAsFixed(1),
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            // Enhanced Info Section
-            Expanded(
-              flex: 2,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Name with enhanced styling
-                    Text(
-                      teacher.user?.name ?? 'İsimsiz',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.grey900,
-                        letterSpacing: -0.2,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    // Category with icon
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.school_rounded,
-                          size: 10,
-                          color: AppTheme.grey600,
-                        ),
-                        const SizedBox(width: 3),
-                        Expanded(
-                          child: Text(
-                            (teacher.categories?.isNotEmpty == true) 
-                                ? teacher.categories!.first.name 
-                                : 'Genel',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: AppTheme.grey600,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    // Enhanced Price Badge
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppTheme.accentGreen,
-                              AppTheme.accentGreen.withOpacity(0.8),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.accentGreen.withOpacity(0.2),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.attach_money_rounded,
-                              size: 10,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 1),
-                            Text(
-                              '${teacher.priceHour?.toInt() ?? 0}',
-                              style: const TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildModernListTeacherCard(Teacher teacher) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        _navigateToTeacherDetail(teacher);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.grey200.withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Profile Photo
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-              backgroundImage: teacher.user?.profilePhotoUrl != null
-                  ? NetworkImage(teacher.user!.profilePhotoUrl!)
-                  : null,
-              child: teacher.user?.profilePhotoUrl == null
-                  ? Text(
-                      (teacher.user?.name?.substring(0, 1).toUpperCase()) ?? '?',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.primaryBlue,
-                      ),
-                    )
-                  : null,
-            ),
-            
-            const SizedBox(width: 12),
-            
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    teacher.user?.name ?? 'İsimsiz',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.grey900,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    (teacher.categories?.isNotEmpty == true) 
-                        ? teacher.categories!.first.name 
-                        : 'Genel',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.grey600,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppTheme.premiumGold.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.star_rounded,
-                              size: 12,
-                              color: AppTheme.premiumGold,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              teacher.ratingAvg.toStringAsFixed(1),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.grey900,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppTheme.primaryBlue,
-                              AppTheme.primaryBlue.withValues(alpha: 0.8),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '₺${teacher.priceHour?.toInt() ?? 0}/saat',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            
-            // Arrow
-            Icon(
-              Icons.arrow_forward_ios,
-              color: AppTheme.grey400,
-              size: 14,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildLoadingState() {
     return Center(
@@ -1448,7 +1070,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Debug: _teachers.length = ${_teachers.length}, _isLoading = $_isLoading, _error = $_error',
+            'Debug: _teachers.length = ${_teachers.length}, _isLoading = $_isLoading, _error = $_error, _selectedCategory = $_selectedCategory, categories.length = ${_categories.length}',
             style: const TextStyle(
               fontSize: 12,
               color: Colors.red,
@@ -1696,38 +1318,6 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
     }
   }
 
-  List<Color> _getCategoryColors(String categoryName) {
-    switch (categoryName.toLowerCase()) {
-      case 'matematik':
-      case 'fizik':
-      case 'kimya':
-      case 'biyoloji':
-        return [AppTheme.primaryBlue, AppTheme.primaryBlue.withOpacity(0.8)];
-      case 'türkçe':
-      case 'edebiyat':
-      case 'tarih':
-      case 'coğrafya':
-        return [AppTheme.accentGreen, AppTheme.accentGreen.withOpacity(0.8)];
-      case 'ingilizce':
-      case 'almanca':
-      case 'fransızca':
-        return [AppTheme.accentOrange, AppTheme.accentOrange.withOpacity(0.8)];
-      case 'programlama':
-      case 'web tasarımı':
-      case 'bilgisayar':
-        return [AppTheme.accentPurple, AppTheme.accentPurple.withOpacity(0.8)];
-      case 'müzik':
-      case 'resim':
-      case 'sanat':
-        return [AppTheme.premiumGold, AppTheme.premiumGold.withOpacity(0.8)];
-      case 'spor':
-      case 'fitness':
-      case 'yoga':
-        return [AppTheme.accentRed, AppTheme.accentRed.withOpacity(0.8)];
-      default:
-        return [AppTheme.grey600, AppTheme.grey600.withOpacity(0.8)];
-    }
-  }
 
   void _navigateToTeacherDetail(Teacher teacher) {
     Navigator.push(

@@ -482,6 +482,7 @@ class _EnhancedReservationsScreenState extends State<EnhancedReservationsScreen>
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Container(
+      height: 120, // Sabit yükseklik ekle
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -505,7 +506,7 @@ class _EnhancedReservationsScreenState extends State<EnhancedReservationsScreen>
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center, // İçeriği ortala
         children: [
           Container(
             padding: const EdgeInsets.all(8),

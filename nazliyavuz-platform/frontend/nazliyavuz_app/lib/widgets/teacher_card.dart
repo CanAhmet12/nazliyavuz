@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../models/teacher.dart';
 import '../screens/chat/chat_screen.dart';
 import '../screens/reservations/create_reservation_screen.dart';
+import '../screens/teachers/teacher_detail_screen.dart';
 
 class TeacherCard extends StatelessWidget {
   final Teacher teacher;
@@ -46,7 +49,15 @@ class TeacherCard extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: onTap,
+                onTap: onTap ?? () {
+                  // Default behavior: Navigate to teacher detail
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TeacherDetailScreen(teacher: teacher),
+                    ),
+                  );
+                },
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -173,7 +184,7 @@ class TeacherCard extends StatelessWidget {
           // Online durumu - Sol üst köşe
           Positioned(
             top: 20,
-            left: 20,
+            left: 200,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -635,15 +646,60 @@ class TeacherCard extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {
-                  if (onTap != null) {
-                    onTap!();
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CreateReservationScreen(
-                          teacher: teacher,
+                  try {
+                    if (kDebugMode) {
+                      print('🔄 Rezerve Et button tapped for teacher: ${teacher.displayName}');
+                      print('🔄 Teacher ID: ${teacher.id}');
+                      print('🔄 Teacher User: ${teacher.user?.name}');
+                      print('🔄 Context: $context');
+                      print('🔄 onTap callback: $onTap');
+                    }
+                    
+                    // Haptic feedback ekle
+                    HapticFeedback.lightImpact();
+                    
+                    if (onTap != null) {
+                      if (kDebugMode) {
+                        print('🔄 Using custom onTap callback');
+                      }
+                      onTap!();
+                    } else {
+                      if (kDebugMode) {
+                        print('🔄 Navigating to CreateReservationScreen');
+                      }
+                      
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CreateReservationScreen(
+                            teacher: teacher,
+                          ),
                         ),
+                      ).then((result) {
+                        if (kDebugMode) {
+                          print('🔄 Reservation screen closed with result: $result');
+                        }
+                      }).catchError((error) {
+                        if (kDebugMode) {
+                          print('❌ Error navigating to reservation screen: $error');
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Rezervasyon sayfası açılırken hata oluştu: $error'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      });
+                    }
+                  } catch (e) {
+                    if (kDebugMode) {
+                      print('❌ Exception in reserve button: $e');
+                      print('❌ Stack trace: ${StackTrace.current}');
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Rezervasyon butonunda hata oluştu: $e'),
+                        backgroundColor: Colors.red,
                       ),
                     );
                   }
@@ -718,7 +774,15 @@ class TeacherGridCard extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: onTap,
+                onTap: onTap ?? () {
+                  // Default behavior: Navigate to teacher detail
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TeacherDetailScreen(teacher: teacher),
+                    ),
+                  );
+                },
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -742,7 +806,7 @@ class TeacherGridCard extends StatelessWidget {
                           const SizedBox(height: 8),
                           
                           // Aksiyon Butonu
-                          _buildActionButton(),
+                          _buildActionButton(context),
                         ],
                       ),
                     ),
@@ -1034,36 +1098,41 @@ class TeacherGridCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton() {
-    return Container(
-      width: double.infinity,
-      height: 32,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF00BFA5), Color(0xFF00897B)],
-        ),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF00BFA5).withOpacity(0.2),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+  Widget _buildActionButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // Teacher detail sayfasına git
+        HapticFeedback.lightImpact();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TeacherDetailScreen(teacher: teacher),
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          child: const Center(
-            child: Text(
-              'Detayları Gör',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        height: 28, // Daha küçük yükseklik
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF00BFA5), Color(0xFF00897B)],
+          ),
+          borderRadius: BorderRadius.circular(6), // Daha küçük border radius
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF00BFA5).withOpacity(0.2),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: const Center(
+          child: Text(
+            'Detayları Gör',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 11, // Daha küçük font
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),

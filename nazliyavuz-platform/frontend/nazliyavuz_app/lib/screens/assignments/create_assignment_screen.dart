@@ -393,50 +393,55 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                       child: _buildFormSection(
                         'Öğrenci Seçimi',
                         Icons.person_rounded,
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppTheme.grey300),
+                        DropdownButtonFormField<int>(
+                          value: _selectedStudentId,
+                          decoration: InputDecoration(
+                            hintText: 'Öğrenci seçin...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppTheme.grey300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppTheme.grey300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
+                            ),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           ),
-                          child: DropdownButtonFormField<int>(
-                            value: _selectedStudentId,
-                            decoration: const InputDecoration(
-                              hintText: 'Öğrenci seçin...',
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: AppTheme.grey800,
-                            ),
-                            dropdownColor: Colors.white,
-                            icon: const Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              color: AppTheme.grey600,
-                            ),
-                            items: _students.map((student) => 
-                              DropdownMenuItem<int>(
-                                value: student.id,
-                                child: Text(
-                                  student.name,
-                                  style: const TextStyle(fontSize: 16),
-                                ),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: AppTheme.grey800,
+                          ),
+                          dropdownColor: Colors.white,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: AppTheme.grey600,
+                          ),
+                          items: _students.map((student) => 
+                            DropdownMenuItem<int>(
+                              value: student.id,
+                              child: Text(
+                                student.name,
+                                style: const TextStyle(fontSize: 16),
                               ),
-                            ).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedStudentId = value;
-                              });
-                            },
-                            validator: (value) {
-                              if (value == null) {
-                                return 'Öğrenci seçimi gerekli';
-                              }
-                              return null;
-                            },
-                          ),
+                            ),
+                          ).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedStudentId = value;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Öğrenci seçimi gerekli';
+                            }
+                            return null;
+                          },
                         ),
                       ),
                     ),
@@ -445,28 +450,34 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                       child: _buildFormSection(
                         'Zorluk Seviyesi',
                         Icons.trending_up_rounded,
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppTheme.grey300),
+                        DropdownButtonFormField<String>(
+                          value: _selectedDifficulty,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppTheme.grey300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppTheme.grey300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
+                            ),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           ),
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedDifficulty,
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: AppTheme.grey800,
-                            ),
-                            dropdownColor: Colors.white,
-                            icon: const Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              color: AppTheme.grey600,
-                            ),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: AppTheme.grey800,
+                          ),
+                          dropdownColor: Colors.white,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: AppTheme.grey600,
+                          ),
                             items: const [
                               DropdownMenuItem(
                                 value: 'easy', 
@@ -505,7 +516,6 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                               });
                             },
                           ),
-                        ),
                       ),
                     ),
                   ],
@@ -516,18 +526,25 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                 _buildFormSection(
                   'Zorluk Seviyesi',
                   Icons.trending_up_rounded,
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.grey300),
-                    ),
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedDifficulty,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
+                  DropdownButtonFormField<String>(
+                    value: _selectedDifficulty,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.grey300),
                       ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.grey300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
                       items: const [
                         DropdownMenuItem(
                           value: 'easy', 
@@ -565,7 +582,6 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                           _selectedDifficulty = value!;
                         });
                       },
-                    ),
                   ),
                 ),
                 const SizedBox(height: 20),

@@ -339,31 +339,9 @@ class _EnhancedTeacherAssignmentsScreenState extends State<EnhancedTeacherAssign
                           ],
                         ),
                       ),
-                      // İki ikon yan yana
+                      // Sadece + butonu
                       Row(
                         children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              icon: const Icon(
-                                Icons.category_rounded,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                              onPressed: () {
-                                HapticFeedback.mediumImpact();
-                                // TODO: Navigate to category creation
-                              },
-                              tooltip: 'Yeni Kategori Oluştur',
-                            ),
-                          ),
-                          const SizedBox(width: 8),
                           Container(
                             width: 36,
                             height: 36,

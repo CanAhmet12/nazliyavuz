@@ -163,6 +163,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
         final apiService = ApiService();
         await apiService.updateProfilePhoto(image);
         
+        // Profil bilgilerini yeniden yükle
+        final authBloc = context.read<AuthBloc>();
+        authBloc.add(const AuthRefreshRequested());
+        
         if (mounted) {
           setState(() {
             _isUpdatingPhoto = false;

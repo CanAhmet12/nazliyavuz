@@ -37,7 +37,7 @@ class ThemeService {
 class LanguageService {
   static const Map<String, Map<String, String>> _translations = {
     'tr': {
-      'app_title': 'Rota Akademi',
+      'app_title': 'TERENCE EĞİTİM',
       'welcome': 'Hoş Geldiniz',
       'login': 'Giriş Yap',
       'register': 'Kayıt Ol',
@@ -84,7 +84,7 @@ class LanguageService {
       'continue': 'Devam Et',
     },
     'en': {
-      'app_title': 'Rota Akademi',
+      'app_title': 'TERENCE EĞİTİM',
       'welcome': 'Welcome',
       'login': 'Login',
       'register': 'Register',
@@ -131,7 +131,7 @@ class LanguageService {
       'continue': 'Continue',
     },
     'de': {
-      'app_title': 'Rota Akademi',
+      'app_title': 'TERENCE EĞİTİM',
       'welcome': 'Willkommen',
       'login': 'Anmelden',
       'register': 'Registrieren',

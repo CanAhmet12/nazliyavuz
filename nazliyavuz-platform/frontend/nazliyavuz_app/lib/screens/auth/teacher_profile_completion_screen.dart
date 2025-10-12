@@ -52,14 +52,6 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
   List<Category> _subCategories = []; // Seçilen ana kategoriye göre alt kategoriler
   bool _isLoadingCategories = true;
 
-  // Autocomplete Data
-  final List<String> _subjectSuggestions = [
-    'Matematik', 'Fizik', 'Kimya', 'Biyoloji', 'Türkçe', 'İngilizce', 'Almanca', 'Fransızca',
-    'Tarih', 'Coğrafya', 'Felsefe', 'Sosyoloji', 'Psikoloji', 'Ekonomi', 'Muhasebe',
-    'Bilgisayar Programlama', 'Web Tasarım', 'Grafik Tasarım', 'Müzik', 'Resim',
-    'Spor', 'Yoga', 'Pilates', 'Dil Öğretimi', 'IELTS', 'TOEFL', 'YDS', 'KPSS',
-    'ALES', 'DGS', 'TYT', 'AYT', 'LGS', 'OKS', 'ÖSS', 'YKS'
-  ];
 
   final List<String> _educationSuggestions = [
     'İstanbul Üniversitesi', 'Boğaziçi Üniversitesi', 'Orta Doğu Teknik Üniversitesi',
@@ -104,6 +96,21 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
     ));
     _animationController.forward();
     _loadCategories();
+    
+    // Add listeners to text controllers to update button state
+    _bioController.addListener(_updateButtonState);
+    _priceController.addListener(_updateButtonState);
+    _experienceController.addListener(_updateButtonState);
+    _educationController.addListener(_updateButtonState);
+    _certificationController.addListener(_updateButtonState);
+    _languagesController.addListener(_updateButtonState);
+  }
+  
+  void _updateButtonState() {
+    // Force rebuild to update button state
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -249,65 +256,70 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
   }
 
   Widget _buildCategorySelectionStep() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('Ders Kategorileri', Icons.category_rounded),
-          const SizedBox(height: 8),
+          // Header Section
+          _buildEnhancedSectionHeader('Ders Kategorileri', Icons.category_rounded),
+          const SizedBox(height: 12),
           Text(
             'Önce ana kategori seçin, sonra verebileceğiniz dersleri seçin (en az 1)',
             style: TextStyle(
               color: AppTheme.grey600,
-              fontSize: 14,
+              fontSize: 15,
+              height: 1.4,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           
           // Ana Kategori Seçimi
-          _buildSectionHeader('1. Ana Kategori Seçimi', Icons.folder_rounded),
-          const SizedBox(height: 12),
+          _buildEnhancedSectionHeader('1. Ana Kategori Seçimi', Icons.folder_rounded),
+          const SizedBox(height: 16),
           Text(
             'Hangi alanda ders verebileceğinizi seçin:',
             style: TextStyle(
               color: AppTheme.grey700,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           
           // Ana Kategoriler Listesi
-          Expanded(
-            child: _isLoadingCategories
-                ? const Center(child: CircularProgressIndicator())
-                : _buildMainCategoriesList(),
-          ),
+          if (_isLoadingCategories)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else
+            _buildEnhancedMainCategoriesList(),
           
           // Seçilen Ana Kategoriler
           if (_selectedMainCategories.isNotEmpty) ...[
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             _buildSelectedMainCategories(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             
             // Alt Kategori Seçimi
-            _buildSectionHeader('2. Uzmanlık Alanları', Icons.school_rounded),
-            const SizedBox(height: 12),
+            _buildEnhancedSectionHeader('2. Uzmanlık Alanları', Icons.school_rounded),
+            const SizedBox(height: 16),
             Text(
               'Seçtiğiniz kategorilerde hangi dersleri verebileceğinizi seçin:',
               style: TextStyle(
                 color: AppTheme.grey700,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             
             // Alt Kategoriler
-            Expanded(
-              child: _buildSubCategoriesList(),
-            ),
+            _buildEnhancedSubCategoriesList(),
+            const SizedBox(height: 100), // Bottom padding for scroll
           ],
         ],
       ),
@@ -406,84 +418,6 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
               ),
             ),
             
-            const SizedBox(height: 20),
-            
-            // Specialization Section
-            _buildSectionHeader('Uzmanlık Alanınız', Icons.school_rounded),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Autocomplete<String>(
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  if (textEditingValue.text.isEmpty) {
-                    return const Iterable<String>.empty();
-                  }
-                  return _subjectSuggestions.where((String option) {
-                    return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
-                  });
-                },
-                onSelected: (String selection) {
-                  // Uzmanlık alanı seçimi kategori seçimi ile entegre edildi
-                },
-                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                  return TextFormField(
-                    controller: TextEditingController(), // Uzmanlık alanı seçimi kategori seçimi ile entegre edildi
-                    focusNode: focusNode,
-                    decoration: InputDecoration(
-                      hintText: 'Örn: Matematik, İngilizce, Fizik...',
-                      hintStyle: TextStyle(color: AppTheme.grey500, fontSize: 14),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.all(16),
-                      prefixIcon: Icon(Icons.work_rounded, color: AppTheme.primaryBlue, size: 20),
-                    ),
-                    style: const TextStyle(fontSize: 14),
-                    onChanged: (value) {
-                      controller.value = controller.value.copyWith(text: value);
-                    },
-                  );
-                },
-                optionsViewBuilder: (context, onSelected, options) {
-                  return Align(
-                    alignment: Alignment.topLeft,
-                    child: Material(
-                      elevation: 4.0,
-                      borderRadius: BorderRadius.circular(12),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
-                        child: ListView.builder(
-                          padding: EdgeInsets.zero,
-                          shrinkWrap: true,
-                          itemCount: options.length,
-                          itemBuilder: (context, index) {
-                            final option = options.elementAt(index);
-                            return InkWell(
-                              onTap: () => onSelected(option),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                child: Text(
-                                  option,
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
             
             const SizedBox(height: 24),
             
@@ -552,74 +486,164 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
     );
   }
 
-  Widget _buildMainCategoriesList() {
-    return ListView.builder(
-      itemCount: _mainCategories.length,
-      itemBuilder: (context, index) {
-        final category = _mainCategories[index];
+
+  Widget _buildEnhancedSectionHeader(String title, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primaryBlue.withOpacity(0.1),
+            AppTheme.primaryBlue.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.primaryBlue.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: AppTheme.primaryBlue,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.grey900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedMainCategoriesList() {
+    return Column(
+      children: _mainCategories.map((category) {
         final isSelected = _selectedMainCategories.contains(category);
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Card(
-            elevation: isSelected ? 4 : 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(
-                color: isSelected ? AppTheme.primaryBlue : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            child: ListTile(
-              leading: Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: isSelected 
-                      ? AppTheme.primaryBlue 
-                      : _getCategoryColor(category.slug).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+          margin: const EdgeInsets.only(bottom: 16),
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                if (isSelected) {
+                  _selectedMainCategories.remove(category);
+                  _selectedSubCategories.removeWhere((sub) => 
+                      sub.parentId == category.id);
+                  _updateSubCategories();
+                } else {
+                  _selectedMainCategories.add(category);
+                  _updateSubCategories();
+                }
+              });
+              HapticFeedback.lightImpact();
+            },
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected ? AppTheme.primaryBlue : const Color(0xFFE5E7EB),
+                  width: isSelected ? 2 : 1,
                 ),
-                child: Icon(
-                  _getCategoryIcon(category.name),
-                  color: isSelected ? Colors.white : _getCategoryColor(category.slug),
-                  size: 24,
-                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected 
+                        ? AppTheme.primaryBlue.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.05),
+                    blurRadius: isSelected ? 12 : 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              title: Text(
-                category.name,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? AppTheme.primaryBlue : AppTheme.grey800,
-                ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isSelected 
+                            ? [AppTheme.primaryBlue, AppTheme.primaryBlue.withOpacity(0.8)]
+                            : [_getCategoryColor(category.slug).withOpacity(0.1), _getCategoryColor(category.slug).withOpacity(0.05)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      _getCategoryIcon(category.name),
+                      color: isSelected ? Colors.white : _getCategoryColor(category.slug),
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          category.name,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: isSelected ? AppTheme.primaryBlue : AppTheme.grey900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          category.description ?? 'Bu kategoride ders verebilirsiniz',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isSelected ? AppTheme.primaryBlue.withOpacity(0.8) : AppTheme.grey600,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppTheme.primaryBlue : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? AppTheme.primaryBlue : AppTheme.grey400,
+                        width: 2,
+                      ),
+                    ),
+                    child: isSelected
+                        ? const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 16,
+                          )
+                        : null,
+                  ),
+                ],
               ),
-              subtitle: Text(
-                category.description ?? 'Bu kategoride ders verebilirsiniz',
-                style: TextStyle(
-                  color: isSelected ? AppTheme.primaryBlue : AppTheme.grey600,
-                ),
-              ),
-              trailing: isSelected 
-                  ? Icon(Icons.check_circle, color: AppTheme.primaryBlue)
-                  : Icon(Icons.radio_button_unchecked, color: AppTheme.grey400),
-              onTap: () {
-                setState(() {
-                  if (isSelected) {
-                    _selectedMainCategories.remove(category);
-                    // Ana kategori kaldırıldığında, o kategoriye ait alt kategorileri de kaldır
-                    _selectedSubCategories.removeWhere((sub) => 
-                        sub.parentId == category.id);
-                    _updateSubCategories();
-                  } else {
-                    _selectedMainCategories.add(category);
-                    _updateSubCategories();
-                  }
-                });
-                HapticFeedback.lightImpact();
-              },
             ),
           ),
         );
-      },
+      }).toList(),
     );
   }
 
@@ -698,24 +722,41 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
     );
   }
 
-  Widget _buildSubCategoriesList() {
+
+  Widget _buildEnhancedSubCategoriesList() {
     if (_subCategories.isEmpty) {
-      return Center(
+      return Container(
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: AppTheme.grey50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppTheme.grey200,
+            width: 1,
+          ),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.school_outlined,
-              size: 64,
-              color: AppTheme.grey400,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.grey100,
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: Icon(
+                Icons.school_outlined,
+                size: 48,
+                color: AppTheme.grey500,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
               'Önce ana kategori seçin',
               style: TextStyle(
-                color: AppTheme.grey600,
+                color: AppTheme.grey700,
                 fontSize: 16,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
@@ -725,6 +766,7 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
               style: TextStyle(
                 color: AppTheme.grey500,
                 fontSize: 14,
+                height: 1.4,
               ),
             ),
           ],
@@ -732,73 +774,110 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
       );
     }
 
-    return ListView.builder(
-      itemCount: _subCategories.length,
-      itemBuilder: (context, index) {
-        final category = _subCategories[index];
+    return Column(
+      children: _subCategories.map((category) {
         final isSelected = _selectedSubCategories.contains(category);
         return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: Card(
-            elevation: isSelected ? 3 : 1,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(
-                color: isSelected ? AppTheme.accentGreen : Colors.transparent,
-                width: 1.5,
-              ),
-            ),
-            child: ListTile(
-              leading: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: isSelected 
-                      ? AppTheme.accentGreen 
-                      : AppTheme.accentGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+          margin: const EdgeInsets.only(bottom: 12),
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                if (isSelected) {
+                  _selectedSubCategories.remove(category);
+                } else {
+                  _selectedSubCategories.add(category);
+                }
+              });
+              HapticFeedback.lightImpact();
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? AppTheme.accentGreen : const Color(0xFFE5E7EB),
+                  width: isSelected ? 2 : 1,
                 ),
-                child: Icon(
-                  _getCategoryIcon(category.name),
-                  color: isSelected ? Colors.white : AppTheme.accentGreen,
-                  size: 20,
-                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected 
+                        ? AppTheme.accentGreen.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.03),
+                    blurRadius: isSelected ? 8 : 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              title: Text(
-                category.name,
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: isSelected ? AppTheme.accentGreen : AppTheme.grey700,
-                  fontSize: 14,
-                ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isSelected 
+                            ? [AppTheme.accentGreen, AppTheme.accentGreen.withOpacity(0.8)]
+                            : [AppTheme.accentGreen.withOpacity(0.1), AppTheme.accentGreen.withOpacity(0.05)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      _getCategoryIcon(category.name),
+                      color: isSelected ? Colors.white : AppTheme.accentGreen,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      category.name,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? AppTheme.accentGreen : AppTheme.grey800,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppTheme.accentGreen : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSelected ? AppTheme.accentGreen : AppTheme.grey400,
+                        width: 2,
+                      ),
+                    ),
+                    child: isSelected
+                        ? const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 14,
+                          )
+                        : null,
+                  ),
+                ],
               ),
-              trailing: isSelected 
-                  ? Icon(Icons.check_circle, color: AppTheme.accentGreen, size: 20)
-                  : Icon(Icons.radio_button_unchecked, color: AppTheme.grey400, size: 20),
-              onTap: () {
-                setState(() {
-                  if (isSelected) {
-                    _selectedSubCategories.remove(category);
-                  } else {
-                    _selectedSubCategories.add(category);
-                  }
-                });
-                HapticFeedback.lightImpact();
-              },
             ),
           ),
         );
-      },
+      }).toList(),
     );
   }
 
   void _updateSubCategories() {
-    _subCategories.clear();
-    for (final mainCategory in _selectedMainCategories) {
-      if (mainCategory.children != null) {
-        _subCategories.addAll(mainCategory.children!);
+    setState(() {
+      _subCategories.clear();
+      for (final mainCategory in _selectedMainCategories) {
+        if (mainCategory.children != null) {
+          _subCategories.addAll(mainCategory.children!);
+        }
       }
-    }
+    });
   }
 
 
@@ -1571,17 +1650,31 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
 
   bool _canProceed() {
     switch (_currentStep) {
-      case 0:
-        return _selectedMainCategories.isNotEmpty && _selectedSubCategories.isNotEmpty;
-      case 1:
-        return _bioController.text.trim().isNotEmpty && _bioController.text.trim().length >= 50;
-      case 2:
-        return _experienceController.text.trim().isNotEmpty;
-      case 3:
+      case 0: // Kategori ve Uzmanlık Alanı Seçimi
+        // En az bir ana kategori ve bir alt kategori seçilmiş olmalı
+        final hasMainCategory = _selectedMainCategories.isNotEmpty;
+        final hasSubCategory = _selectedSubCategories.isNotEmpty;
+        return hasMainCategory && hasSubCategory;
+        
+      case 1: // Kişisel Bilgiler (Bio)
+        final bioText = _bioController.text.trim();
+        // Bio en az 20 karakter olmalı (daha makul bir limit)
+        return bioText.isNotEmpty && bioText.length >= 20;
+        
+      case 2: // Deneyim ve Sertifikalar
+        final experienceText = _experienceController.text.trim();
+        // Deneyim süresi girilmiş ve geçerli bir sayı olmalı
+        if (experienceText.isEmpty) return false;
+        final experience = int.tryParse(experienceText);
+        return experience != null && experience >= 0;
+        
+      case 3: // Fiyatlandırma
         final priceText = _priceController.text.trim();
+        // Fiyat girilmiş ve geçerli bir pozitif sayı olmalı
         if (priceText.isEmpty) return false;
         final price = double.tryParse(priceText);
         return price != null && price > 0;
+        
       default:
         return false;
     }
@@ -1607,19 +1700,26 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
   bool _validateCurrentStep() {
     switch (_currentStep) {
       case 0: // Kategori ve Uzmanlık Alanı Seçimi
-        return _selectedMainCategories.isNotEmpty && 
-               _selectedSubCategories.isNotEmpty;
+        final hasMainCategory = _selectedMainCategories.isNotEmpty;
+        final hasSubCategory = _selectedSubCategories.isNotEmpty;
+        return hasMainCategory && hasSubCategory;
+        
       case 1: // Kişisel Bilgiler
-        return _bioController.text.trim().isNotEmpty && 
-               _bioController.text.trim().length >= 50;
+        final bioText = _bioController.text.trim();
+        return bioText.isNotEmpty && bioText.length >= 50;
+        
       case 2: // Deneyim ve Sertifikalar
-        return _experienceController.text.trim().isNotEmpty &&
-               int.tryParse(_experienceController.text) != null;
+        final experienceText = _experienceController.text.trim();
+        if (experienceText.isEmpty) return false;
+        final experience = int.tryParse(experienceText);
+        return experience != null && experience >= 0;
+        
       case 3: // Fiyatlandırma
         final priceText = _priceController.text.trim();
         if (priceText.isEmpty) return false;
         final price = double.tryParse(priceText);
         return price != null && price > 0;
+        
       default:
         return false;
     }

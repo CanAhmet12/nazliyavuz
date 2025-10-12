@@ -8,7 +8,6 @@ import '../../services/real_time_chat_service.dart';
 import '../../theme/app_theme.dart';
 import '../video_call/video_call_screen.dart';
 import '../files/file_sharing_screen.dart';
-import '../assignments/create_assignment_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final User otherUser;
@@ -559,19 +558,6 @@ class _ChatScreenState extends State<ChatScreen> {
       builder: (context) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ListTile(
-            leading: const Icon(Icons.assignment),
-            title: const Text('Ödev Ver'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CreateAssignmentScreen(student: widget.otherUser),
-                ),
-              );
-            },
-          ),
           ListTile(
             leading: const Icon(Icons.block),
             title: const Text('Kullanıcıyı Engelle'),

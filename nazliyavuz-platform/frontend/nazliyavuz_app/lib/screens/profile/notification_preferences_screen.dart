@@ -60,21 +60,13 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
                 title: const Text('Ders Hatırlatmaları'),
                 subtitle: const Text('Yaklaşan dersler için hatırlatma'),
                 value: _lessonReminders,
-                onChanged: (value) {
-                  setState(() {
-                    _lessonReminders = value;
-                  });
-                },
+                onChanged: null, // Tıklanamaz yap
               ),
               SwitchListTile(
                 title: const Text('Pazarlama E-postaları'),
                 subtitle: const Text('Promosyon ve kampanya e-postaları'),
                 value: _marketingEmails,
-                onChanged: (value) {
-                  setState(() {
-                    _marketingEmails = value;
-                  });
-                },
+                onChanged: null, // Tıklanamaz yap
               ),
             ],
           ),
@@ -86,11 +78,7 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
                 title: const Text('Push Bildirimleri'),
                 subtitle: const Text('Mobil cihaz bildirimleri'),
                 value: _pushNotifications,
-                onChanged: (value) {
-                  setState(() {
-                    _pushNotifications = value;
-                  });
-                },
+                onChanged: null, // Tıklanamaz yap
               ),
             ],
           ),

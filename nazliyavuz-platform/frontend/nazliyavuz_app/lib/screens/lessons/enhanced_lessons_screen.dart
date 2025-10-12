@@ -606,6 +606,7 @@ class _EnhancedLessonsScreenState extends State<EnhancedLessonsScreen>
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Container(
+      height: 120, // Sabit yükseklik ekle
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -619,6 +620,7 @@ class _EnhancedLessonsScreenState extends State<EnhancedLessonsScreen>
         ],
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center, // İçeriği ortala
         children: [
           Container(
             padding: const EdgeInsets.all(10),

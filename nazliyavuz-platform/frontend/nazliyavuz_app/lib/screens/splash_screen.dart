@@ -230,7 +230,7 @@ class _SplashScreenState extends State<SplashScreen>
                   
                   // App Title
                   Text(
-                    'Rota Akademi',
+                    'TERENCE EĞİTİM',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,

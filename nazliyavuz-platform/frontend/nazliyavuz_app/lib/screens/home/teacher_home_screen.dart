@@ -1103,26 +1103,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
                 color: color,
                 size: 20,
               ),
-              const Spacer(),
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity( 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 12),

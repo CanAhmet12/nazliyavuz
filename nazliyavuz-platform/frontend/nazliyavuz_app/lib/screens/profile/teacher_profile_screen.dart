@@ -142,8 +142,12 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
           _isUpdatingPhoto = true;
         });
 
-        // Photo update logic would go here
-        // For now, just update the loading state
+        // Backend'e yükle
+        await _apiService.updateProfilePhoto(image);
+        
+        // Profil bilgilerini yeniden yükle
+        final authBloc = context.read<AuthBloc>();
+        authBloc.add(const AuthRefreshRequested());
         
         if (mounted) {
           setState(() {
@@ -531,74 +535,105 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
   Widget _buildTeacherTeachingStats() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Öğretmenlik İstatistikleri',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.grey900,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Clean header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFFE2E8F0),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.bar_chart_rounded,
+                    color: const Color(0xFF64748B),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Öğretmenlik İstatistikleri',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _buildTeacherStatCard(
-                  'Verdiğim Dersler',
-                  '${_teachingStatistics['total_lessons'] ?? 0}',
-                  Icons.school_rounded,
-                  AppTheme.accentGreen,
+            const SizedBox(height: 20),
+            // Professional stats grid
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTeacherStatCard(
+                    'Verdiğim Dersler',
+                    '${_teachingStatistics['total_lessons'] ?? 0}',
+                    Icons.school_outlined,
+                    const Color(0xFF059669),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildTeacherStatCard(
-                  'Aktif Öğrenciler',
-                  '${_teachingStatistics['active_students'] ?? 0}',
-                  Icons.people_rounded,
-                  AppTheme.primaryBlue,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTeacherStatCard(
+                    'Aktif Öğrenciler',
+                    '${_teachingStatistics['active_students'] ?? 0}',
+                    Icons.people_outline,
+                    const Color(0xFF2563EB),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildTeacherStatCard(
-                  'Toplam Saat',
-                  '${_teachingStatistics['total_hours'] ?? 0}',
-                  Icons.schedule_rounded,
-                  AppTheme.accentOrange,
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTeacherStatCard(
+                    'Toplam Saat',
+                    '${_teachingStatistics['total_hours'] ?? 0}',
+                    Icons.access_time_outlined,
+                    const Color(0xFFDC2626),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildTeacherStatCard(
-                  'Değerlendirme',
-                  '${_teachingStatistics['rating'] ?? 0}/5',
-                  Icons.star_rounded,
-                  AppTheme.premiumGold,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTeacherStatCard(
+                    'Değerlendirme',
+                    '${_teachingStatistics['rating'] ?? 0}/5',
+                    Icons.star_outline,
+                    const Color(0xFFCA8A04),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -607,34 +642,53 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: color.withOpacity(0.2),
+          color: const Color(0xFFE2E8F0),
           width: 1,
         ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+          // Icon and value
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 16,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1E293B),
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
+          // Title
           Text(
             title,
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: AppTheme.grey600,
+              color: Color(0xFF64748B),
+              letterSpacing: 0.1,
             ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),

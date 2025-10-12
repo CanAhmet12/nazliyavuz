@@ -39,6 +39,9 @@ class _TeacherFiltersScreenState extends State<TeacherFiltersScreen> {
   late String _sortBy;
   
   List<Category> _categories = [];
+  List<Category> _mainCategories = [];
+  List<Category> _subCategories = [];
+  Category? _selectedMainCategory;
   bool _isLoading = true;
 
   final List<Map<String, dynamic>> _sortOptions = [
@@ -66,12 +69,37 @@ class _TeacherFiltersScreenState extends State<TeacherFiltersScreen> {
       final categories = await _apiService.getCategories();
       setState(() {
         _categories = categories;
+        _mainCategories = categories.where((cat) => cat.parentId == null).toList();
+        
+        // If a category is already selected, set the main category
+        if (_selectedCategory.isNotEmpty) {
+          final selectedCat = categories.firstWhere(
+            (cat) => cat.slug == _selectedCategory || cat.name == _selectedCategory,
+            orElse: () => Category(id: 0, name: '', slug: '', parentId: null),
+          );
+          if (selectedCat.id != 0) {
+            _selectedMainCategory = _mainCategories.firstWhere(
+              (mainCat) => mainCat.id == selectedCat.parentId,
+              orElse: () => _mainCategories.first,
+            );
+            _updateSubCategories();
+          }
+        }
+        
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+  
+  void _updateSubCategories() {
+    if (_selectedMainCategory != null) {
+      _subCategories = _categories.where((cat) => cat.parentId == _selectedMainCategory!.id).toList();
+    } else {
+      _subCategories = [];
     }
   }
 
@@ -92,6 +120,8 @@ class _TeacherFiltersScreenState extends State<TeacherFiltersScreen> {
   void _resetFilters() {
     setState(() {
       _selectedCategory = '';
+      _selectedMainCategory = null;
+      _subCategories = [];
       _minPrice = 0;
       _maxPrice = 1000;
       _minRating = 0;
@@ -265,20 +295,73 @@ class _TeacherFiltersScreenState extends State<TeacherFiltersScreen> {
   }
 
   Widget _buildCategorySection() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildCategoryChip(
-          label: 'Tümü',
-          isSelected: _selectedCategory.isEmpty,
-          onTap: () => setState(() => _selectedCategory = ''),
+        // Ana Kategoriler
+        Text(
+          'Ana Kategoriler',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.grey600,
+          ),
         ),
-        ..._categories.map((category) => _buildCategoryChip(
-          label: category.name,
-          isSelected: _selectedCategory == category.slug,
-          onTap: () => setState(() => _selectedCategory = category.slug),
-        )),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildCategoryChip(
+              label: 'Tümü',
+              isSelected: _selectedCategory.isEmpty,
+              onTap: () => setState(() {
+                _selectedCategory = '';
+                _selectedMainCategory = null;
+                _subCategories = [];
+              }),
+            ),
+            ..._mainCategories.map((category) => _buildCategoryChip(
+              label: category.name,
+              isSelected: _selectedMainCategory?.id == category.id,
+              onTap: () => setState(() {
+                _selectedMainCategory = category;
+                _updateSubCategories();
+                _selectedCategory = ''; // Reset subcategory selection
+              }),
+            )),
+          ],
+        ),
+        
+        // Alt Kategoriler (sadece ana kategori seçildiğinde göster)
+        if (_selectedMainCategory != null && _subCategories.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text(
+            'Uzmanlık Alanları',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.grey600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildCategoryChip(
+                label: 'Tümü (${_selectedMainCategory!.name})',
+                isSelected: _selectedCategory.isEmpty && _selectedMainCategory != null,
+                onTap: () => setState(() => _selectedCategory = ''),
+              ),
+              ..._subCategories.map((category) => _buildCategoryChip(
+                label: category.name,
+                isSelected: _selectedCategory == category.slug,
+                onTap: () => setState(() => _selectedCategory = category.slug),
+              )),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -291,20 +374,20 @@ class _TeacherFiltersScreenState extends State<TeacherFiltersScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryBlue : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? AppTheme.primaryBlue : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryBlue : AppTheme.grey300,
-            width: 1.5,
+            color: isSelected ? AppTheme.primaryBlue : const Color(0xFFE2E8F0),
+            width: 1,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : AppTheme.textPrimary,
-            fontSize: 14,
+            color: isSelected ? Colors.white : const Color(0xFF475569),
+            fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
         ),

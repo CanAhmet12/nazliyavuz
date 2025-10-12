@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' as foundation;
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_widgets.dart';
 import '../../widgets/teacher_card.dart';
 import '../../models/teacher.dart';
 import '../../models/category.dart';
 import '../../services/api_service.dart';
-import 'advanced_search_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -27,12 +27,13 @@ class _SearchScreenState extends State<SearchScreen>
   
   List<Teacher> _teachers = [];
   List<Teacher> _filteredTeachers = [];
-  List<Category> _categories = [];
+  List<Category> _mainCategories = [];
+  List<Category> _subCategories = [];
+  Set<int> _favoriteTeacherIds = {}; // Track favorite teachers
   bool _isLoading = false;
   bool _isGridView = false;
-  String _selectedCategory = '';
-  double _minRating = 0;
-  bool _onlineOnly = false;
+  List<Category> _selectedMainCategories = [];
+  List<Category> _selectedSubCategories = [];
   String _sortBy = 'rating';
   String? _error;
 
@@ -90,6 +91,7 @@ class _SearchScreenState extends State<SearchScreen>
       await Future.wait([
         _loadTeachers(),
         _loadCategories(),
+        _loadFavorites(),
       ]);
 
       if (mounted) {
@@ -109,13 +111,24 @@ class _SearchScreenState extends State<SearchScreen>
 
   Future<void> _loadTeachers() async {
     try {
+      // Seçilen kategorilerin ID'lerini topla
+      List<int> selectedCategoryIds = [];
+      selectedCategoryIds.addAll(_selectedMainCategories.map((c) => c.id).toList());
+      selectedCategoryIds.addAll(_selectedSubCategories.map((c) => c.id).toList());
+      
+      if (foundation.kDebugMode) {
+        print('🔍 Loading teachers with filters: selectedCategories=$selectedCategoryIds, sortBy=$_sortBy, search=${_searchController.text}');
+      }
+      
       final teachers = await _apiService.getTeachers(
-        category: _selectedCategory.isNotEmpty ? _selectedCategory : null,
-        minRating: _minRating > 0 ? _minRating : null,
-        onlineOnly: _onlineOnly,
+        categoryIds: selectedCategoryIds.isNotEmpty ? selectedCategoryIds : null,
         sortBy: _sortBy,
         search: _searchController.text.isNotEmpty ? _searchController.text : null,
       );
+
+      if (foundation.kDebugMode) {
+        print('🔍 Loaded ${teachers.length} teachers from API');
+      }
 
       if (mounted) {
         setState(() {
@@ -123,8 +136,20 @@ class _SearchScreenState extends State<SearchScreen>
           _filteredTeachers = teachers;
           _isLoading = false;
         });
+        
+        // If no teachers found with filters, try loading without filters as fallback
+        if (teachers.isEmpty && (selectedCategoryIds.isNotEmpty || _searchController.text.isNotEmpty)) {
+          if (foundation.kDebugMode) {
+            print('🔍 No teachers found with filters, trying without filters as fallback');
+          }
+          _loadTeachersWithoutFilters();
+        }
       }
     } catch (e) {
+      if (foundation.kDebugMode) {
+        print('🔍 Error loading teachers: $e');
+      }
+      
       if (mounted) {
         setState(() {
           _error = e.toString();
@@ -134,16 +159,111 @@ class _SearchScreenState extends State<SearchScreen>
     }
   }
 
+  Future<void> _loadTeachersWithoutFilters() async {
+    try {
+      if (foundation.kDebugMode) {
+        print('🔍 Loading teachers without filters as fallback');
+      }
+      
+      final teachers = await _apiService.getTeachers(
+        categoryIds: null,
+        sortBy: 'rating',
+        search: null,
+      );
+
+      if (foundation.kDebugMode) {
+        print('🔍 Fallback loaded ${teachers.length} teachers');
+      }
+
+      if (mounted) {
+        setState(() {
+          _teachers = teachers;
+          _filteredTeachers = teachers;
+        });
+      }
+    } catch (e) {
+      if (foundation.kDebugMode) {
+        print('🔍 Error in fallback loading: $e');
+      }
+    }
+  }
+
   Future<void> _loadCategories() async {
     try {
       final categories = await _apiService.getCategories();
       if (mounted) {
         setState(() {
-          _categories = categories;
+          // Ana kategorileri ve alt kategorileri ayır
+          _mainCategories = categories.where((c) => c.parentId == null).toList();
+          _subCategories = categories.where((c) => c.parentId != null).toList();
         });
       }
     } catch (e) {
       // Categories loading error, continue with empty list
+    }
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await _apiService.getFavorites();
+      if (mounted) {
+        setState(() {
+          _favoriteTeacherIds = favorites.map((teacher) => teacher.id).where((id) => id != null).cast<int>().toSet();
+        });
+      }
+    } catch (e) {
+      // Favorites loading error, continue with empty set
+      if (foundation.kDebugMode) {
+        print('🔍 Error loading favorites: $e');
+      }
+    }
+  }
+
+  Future<void> _toggleFavorite(Teacher teacher) async {
+    try {
+      final teacherId = teacher.id;
+      if (teacherId == null) {
+        if (foundation.kDebugMode) {
+          print('🔍 Teacher ID is null, cannot toggle favorite');
+        }
+        return;
+      }
+      
+      final isFavorite = _favoriteTeacherIds.contains(teacherId);
+      
+      if (isFavorite) {
+        await _apiService.removeFromFavorites(teacherId);
+        if (mounted) {
+          setState(() {
+            _favoriteTeacherIds.remove(teacherId);
+          });
+        }
+      } else {
+        await _apiService.addToFavorites(teacherId);
+        if (mounted) {
+          setState(() {
+            _favoriteTeacherIds.add(teacherId);
+          });
+        }
+      }
+      
+      if (foundation.kDebugMode) {
+        print('🔍 Toggled favorite for teacher $teacherId: ${!isFavorite}');
+      }
+    } catch (e) {
+      if (foundation.kDebugMode) {
+        print('🔍 Error toggling favorite: $e');
+      }
+      
+      // Show error message to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Favori durumu güncellenirken hata oluştu: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -234,14 +354,17 @@ class _SearchScreenState extends State<SearchScreen>
       ),
       child: Column(
         children: [
-          // Search Bar with Filter Buttons
+          // Search Bar - Tek sıra
+          _buildSearchBar(),
+          
+          const SizedBox(height: 12),
+          
+          // Filter Buttons - Alt sıra, aynı genişlikte
           Row(
             children: [
-              Expanded(child: _buildSearchBar()),
+              Expanded(child: _buildAdvancedFiltersButton()),
               const SizedBox(width: 8),
-              _buildAdvancedFiltersButton(),
-              const SizedBox(width: 8),
-              _buildSortButton(),
+              Expanded(child: _buildSortButton()),
             ],
           ),
           
@@ -305,24 +428,32 @@ class _SearchScreenState extends State<SearchScreen>
         children: [
           _buildFilterChip(
             'Tümü',
-            _selectedCategory.isEmpty,
+            _selectedMainCategories.isEmpty && _selectedSubCategories.isEmpty,
             () {
               setState(() {
-                _selectedCategory = '';
+                _selectedMainCategories.clear();
+                _selectedSubCategories.clear();
               });
               _filterTeachers();
             },
           ),
           const SizedBox(width: 6),
-          ..._categories.take(6).map((category) {
+          ..._mainCategories.take(6).map((category) {
+            final isSelected = _selectedMainCategories.contains(category);
             return Padding(
               padding: const EdgeInsets.only(right: 6),
               child: _buildFilterChip(
                 category.name,
-                _selectedCategory == category.name,
+                isSelected,
                 () {
                   setState(() {
-                    _selectedCategory = _selectedCategory == category.name ? '' : category.name;
+                    if (isSelected) {
+                      _selectedMainCategories.remove(category);
+                      // Bu ana kategoriye ait alt kategorileri de kaldır
+                      _selectedSubCategories.removeWhere((sub) => sub.parentId == category.id);
+                    } else {
+                      _selectedMainCategories.add(category);
+                    }
                   });
                   _filterTeachers();
                 },
@@ -363,13 +494,18 @@ class _SearchScreenState extends State<SearchScreen>
       height: 48,
       child: OutlinedButton.icon(
         onPressed: _showAdvancedFilters,
-        icon: const Icon(Icons.tune_rounded, size: 18),
-        label: const Text(
+        icon: Icon(Icons.tune_rounded, size: 18, color: AppTheme.primaryBlue),
+        label: Text(
           'Filtreler',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 14, 
+            fontWeight: FontWeight.w600,
+            color: AppTheme.primaryBlue,
+          ),
         ),
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: AppTheme.grey300),
+          side: BorderSide(color: AppTheme.primaryBlue.withOpacity(0.3)),
+          backgroundColor: AppTheme.primaryBlue.withOpacity(0.05),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
@@ -384,13 +520,18 @@ class _SearchScreenState extends State<SearchScreen>
       height: 48,
       child: OutlinedButton.icon(
         onPressed: _showSortOptions,
-        icon: const Icon(Icons.sort_rounded, size: 16),
+        icon: Icon(Icons.sort_rounded, size: 16, color: AppTheme.accentGreen),
         label: Text(
           _sortOptions.firstWhere((option) => option['value'] == _sortBy)['label'],
-          style: const TextStyle(fontSize: 12),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.accentGreen,
+          ),
         ),
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: AppTheme.grey300),
+          side: BorderSide(color: AppTheme.accentGreen.withOpacity(0.3)),
+          backgroundColor: AppTheme.accentGreen.withOpacity(0.05),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
@@ -421,9 +562,8 @@ class _SearchScreenState extends State<SearchScreen>
                 onPressed: () {
                   _searchController.clear();
                   setState(() {
-                    _selectedCategory = '';
-                    _minRating = 0;
-                    _onlineOnly = false;
+                    _selectedMainCategories.clear();
+                    _selectedSubCategories.clear();
                     _sortBy = 'rating';
                   });
                   _filterTeachers();
@@ -466,13 +606,11 @@ class _SearchScreenState extends State<SearchScreen>
           padding: const EdgeInsets.only(bottom: 8),
           child: TeacherCard(
             teacher: teacher,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              // TODO: Navigate to teacher profile
-            },
+            isFavorite: teacher.id != null && _favoriteTeacherIds.contains(teacher.id),
+            onTap: null, // Rezerve Et butonunun çalışması için null yapıyoruz
             onFavoriteToggle: () {
               HapticFeedback.lightImpact();
-              // TODO: Toggle favorite
+              _toggleFavorite(teacher);
             },
           ),
         );
@@ -494,13 +632,11 @@ class _SearchScreenState extends State<SearchScreen>
         final teacher = _filteredTeachers[index];
         return TeacherGridCard(
           teacher: teacher,
-          onTap: () {
-            HapticFeedback.lightImpact();
-            // TODO: Navigate to teacher profile
-          },
+          isFavorite: teacher.id != null && _favoriteTeacherIds.contains(teacher.id),
+          onTap: null, // Rezerve Et butonunun çalışması için null yapıyoruz
           onFavoriteToggle: () {
             HapticFeedback.lightImpact();
-            // TODO: Toggle favorite
+            _toggleFavorite(teacher);
           },
         );
       },
@@ -552,9 +688,8 @@ class _SearchScreenState extends State<SearchScreen>
               onPressed: () {
                 _searchController.clear();
                 setState(() {
-                  _selectedCategory = '';
-                  _minRating = 0;
-                  _onlineOnly = false;
+                  _selectedMainCategories.clear();
+                  _selectedSubCategories.clear();
                 });
                 _filterTeachers();
               },
@@ -568,9 +703,299 @@ class _SearchScreenState extends State<SearchScreen>
   }
 
   void _showAdvancedFilters() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const AdvancedSearchScreen()),
+    _showCategoryFiltersDialog();
+  }
+
+  void _showCategoryFiltersDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.grey300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Icon(Icons.tune_rounded, color: AppTheme.primaryBlue, size: 24),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Kategori Filtreleri',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.grey900,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close_rounded, color: AppTheme.grey500),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Ana Kategoriler
+                      _buildCategorySection(
+                        'Ana Kategoriler',
+                        _mainCategories,
+                        _selectedMainCategories,
+                        (category, isSelected) {
+                          setModalState(() {
+                            if (isSelected) {
+                              _selectedMainCategories.remove(category);
+                              _selectedSubCategories.removeWhere((sub) => sub.parentId == category.id);
+                            } else {
+                              _selectedMainCategories.add(category);
+                            }
+                          });
+                        },
+                      ),
+                      
+                      if (_selectedMainCategories.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        
+                        // Alt Kategoriler
+                        _buildSubCategorySection(
+                          'Uzmanlık Alanları',
+                          _selectedMainCategories,
+                          _selectedSubCategories,
+                          (category, isSelected) {
+                            setModalState(() {
+                              if (isSelected) {
+                                _selectedSubCategories.remove(category);
+                              } else {
+                                _selectedSubCategories.add(category);
+                              }
+                            });
+                          },
+                        ),
+                      ],
+                      
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Footer Buttons
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          setModalState(() {
+                            _selectedMainCategories.clear();
+                            _selectedSubCategories.clear();
+                          });
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppTheme.grey300),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'Temizle',
+                          style: TextStyle(
+                            color: AppTheme.grey700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {});
+                          _filterTeachers();
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryBlue,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'Uygula',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategorySection(
+    String title,
+    List<Category> categories,
+    List<Category> selectedCategories,
+    Function(Category, bool) onCategoryToggle,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.grey900,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: categories.map((category) {
+            final isSelected = selectedCategories.contains(category);
+            return GestureDetector(
+              onTap: () => onCategoryToggle(category, isSelected),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.primaryBlue : AppTheme.grey100,
+                  borderRadius: BorderRadius.circular(20),
+                  border: isSelected
+                      ? null
+                      : Border.all(color: AppTheme.grey300),
+                ),
+                child: Text(
+                  category.name,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppTheme.grey700,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubCategorySection(
+    String title,
+    List<Category> selectedMainCategories,
+    List<Category> selectedSubCategories,
+    Function(Category, bool) onCategoryToggle,
+  ) {
+    // Seçilen ana kategorilere ait alt kategorileri filtrele
+    final availableSubCategories = _subCategories.where((sub) =>
+        selectedMainCategories.any((main) => main.id == sub.parentId)).toList();
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.grey900,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (availableSubCategories.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.grey50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.grey200),
+            ),
+            child: Text(
+              'Önce ana kategori seçin',
+              style: TextStyle(
+                color: AppTheme.grey500,
+                fontSize: 14,
+              ),
+            ),
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: availableSubCategories.map((category) {
+              final isSelected = selectedSubCategories.contains(category);
+              return GestureDetector(
+                onTap: () => onCategoryToggle(category, isSelected),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppTheme.accentGreen : AppTheme.grey100,
+                    borderRadius: BorderRadius.circular(20),
+                    border: isSelected
+                        ? null
+                        : Border.all(color: AppTheme.grey300),
+                  ),
+                  child: Text(
+                    category.name,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : AppTheme.grey700,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+      ],
     );
   }
 
