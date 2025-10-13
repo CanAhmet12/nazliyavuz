@@ -47,15 +47,18 @@ class FileUploadController extends Controller
             $filename = 'profile_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
             $filePath = $file->storeAs('profile_photos', $filename, 'public');
             
+            // Generate full URL with current request host
+            $fullUrl = $request->getSchemeAndHttpHost() . '/storage/' . $filePath;
+            
             // Update user profile photo URL
             $user->update([
-                'profile_photo_url' => Storage::disk('public')->url($filePath)
+                'profile_photo_url' => $fullUrl
             ]);
             
             return response()->json([
                 'success' => true,
                 'message' => 'Profil fotoğrafı başarıyla güncellendi',
-                'profile_photo_url' => $user->profile_photo_url
+                'profile_photo_url' => $fullUrl
             ]);
             
         } catch (\Exception $e) {

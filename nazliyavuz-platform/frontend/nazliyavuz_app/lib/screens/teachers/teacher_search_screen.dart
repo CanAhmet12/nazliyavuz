@@ -262,7 +262,7 @@ class _TeacherSearchScreenState extends State<TeacherSearchScreen>
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       title: const Text(
-        'Öğretmen Ara',
+        'Eğitimci Ara',
         style: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 16,
@@ -294,7 +294,7 @@ class _TeacherSearchScreenState extends State<TeacherSearchScreen>
         controller: _searchController,
         focusNode: _searchFocusNode,
         decoration: InputDecoration(
-          hintText: 'Öğretmen, ders veya konu ara...',
+          hintText: 'Eğitimci, ders veya konu ara...',
           hintStyle: TextStyle(color: AppTheme.grey600, fontSize: 14), // Daha açık renk
           prefixIcon: Icon(Icons.search_rounded, color: AppTheme.grey600, size: 20), // Daha açık renk
           suffixIcon: _searchController.text.isNotEmpty
@@ -339,7 +339,7 @@ class _TeacherSearchScreenState extends State<TeacherSearchScreen>
           
           // Trending Teachers
           if (_trendingTeachers.isNotEmpty) ...[
-            _buildSectionTitle('Trend Öğretmenler', Icons.local_fire_department_rounded),
+            _buildSectionTitle('Trend Eğitimciler', Icons.local_fire_department_rounded),
             const SizedBox(height: 8),
             _buildTrendingTeachers(),
             const SizedBox(height: 16),

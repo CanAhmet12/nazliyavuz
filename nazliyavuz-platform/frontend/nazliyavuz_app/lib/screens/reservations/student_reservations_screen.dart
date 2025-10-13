@@ -716,7 +716,7 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        teacher?.user?.name ?? 'Bilinmeyen Öğretmen',
+                        teacher?.user?.name ?? 'Bilinmeyen Eğitimci',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -976,7 +976,7 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'İlk dersinizi almak için bir öğretmen bulun',
+            'İlk dersinizi almak için bir eğitimci bulun',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[400],

@@ -1060,7 +1060,7 @@ class _TeacherReservationsScreenState extends State<TeacherReservationsScreen>
                     if (reservation.teacherNotes != null && reservation.teacherNotes!.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       const Text(
-                        'Öğretmen Notları:',
+                        'Eğitimci Notları:',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 8),

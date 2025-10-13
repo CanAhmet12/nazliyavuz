@@ -117,7 +117,13 @@ class _SearchScreenState extends State<SearchScreen>
       selectedCategoryIds.addAll(_selectedSubCategories.map((c) => c.id).toList());
       
       if (foundation.kDebugMode) {
-        print('🔍 Loading teachers with filters: selectedCategories=$selectedCategoryIds, sortBy=$_sortBy, search=${_searchController.text}');
+        print('🔍 ====== FILTER DEBUG ======');
+        print('🔍 Selected Main Categories: ${_selectedMainCategories.map((c) => '${c.name}(${c.id})').toList()}');
+        print('🔍 Selected Sub Categories: ${_selectedSubCategories.map((c) => '${c.name}(${c.id})').toList()}');
+        print('🔍 Combined Category IDs: $selectedCategoryIds');
+        print('🔍 Sort By: $_sortBy');
+        print('🔍 Search Text: ${_searchController.text}');
+        print('🔍 ========================');
       }
       
       final teachers = await _apiService.getTeachers(
@@ -137,12 +143,9 @@ class _SearchScreenState extends State<SearchScreen>
           _isLoading = false;
         });
         
-        // If no teachers found with filters, try loading without filters as fallback
-        if (teachers.isEmpty && (selectedCategoryIds.isNotEmpty || _searchController.text.isNotEmpty)) {
-          if (foundation.kDebugMode) {
-            print('🔍 No teachers found with filters, trying without filters as fallback');
-          }
-          _loadTeachersWithoutFilters();
+        // Fallback removed - show empty state if no teachers match filters
+        if (foundation.kDebugMode) {
+          print('🔍 ${teachers.length} teachers loaded with current filters');
         }
       }
     } catch (e) {
@@ -155,35 +158,6 @@ class _SearchScreenState extends State<SearchScreen>
           _error = e.toString();
           _isLoading = false;
         });
-      }
-    }
-  }
-
-  Future<void> _loadTeachersWithoutFilters() async {
-    try {
-      if (foundation.kDebugMode) {
-        print('🔍 Loading teachers without filters as fallback');
-      }
-      
-      final teachers = await _apiService.getTeachers(
-        categoryIds: null,
-        sortBy: 'rating',
-        search: null,
-      );
-
-      if (foundation.kDebugMode) {
-        print('🔍 Fallback loaded ${teachers.length} teachers');
-      }
-
-      if (mounted) {
-        setState(() {
-          _teachers = teachers;
-          _filteredTeachers = teachers;
-        });
-      }
-    } catch (e) {
-      if (foundation.kDebugMode) {
-        print('🔍 Error in fallback loading: $e');
       }
     }
   }
@@ -620,12 +594,12 @@ class _SearchScreenState extends State<SearchScreen>
 
   Widget _buildGridView() {
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        childAspectRatio: 0.9, // Daha da yüksek - overflow için
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
       ),
       itemCount: _filteredTeachers.length,
       itemBuilder: (context, index) {

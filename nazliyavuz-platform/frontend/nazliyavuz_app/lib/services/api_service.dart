@@ -15,9 +15,10 @@ import '../models/assignment.dart';
 import '../models/lesson.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://34.122.224.35:8000/api/v1';  // VM Backend External IP
+  static const String baseUrl = 'http://10.91.204.19:8080/api/v1';  // Local Backend (PC IP)
   late Dio _dio;
   String? _token;
+
   
   // Callback for unauthorized access
   Function()? onUnauthorized;
@@ -596,7 +597,7 @@ class ApiService {
       if (kDebugMode) {
         print('❌ [CREATE_TEACHER_PROFILE] Unexpected error: $e');
       }
-      throw Exception('Öğretmen profili oluşturulurken bir hata oluştu: $e');
+      throw Exception('Eğitimci profili oluşturulurken bir hata oluştu: $e');
     }
   }
 
@@ -958,7 +959,7 @@ class ApiService {
       if (kDebugMode) {
         print('❌ [SEARCH_TEACHERS] Unexpected error: $e');
       }
-      throw Exception('Öğretmen arama sırasında bir hata oluştu: $e');
+      throw Exception('Eğitimci arama sırasında bir hata oluştu: $e');
     }
   }
 

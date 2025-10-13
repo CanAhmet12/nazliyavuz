@@ -261,7 +261,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   Text(
-                    widget.otherUser.role == 'teacher' ? 'Öğretmen' : 'Öğrenci',
+                    widget.otherUser.role == 'teacher' ? 'Eğitimci' : 'Öğrenci',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.white.withOpacity(0.8),

@@ -143,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen>
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               Expanded(child: _buildNavItem(0, Icons.home_outlined, Icons.home, 'Ana Sayfa')),
-              Expanded(child: _buildNavItem(1, Icons.school_outlined, Icons.school, 'Öğretmenler')),
+              Expanded(child: _buildNavItem(1, Icons.school_outlined, Icons.school, 'Eğitimciler')),
               Expanded(child: _buildNavItem(2, Icons.book_outlined, Icons.book, 'Dersler')),
               Expanded(child: _buildNavItem(3, Icons.calendar_today_outlined, Icons.calendar_today, 'Rezervasyon')),
               Expanded(child: _buildNavItem(4, Icons.assignment_outlined, Icons.assignment, 'Ödevler')),
@@ -282,8 +282,8 @@ class _HomeScreenState extends State<HomeScreen>
                     _buildQuickActionCard(
                       context,
                       icon: Icons.search_rounded,
-                      title: 'Öğretmen Ara',
-                      subtitle: 'Yeni öğretmen bul',
+                      title: 'Eğitimci Ara',
+                      subtitle: 'Yeni eğitimci bul',
                       color: AppTheme.accentGreen,
                       onTap: () {
                         Navigator.pop(context);
@@ -706,8 +706,8 @@ class _HomeScreenState extends State<HomeScreen>
             Expanded(
               child: _buildHomeQuickActionCard(
                 icon: Icons.search_rounded,
-                title: 'Öğretmen Ara',
-                subtitle: 'Yeni öğretmen bul',
+                title: 'Eğitimci Ara',
+                subtitle: 'Yeni eğitimci bul',
                 color: const Color(0xFF3B82F6),
                 onTap: () {
                   Navigator.push(
@@ -762,7 +762,7 @@ class _HomeScreenState extends State<HomeScreen>
               child: _buildHomeQuickActionCard(
                 icon: Icons.chat_rounded,
                 title: 'Mesajlar',
-                subtitle: 'Öğretmenlerle konuş',
+                subtitle: 'Eğitimcilerle konuş',
                 color: const Color(0xFF8B5CF6),
                 onTap: () {
                   Navigator.push(
@@ -883,7 +883,7 @@ class _HomeScreenState extends State<HomeScreen>
                 '5',
                 Icons.favorite_rounded,
                 const Color(0xFFEF4444),
-                'Öğretmen',
+                'Eğitimci',
               ),
             ),
           ],
@@ -1001,7 +1001,7 @@ class _HomeScreenState extends State<HomeScreen>
             children: [
               _buildModernActivityItem(
                 'Matematik Dersi',
-                'Ahmet Öğretmen',
+                'Ahmet Eğitimci',
                 'Bugün 14:00',
                 Icons.calculate_rounded,
                 const Color(0xFF3B82F6),
@@ -1011,7 +1011,7 @@ class _HomeScreenState extends State<HomeScreen>
               const SizedBox(height: 12),
               _buildModernActivityItem(
                 'İngilizce Konuşma',
-                'Sarah Öğretmen',
+                'Sarah Eğitimci',
                 'Dün 16:30',
                 Icons.chat_rounded,
                 const Color(0xFF10B981),
@@ -1021,7 +1021,7 @@ class _HomeScreenState extends State<HomeScreen>
               const SizedBox(height: 12),
               _buildModernActivityItem(
                 'Fizik Ödevi',
-                'Mehmet Öğretmen',
+                'Mehmet Eğitimci',
                 '2 gün önce',
                 Icons.science_rounded,
                 const Color(0xFF8B5CF6),
@@ -1124,7 +1124,7 @@ class _HomeScreenState extends State<HomeScreen>
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Öne Çıkan Öğretmenler',
+              'Öne Çıkan Eğitimciler',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF1E293B),
@@ -1336,7 +1336,7 @@ class _HomeScreenState extends State<HomeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    teacher.name ?? 'Öğretmen',
+                    teacher.name ?? 'Eğitimci',
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF1E293B),
@@ -1347,7 +1347,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    (teacher.bio?.isNotEmpty == true) ? teacher.bio!.substring(0, teacher.bio!.length > 20 ? 20 : teacher.bio!.length) : 'Öğretmen',
+                    (teacher.bio?.isNotEmpty == true) ? teacher.bio!.substring(0, teacher.bio!.length > 20 ? 20 : teacher.bio!.length) : 'Eğitimci',
                     style: const TextStyle(
                       color: Color(0xFF64748B),
                       fontSize: 12,

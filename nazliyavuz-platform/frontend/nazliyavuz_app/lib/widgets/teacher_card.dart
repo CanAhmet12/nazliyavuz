@@ -66,29 +66,29 @@ class TeacherCard extends StatelessWidget {
                     
                     // İçerik Bölümü
                     Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12), // 16 -> 12
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Öğretmen Bilgileri
                           _buildTeacherInfo(),
                           
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8), // 12 -> 8
                           
                           // Kategoriler
                           _buildCategories(),
                           
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8), // 12 -> 8
                           
                           // Rating ve Fiyat
                           _buildRatingAndPrice(),
                           
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8), // 12 -> 8
                           
                           // Ders Türleri
                           _buildLessonTypes(),
                           
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12), // 16 -> 12
                           
                           // Aksiyon Butonları
                           _buildActionButtons(context),
@@ -107,7 +107,7 @@ class TeacherCard extends StatelessWidget {
 
   Widget _buildTurkishIDHeader() {
     return Container(
-      height: 180,
+      height: 160, // Overflow için küçültüldü
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         gradient: LinearGradient(
@@ -320,7 +320,7 @@ class TeacherCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          teacher.user?.name ?? 'Bilinmeyen Öğretmen',
+          teacher.user?.name ?? 'Bilinmeyen Eğitimci',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -332,7 +332,7 @@ class TeacherCard extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          (teacher.bio?.isNotEmpty ?? false) ? teacher.bio! : 'Deneyimli Öğretmen',
+          (teacher.bio?.isNotEmpty ?? false) ? teacher.bio! : 'Deneyimli Eğitimci',
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -573,7 +573,7 @@ class TeacherCard extends StatelessWidget {
       children: [
         Expanded(
           child: Container(
-            height: 48,
+            height: 42, // 48 -> 42 overflow için
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(12),
@@ -627,7 +627,7 @@ class TeacherCard extends StatelessWidget {
         Expanded(
           flex: 2,
           child: Container(
-            height: 48,
+            height: 42, // 48 -> 42 overflow için
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFF00BFA5), Color(0xFF00897B)],
@@ -635,9 +635,9 @@ class TeacherCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF00BFA5).withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
+                  color: const Color(0xFF00BFA5).withOpacity(0.3), // 0.4 -> 0.3
+                  blurRadius: 8, // 12 -> 8
+                  offset: const Offset(0, 4), // 6 -> 4
                 ),
               ],
             ),
@@ -717,7 +717,7 @@ class TeacherCard extends StatelessWidget {
                       'Rezerve Et',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 14, // 16 -> 14
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
                       ),
@@ -790,24 +790,26 @@ class TeacherGridCard extends StatelessWidget {
                     _buildTurkishIDGridHeader(),
                     
                     // İçerik Bölümü
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // İsim ve Unvan
-                          _buildNameAndTitle(),
-                          
-                          const SizedBox(height: 8),
-                          
-                          // Rating ve Fiyat
-                          _buildRatingAndPriceRow(),
-                          
-                          const SizedBox(height: 8),
-                          
-                          // Aksiyon Butonu
-                          _buildActionButton(context),
-                        ],
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // İsim ve Unvan
+                            _buildNameAndTitle(),
+                            
+                            const SizedBox(height: 4),
+                            
+                            // Rating ve Fiyat
+                            _buildRatingAndPriceRow(),
+                            
+                            const SizedBox(height: 6),
+                            
+                            // Aksiyon Butonu
+                            _buildActionButton(context),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -822,7 +824,7 @@ class TeacherGridCard extends StatelessWidget {
 
   Widget _buildTurkishIDGridHeader() {
     return Container(
-      height: 120,
+      height: 100,
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         gradient: LinearGradient(
@@ -842,8 +844,8 @@ class TeacherGridCard extends StatelessWidget {
           // Profil fotoğrafı
           Center(
             child: Container(
-              width: 60,
-              height: 60,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -876,7 +878,7 @@ class TeacherGridCard extends StatelessWidget {
                           color: Colors.white,
                           child: Icon(
                             Icons.person_rounded,
-                            size: 30,
+                            size: 25,
                             color: const Color(0xFF00BFA5),
                           ),
                         ),
@@ -885,7 +887,7 @@ class TeacherGridCard extends StatelessWidget {
                         color: Colors.white,
                         child: Icon(
                           Icons.person_rounded,
-                          size: 30,
+                          size: 25,
                           color: const Color(0xFF00BFA5),
                         ),
                       ),
@@ -1007,7 +1009,7 @@ class TeacherGridCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          teacher.user?.name ?? 'Bilinmeyen Öğretmen',
+          teacher.user?.name ?? 'Bilinmeyen Eğitimci',
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w700,
@@ -1019,7 +1021,7 @@ class TeacherGridCard extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          (teacher.bio?.isNotEmpty ?? false) ? teacher.bio! : 'Deneyimli Öğretmen',
+          (teacher.bio?.isNotEmpty ?? false) ? teacher.bio! : 'Deneyimli Eğitimci',
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w500,
@@ -1112,7 +1114,7 @@ class TeacherGridCard extends StatelessWidget {
       },
       child: Container(
         width: double.infinity,
-        height: 28, // Daha küçük yükseklik
+        height: 26, // Overflow için küçültüldü
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFF00BFA5), Color(0xFF00897B)],
@@ -1131,7 +1133,7 @@ class TeacherGridCard extends StatelessWidget {
             'Detayları Gör',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 11, // Daha küçük font
+              fontSize: 10, // Daha küçük font
               fontWeight: FontWeight.w600,
             ),
           ),

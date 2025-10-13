@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../main.dart';
 import '../../models/user.dart';
 import '../../models/teacher.dart';
@@ -202,7 +203,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               Expanded(child: _buildNavItem(0, Icons.home_outlined, Icons.home, 'Ana Sayfa')),
-              Expanded(child: _buildNavItem(1, Icons.school_outlined, Icons.school, 'Öğretmenler')),
+              Expanded(child: _buildNavItem(1, Icons.school_outlined, Icons.school, 'Eğitimciler')),
               Expanded(child: _buildNavItem(2, Icons.book_outlined, Icons.book, 'Dersler')),
               Expanded(child: _buildNavItem(3, Icons.calendar_today_outlined, Icons.calendar_today, 'Rezervasyonlar')),
               Expanded(child: _buildNavItem(4, Icons.person_outlined, Icons.person, 'Profil')),
@@ -348,8 +349,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
                     _buildQuickActionCard(
                       context,
                       icon: Icons.search_rounded,
-                      title: 'Öğretmen Ara',
-                      subtitle: 'Yeni öğretmen bul',
+                      title: 'Eğitimci Ara',
+                      subtitle: 'Yeni eğitimci bul',
                       color: AppTheme.premiumGold,
                       onTap: () {
                         Navigator.pop(context);
@@ -378,7 +379,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
                       context,
                       icon: Icons.chat_rounded,
                       title: 'Mesajlar',
-                      subtitle: 'Öğretmenlerle konuş',
+                      subtitle: 'Eğitimcilerle konuş',
                       color: AppTheme.primaryBlue,
                       onTap: () {
                         Navigator.pop(context);
@@ -560,9 +561,22 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
                     child: user.profilePhotoUrl != null
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(20),
-                            child: Image.network(
-                              user.profilePhotoUrl!,
+                            child: CachedNetworkImage(
+                              imageUrl: user.profilePhotoUrl!,
                               fit: BoxFit.cover,
+                              placeholder: (context, url) => Container(
+                                color: Colors.grey[200],
+                                child: Icon(
+                                  Icons.person_rounded,
+                                  color: AppTheme.primaryBlue,
+                                  size: 20,
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Icon(
+                                Icons.person_rounded,
+                                color: AppTheme.primaryBlue,
+                                size: 20,
+                              ),
                             ),
                           )
                         : Icon(
@@ -774,8 +788,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
             Expanded(
               child: _buildStudentQuickActionCard(
                 icon: Icons.search_rounded,
-                title: 'Öğretmen Ara',
-                subtitle: 'Yeni öğretmen bul',
+                title: 'Eğitimci Ara',
+                subtitle: 'Yeni eğitimci bul',
                 color: AppTheme.premiumGold,
                 onTap: () {
                   Navigator.push(
@@ -813,7 +827,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
               child: _buildStudentQuickActionCard(
                 icon: Icons.chat_rounded,
                 title: 'Mesajlar',
-                subtitle: 'Öğretmenlerle konuş',
+                subtitle: 'Eğitimcilerle konuş',
                 color: AppTheme.primaryBlue,
                       onTap: () {
                         Navigator.push(
@@ -956,7 +970,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
               SizedBox(
                 width: MediaQuery.of(context).size.width * 0.28,
                 child: _buildModernStatCard(
-                  'Öğretmenler',
+                  'Eğitimciler',
                   '5',
                   Icons.people_rounded,
                   const Color(0xFF8B5CF6),
@@ -1184,7 +1198,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
           ),
           const SizedBox(height: 4),
           Text(
-            'İlk dersinizi almak için bir öğretmen bulun',
+            'İlk dersinizi almak için bir eğitimci bulun',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[500],
@@ -1300,7 +1314,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Önerilen Öğretmenler',
+              'Önerilen Eğitimciler',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF1E293B),

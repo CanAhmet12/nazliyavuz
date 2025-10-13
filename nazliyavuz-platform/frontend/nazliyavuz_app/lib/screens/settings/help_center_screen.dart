@@ -35,24 +35,24 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
         answer: 'Giriş ekranındaki "Şifremi Unuttum" linkine tıklayarak e-posta adresinize şifre sıfırlama bağlantısı gönderebilirsiniz.',
       ),
       FAQItem(
-        category: 'Öğretmen',
-        question: 'Öğretmen profili nasıl oluştururum?',
-        answer: 'Kayıt olurken "Öğretmen" seçeneğini işaretleyin. Kayıt sonrası profil tamamlama ekranından detaylarınızı girebilirsiniz.',
+        category: 'Eğitimci',
+        question: 'Eğitimci profili nasıl oluştururum?',
+        answer: 'Kayıt olurken "Eğitimci" seçeneğini işaretleyin. Kayıt sonrası profil tamamlama ekranından detaylarınızı girebilirsiniz.',
       ),
       FAQItem(
-        category: 'Öğretmen',
+        category: 'Eğitimci',
         question: 'Ders ücretimi nasıl belirlerim?',
         answer: 'Profil düzenleme ekranından saatlik ders ücretinizi ayarlayabilirsiniz. Ücret belirlerken piyasa fiyatlarını göz önünde bulundurun.',
       ),
       FAQItem(
         category: 'Öğrenci',
-        question: 'Öğretmen nasıl bulabilirim?',
-        answer: 'Ana sayfadaki arama çubuğunu kullanarak öğretmen arayabilir, kategori ve fiyat filtrelerini uygulayabilirsiniz.',
+        question: 'Eğitimci nasıl bulabilirim?',
+        answer: 'Ana sayfadaki arama çubuğunu kullanarak eğitimci arayabilir, kategori ve fiyat filtrelerini uygulayabilirsiniz.',
       ),
       FAQItem(
         category: 'Öğrenci',
         question: 'Rezervasyon nasıl yaparım?',
-        answer: 'Öğretmen profiline giderek "Rezervasyon Yap" butonuna tıklayın. Uygun tarih ve saat seçerek rezervasyonunuzu oluşturabilirsiniz.',
+        answer: 'Eğitimci profiline giderek "Rezervasyon Yap" butonuna tıklayın. Uygun tarih ve saat seçerek rezervasyonunuzu oluşturabilirsiniz.',
       ),
       FAQItem(
         category: 'Ödeme',
@@ -67,12 +67,12 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       FAQItem(
         category: 'Ders',
         question: 'Ders nasıl işlenir?',
-        answer: 'Dersler video call üzerinden gerçekleşir. Rezervasyon saatinde öğretmeninizle bağlantı kurarak derse başlayabilirsiniz.',
+        answer: 'Dersler video call üzerinden gerçekleşir. Rezervasyon saatinde eğitimcinizle bağlantı kurarak derse başlayabilirsiniz.',
       ),
       FAQItem(
         category: 'Ders',
         question: 'Ders kaydı alınır mı?',
-        answer: 'Ders kayıtları öğrenci ve öğretmenin onayı ile alınabilir. Kayıtlar güvenli şekilde saklanır.',
+        answer: 'Ders kayıtları öğrenci ve eğitimcinin onayı ile alınabilir. Kayıtlar güvenli şekilde saklanır.',
       ),
       FAQItem(
         category: 'Teknik',

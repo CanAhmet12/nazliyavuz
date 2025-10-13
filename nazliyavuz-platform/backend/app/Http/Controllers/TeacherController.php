@@ -64,9 +64,44 @@ class TeacherController extends Controller
             $totalTeachersBeforeFilters = $query->count();
             Log::info('📊 Total teachers before filters: ' . $totalTeachersBeforeFilters);
 
-            // Kategori filtresi
-            if ($request->has('category') && $request->category) {
-                Log::info('🏷️ Applying category filter', ['category' => $request->category]);
+            // Kategori filtresi - category_ids parametresi öncelikli
+            if ($request->has('category_ids') && $request->category_ids) {
+                Log::info('🏷️ Applying category_ids filter', ['category_ids' => $request->category_ids]);
+                try {
+                    // Virgülle ayrılmış ID'leri diziye çevir
+                    $categoryIds = is_array($request->category_ids) 
+                        ? $request->category_ids 
+                        : explode(',', $request->category_ids);
+                    
+                    // String'leri integer'a çevir ve temizle
+                    $categoryIds = array_map('intval', array_filter($categoryIds));
+                    
+                    if (!empty($categoryIds)) {
+                        Log::info('📁 Category IDs to filter (parsed)', ['category_ids' => $categoryIds]);
+                        
+                        // Öğretmenleri bu kategorilere göre filtrele
+                        $query->whereHas('categories', function ($q) use ($categoryIds) {
+                            $q->whereIn('categories.id', $categoryIds);
+                        });
+                        
+                        // Debug: Count teachers after category filter
+                        $teachersAfterCategoryFilter = $query->count();
+                        Log::info('📊 Teachers after category_ids filter: ' . $teachersAfterCategoryFilter);
+                        Log::info('✅ Category_ids filter applied successfully');
+                    } else {
+                        Log::warning('⚠️ Empty category_ids after parsing');
+                    }
+                } catch (\Exception $e) {
+                    Log::error('💥 ERROR in category_ids filter', [
+                        'error' => $e->getMessage(),
+                        'category_ids' => $request->category_ids
+                    ]);
+                    throw $e;
+                }
+            } 
+            // Fallback: Eski category parametresi (tek kategori)
+            elseif ($request->has('category') && $request->category) {
+                Log::info('🏷️ Applying category filter (fallback)', ['category' => $request->category]);
                 try {
                     // Seçilen kategoriyi bul
                     $selectedCategory = \App\Models\Category::where('slug', $request->category)
@@ -83,21 +118,20 @@ class TeacherController extends Controller
                             $categoryIds[] = $child->id;
                         }
                         
-                        Log::info('📁 Category IDs to filter', ['category_ids' => $categoryIds]);
+                        Log::info('📁 Category IDs to filter (from single category)', ['category_ids' => $categoryIds]);
                         
                         // Öğretmenleri bu kategorilere göre filtrele
                         $query->whereHas('categories', function ($q) use ($categoryIds) {
                             $q->whereIn('categories.id', $categoryIds);
                         });
                         
+                        // Debug: Count teachers after category filter
+                        $teachersAfterCategoryFilter = $query->count();
+                        Log::info('📊 Teachers after category filter: ' . $teachersAfterCategoryFilter);
                         Log::info('✅ Category filter applied successfully');
                     } else {
                         Log::warning('⚠️ Category not found', ['category' => $request->category]);
                     }
-                    
-                    // Debug: Count teachers after category filter
-                    $teachersAfterCategoryFilter = $query->count();
-                    Log::info('📊 Teachers after category filter: ' . $teachersAfterCategoryFilter);
                 } catch (\Exception $e) {
                     Log::error('💥 ERROR in category filter', [
                         'error' => $e->getMessage(),

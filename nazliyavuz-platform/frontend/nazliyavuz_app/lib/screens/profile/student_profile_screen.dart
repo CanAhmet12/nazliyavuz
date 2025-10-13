@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../main.dart';
@@ -146,6 +147,9 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
   }
 
   Future<void> _updateProfilePhoto() async {
+    if (_isUpdatingPhoto) return;
+    
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -154,42 +158,67 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
         imageQuality: 80,
       );
 
-      if (image != null) {
-        setState(() {
-          _isUpdatingPhoto = true;
-        });
+      if (image == null) return;
+      
+      setState(() => _isUpdatingPhoto = true);
 
-        // Upload photo to backend
-        final apiService = ApiService();
-        await apiService.updateProfilePhoto(image);
+      // Upload photo to backend and get new URL
+      final apiService = ApiService();
+      final newPhotoUrl = await apiService.updateProfilePhoto(image);
+      
+      if (kDebugMode) {
+        print('✅ [STUDENT_PROFILE] New photo URL: $newPhotoUrl');
+      }
+      
+      if (mounted) {
+        setState(() => _isUpdatingPhoto = false);
         
-        // Profil bilgilerini yeniden yükle
+        // Cache'i temizle
+        await CachedNetworkImage.evictFromCache(newPhotoUrl);
+        
+        // AuthBloc'u refresh et (yeni fotoğraf URL'i ile)
         final authBloc = context.read<AuthBloc>();
-        authBloc.add(const AuthRefreshRequested());
+        authBloc.add(AuthRefreshRequested());
         
-        if (mounted) {
-          setState(() {
-            _isUpdatingPhoto = false;
-          });
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Profil fotoğrafı güncellendi'),
-              backgroundColor: AppTheme.accentGreen,
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Profil fotoğrafı güncellendi!'),
+              ],
             ),
-          );
-        }
+            backgroundColor: AppTheme.accentGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
       }
     } catch (e) {
+      if (kDebugMode) {
+        print('❌ [STUDENT_PROFILE] Photo upload error: $e');
+      }
+      
       if (mounted) {
-        setState(() {
-          _isUpdatingPhoto = false;
-        });
+        setState(() => _isUpdatingPhoto = false);
         
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text('Hata: $e'),
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Hata: $e')),
+              ],
+            ),
             backgroundColor: AppTheme.accentRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -213,8 +242,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
           );
         }
 
-        final user = state.user;
-
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
           body: FadeTransition(
@@ -225,7 +252,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
                   ? _buildStudentLoadingState()
                   : _error != null
                       ? _buildStudentErrorState()
-                      : _buildStudentProfileContent(user),
+                      : _buildStudentProfileContent(state.user.toJson()),
             ),
           ),
         );
@@ -233,10 +260,12 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
     );
   }
 
-  Widget _buildStudentProfileContent(User user) {
+  Widget _buildStudentProfileContent(Map<String, dynamic> userMap) {
+    final user = User.fromJson(userMap);
+    
     return CustomScrollView(
       slivers: [
-        _buildStudentProfileAppBar(user),
+        _buildStudentProfileAppBar(user, userMap),
         
         SliverToBoxAdapter(
           child: ScaleTransition(
@@ -262,7 +291,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
         SliverToBoxAdapter(
           child: ScaleTransition(
             scale: _scaleAnimation,
-            child: _buildStudentProfileOptions(),
+            child: _buildStudentProfileOptions(userMap),
           ),
         ),
         
@@ -280,7 +309,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
     );
   }
 
-  Widget _buildStudentProfileAppBar(User user) {
+  Widget _buildStudentProfileAppBar(User user, Map<String, dynamic> userMap) {
     return SliverAppBar(
       expandedHeight: 120,
       floating: false,
@@ -370,9 +399,14 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const ProfileEditScreen(userProfile: {}),
+                              builder: (context) => ProfileEditScreen(userProfile: userMap),
                             ),
-                          );
+                          ).then((updated) {
+                            if (updated == true) {
+                              // Profil güncellendiyse AuthBloc'u refresh et
+                              context.read<AuthBloc>().add(AuthRefreshRequested());
+                            }
+                          });
                         },
                       ),
                     ],
@@ -426,10 +460,16 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
                   child: _isUpdatingPhoto
                       ? const Center(child: CircularProgressIndicator())
                       : user.profilePhotoUrl != null
-                          ? Image.network(
-                              user.profilePhotoUrl!,
+                          ? CachedNetworkImage(
+                              imageUrl: user.profilePhotoUrl!,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
+                              placeholder: (context, url) => Container(
+                                color: Colors.grey[200],
+                                child: const Center(
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) {
                                 return _buildDefaultAvatar(user);
                               },
                             )
@@ -770,7 +810,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
     );
   }
 
-  Widget _buildStudentProfileOptions() {
+  Widget _buildStudentProfileOptions(Map<String, dynamic> userMap) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -798,9 +838,14 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const ProfileEditScreen(userProfile: {}),
+                  builder: (context) => ProfileEditScreen(userProfile: userMap),
                 ),
-              );
+              ).then((updated) {
+                if (updated == true) {
+                  // Profil güncellendiyse AuthBloc'u refresh et
+                  context.read<AuthBloc>().add(AuthRefreshRequested());
+                }
+              });
             },
           ),
           _buildStudentProfileOption(

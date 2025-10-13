@@ -32,6 +32,10 @@ class AuthRegisterRequested extends AuthEvent {
   });
 }
 
+class AuthRefreshRequested extends AuthEvent {
+  AuthRefreshRequested();
+}
+
 // States
 abstract class AuthState {}
 
@@ -63,6 +67,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLoginRequested>(_onAuthLoginRequested);
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
     on<AuthRegisterRequested>(_onAuthRegisterRequested);
+    on<AuthRefreshRequested>(_onAuthRefreshRequested);
     
     // Check auth status on initialization
     add(AuthCheckRequested());
@@ -82,6 +87,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         // Verify token with backend
         try {
           final user = await _apiService.getCurrentUser();
+          if (kDebugMode) {
+            print('🔍 [AUTH_BLOC] User data: $user');
+            print('🖼️ [AUTH_BLOC] Profile photo URL: ${user['profile_photo_url']}');
+          }
           emit(AuthAuthenticated(token: token, user: user));
         } catch (e) {
           // Token is invalid, clear it
@@ -161,6 +170,30 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthAuthenticated(token: token, user: user));
     } catch (e) {
       emit(AuthError(message: 'Kayıt başarısız: $e'));
+    }
+  }
+  
+  Future<void> _onAuthRefreshRequested(
+    AuthRefreshRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    try {
+      // Don't emit loading to prevent UI flickering
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      
+      if (token != null && token.isNotEmpty) {
+        // Fetch fresh user data from backend
+        final user = await _apiService.getCurrentUser();
+        if (kDebugMode) {
+          print('🔄 [AUTH_REFRESH] User data refreshed');
+          print('🖼️ [AUTH_REFRESH] Profile photo URL: ${user['profile_photo_url']}');
+        }
+        emit(AuthAuthenticated(token: token, user: user));
+      }
+    } catch (e) {
+      // Keep current state if refresh fails
+      print('Auth refresh failed: $e');
     }
   }
 }

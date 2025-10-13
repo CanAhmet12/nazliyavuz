@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../main.dart';
@@ -329,7 +330,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Öğretmen Profilim',
+                              'Eğitimci Profilim',
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
@@ -338,7 +339,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
                               ),
                             ),
                             Text(
-                              'Öğretmenlik yolculuğunuz',
+                              'Eğitimcilik yolculuğunuz',
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.8),
                                 fontSize: 12,
@@ -423,10 +424,16 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
                   child: _isUpdatingPhoto
                       ? const Center(child: CircularProgressIndicator())
                       : user.profilePhotoUrl != null
-                          ? Image.network(
-                              user.profilePhotoUrl!,
+                          ? CachedNetworkImage(
+                              imageUrl: user.profilePhotoUrl!,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
+                              placeholder: (context, url) => Container(
+                                color: Colors.grey[200],
+                                child: const Center(
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) {
                                 return _buildDefaultTeacherAvatar(user);
                               },
                             )
@@ -501,7 +508,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
                 ),
                 SizedBox(width: 8),
                 Text(
-                  'Öğretmen',
+                  'Eğitimci',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -577,7 +584,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
                 ),
                 const SizedBox(width: 12),
                 const Text(
-                  'Öğretmenlik İstatistikleri',
+                  'Eğitimcilik İstatistikleri',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -723,7 +730,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
           ),
           const SizedBox(height: 16),
           _buildCertificationItem(
-            'Matematik Öğretmenliği',
+            'Matematik Eğitimciliği',
             'Lisans',
             '2020',
             true,
@@ -966,7 +973,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
         children: [
           _buildTeacherProfileOption(
             'Profilimi Düzenle',
-            'Öğretmen bilgilerinizi güncelleyin',
+            'Eğitimci bilgilerinizi güncelleyin',
             Icons.edit_rounded,
             AppTheme.accentGreen,
             () {

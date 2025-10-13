@@ -224,7 +224,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                             ),
                             DropdownMenuItem(
                               value: 'teacher',
-                              child: Text('Öğretmen'),
+                              child: Text('Eğitimci'),
                             ),
                           ],
                           onChanged: (value) {
@@ -574,7 +574,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                             }
                                             
                                             if (_selectedRole == 'teacher') {
-                                              // Öğretmen için profil tamamlama sayfasına yönlendir
+                                              // Eğitimci için profil tamamlama sayfasına yönlendir
                                               Navigator.of(context).pushReplacement(
                                                 MaterialPageRoute(
                                                   builder: (context) => TeacherProfileCompletionScreen(
@@ -892,7 +892,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
               'TERENCE EĞİTİM',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: AppTheme.primaryBlue,
               ),
               textAlign: TextAlign.center,
             ),

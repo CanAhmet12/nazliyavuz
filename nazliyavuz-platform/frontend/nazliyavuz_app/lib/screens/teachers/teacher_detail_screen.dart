@@ -118,7 +118,7 @@ class _TeacherDetailScreenState extends State<TeacherDetailScreen>
         print('❌ [TEACHER_DETAIL] Teacher ID is null, cannot load ratings');
       }
       setState(() {
-        _ratingsError = 'Öğretmen bilgileri eksik';
+        _ratingsError = 'Eğitimci bilgileri eksik';
         _isLoadingRatings = false;
       });
       return;
@@ -396,7 +396,7 @@ class _TeacherDetailScreenState extends State<TeacherDetailScreen>
                       
                       // Compact Name
                       Text(
-                        widget.teacher.user?.name ?? 'İsimsiz Öğretmen',
+                        widget.teacher.user?.name ?? 'İsimsiz Eğitimci',
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -690,7 +690,7 @@ class _TeacherDetailScreenState extends State<TeacherDetailScreen>
               children: [
                 Text(
                   widget.teacher.bio ?? 
-                  'Bu öğretmen henüz kendisi hakkında bilgi paylaşmamış. Deneyimli ve özenli bir eğitim anlayışı ile öğrencilerine en iyi hizmeti sunmayı hedefliyor.',
+                  'Bu eğitimci henüz kendisi hakkında bilgi paylaşmamış. Deneyimli ve özenli bir eğitim anlayışı ile öğrencilerine en iyi hizmeti sunmayı hedefliyor.',
                   style: const TextStyle(
                     fontSize: 15,
                     height: 1.6,
@@ -1049,7 +1049,7 @@ class _TeacherDetailScreenState extends State<TeacherDetailScreen>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Bu öğretmen için ilk yorumu sen yap!',
+                      'Bu eğitimci için ilk yorumu sen yap!',
                       style: TextStyle(
                         color: Colors.grey[500],
                         fontSize: 12,
@@ -1341,7 +1341,7 @@ class _TeacherDetailScreenState extends State<TeacherDetailScreen>
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Bu öğretmen henüz ders vermeye başlamamış',
+                              'Bu eğitimci henüz ders vermeye başlamamış',
                               style: TextStyle(
                                 color: Colors.grey[500],
                                 fontSize: 14,
@@ -1403,7 +1403,7 @@ class _TeacherDetailScreenState extends State<TeacherDetailScreen>
                           ),
                           const SizedBox(height: 12),
                           const Text(
-                            'Çok iyi bir öğretmen. Dersleri çok anlaşılır ve eğlenceli. Kesinlikle tavsiye ederim.',
+                            'Çok iyi bir eğitimci. Dersleri çok anlaşılır ve eğlenceli. Kesinlikle tavsiye ederim.',
                             style: TextStyle(
                               color: Colors.black87,
                               height: 1.4,
@@ -1429,7 +1429,7 @@ class _TeacherDetailScreenState extends State<TeacherDetailScreen>
         builder: (context) => ChatScreen(
           otherUser: User(
             id: widget.teacher.id ?? 0,
-            name: widget.teacher.user?.name ?? 'Öğretmen',
+            name: widget.teacher.user?.name ?? 'Eğitimci',
             email: widget.teacher.user?.email ?? '',
             role: 'teacher',
             profilePhotoUrl: widget.teacher.user?.profilePhotoUrl,

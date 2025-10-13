@@ -110,7 +110,7 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
 
       // Validate teacher ID before making API call
       if (widget.teacher.id == 0) {
-        throw Exception('Geçersiz öğretmen bilgisi');
+        throw Exception('Geçersiz eğitimci bilgisi');
       }
 
       final response = await _apiService.getOrCreateChat(widget.teacher.id);
@@ -244,7 +244,7 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
                   ),
                 ),
                 const Text(
-                  'Öğretmen',
+                  'Eğitimci',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white70,
@@ -534,7 +534,7 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
               child: TextField(
                 controller: _messageController,
                 decoration: const InputDecoration(
-                  hintText: 'Öğretmeninize mesaj yazın...',
+                  hintText: 'Eğitimcinize mesaj yazın...',
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 16,
@@ -695,7 +695,7 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
                 ),
               ),
               title: const Text('Dosya Paylaş'),
-              subtitle: const Text('Öğretmeninizle dosya paylaşın'),
+              subtitle: const Text('Eğitimcinizle dosya paylaşın'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -721,8 +721,8 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
                   color: AppTheme.accentOrange,
                 ),
               ),
-              title: const Text('Öğretmeni Engelle'),
-              subtitle: const Text('Bu öğretmenle iletişimi kesin'),
+              title: const Text('Eğitimciyi Engelle'),
+              subtitle: const Text('Bu eğitimciyle iletişimi kesin'),
               onTap: () {
                 Navigator.pop(context);
                 _showBlockConfirmation();
@@ -739,8 +739,8 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Öğretmeni Engelle'),
-        content: Text('${widget.teacher.name} öğretmenini engellemek istediğinizden emin misiniz?'),
+        title: const Text('Eğitimciyi Engelle'),
+        content: Text('${widget.teacher.name} eğitimcisini engellemek istediğinizden emin misiniz?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

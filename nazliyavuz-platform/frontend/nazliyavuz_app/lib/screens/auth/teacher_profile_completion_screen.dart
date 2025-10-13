@@ -65,7 +65,7 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
   ];
 
   final List<String> _certificationSuggestions = [
-    'Öğretmenlik Sertifikası', 'Pedagojik Formasyon', 'TEFL', 'TESOL', 'CELTA',
+    'Eğitimcilik Sertifikası', 'Pedagojik Formasyon', 'TEFL', 'TESOL', 'CELTA',
     'IELTS Examiner', 'TOEFL Examiner', 'Microsoft Sertifikası', 'Google Sertifikası',
     'Adobe Sertifikası', 'Oracle Sertifikası', 'Cisco Sertifikası', 'CompTIA',
     'AWS Sertifikası', 'Azure Sertifikası', 'PMP Sertifikası', 'Six Sigma',
@@ -170,7 +170,7 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
               )
             : null,
         title: Text(
-          'Öğretmen Profili',
+          'Eğitimci Profili',
           style: TextStyle(
             color: AppTheme.grey900,
             fontWeight: FontWeight.w600,
@@ -375,7 +375,7 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Öğretmen profilinizi tamamlayalım',
+                          'Eğitimci profilinizi tamamlayalım',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 12,
@@ -903,7 +903,7 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
             // Deneyim Süresi
             _buildInputField(
               controller: _experienceController,
-              label: 'Öğretmenlik Deneyimi (Yıl) *',
+              label: 'Eğitimcilik Deneyimi (Yıl) *',
               hint: 'Örn: 5',
               icon: Icons.calendar_today_rounded,
               keyboardType: TextInputType.number,
@@ -1175,7 +1175,7 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
     // Kategoriye özel sertifika önerileri
     final Map<String, List<String>> categoryCerts = {
       'Matematik': [
-        'Matematik Öğretmenliği Sertifikası',
+        'Matematik Eğitimciliği Sertifikası',
         'Pedagojik Formasyon',
         'Matematik Olimpiyatları Eğitmeni',
         'STEM Eğitimi Sertifikası',
@@ -1188,17 +1188,17 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
         'TOEFL Examiner',
       ],
       'Fizik': [
-        'Fizik Öğretmenliği Sertifikası',
+        'Fizik Eğitimciliği Sertifikası',
         'Fen Bilimleri Eğitimi',
         'Laboratuvar Güvenliği Sertifikası',
       ],
       'Kimya': [
-        'Kimya Öğretmenliği Sertifikası',
+        'Kimya Eğitimciliği Sertifikası',
         'Laboratuvar Teknikleri Sertifikası',
         'Güvenlik Sertifikası',
       ],
       'Biyoloji': [
-        'Biyoloji Öğretmenliği Sertifikası',
+        'Biyoloji Eğitimciliği Sertifikası',
         'Mikrobiyoloji Sertifikası',
         'Genetik Sertifikası',
       ],
@@ -1208,12 +1208,12 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
         'Yaratıcı Yazarlık Sertifikası',
       ],
       'Tarih': [
-        'Tarih Öğretmenliği Sertifikası',
+        'Tarih Eğitimciliği Sertifikası',
         'Arkeoloji Sertifikası',
         'Müze Eğitimi Sertifikası',
       ],
       'Coğrafya': [
-        'Coğrafya Öğretmenliği Sertifikası',
+        'Coğrafya Eğitimciliği Sertifikası',
         'GIS Sertifikası',
         'Çevre Bilimleri Sertifikası',
       ],
@@ -1235,8 +1235,8 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
             // Price per Hour
             _buildInputField(
               controller: _priceController,
-              label: 'Saatlik Ücret (₺)',
-              hint: 'Örn: 50',
+              label: 'Saatlik Ücret (₺) - Minimum ₺50',
+              hint: 'Minimum ₺50 (Örn: 80)',
               icon: Icons.money_rounded,
               keyboardType: TextInputType.number,
             ),
@@ -1271,10 +1271,11 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    '• Yeni başlayan öğretmenler: ₺30-50/sa\n'
-                    '• Deneyimli öğretmenler: ₺50-80/sa\n'
-                    '• Uzman öğretmenler: ₺80-150/sa\n'
-                    '• Profesörler: ₺150+/sa',
+                    '• Minimum fiyat: ₺50/sa (zorunlu)\n'
+                    '• Yeni başlayan eğitimciler: ₺50-80/sa\n'
+                    '• Deneyimli eğitimciler: ₺80-150/sa\n'
+                    '• Uzman eğitimciler: ₺150-300/sa\n'
+                    '• Profesörler: ₺300+/sa',
                     style: TextStyle(
                       color: AppTheme.primaryBlue,
                       fontSize: 14,
@@ -1670,10 +1671,10 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
         
       case 3: // Fiyatlandırma
         final priceText = _priceController.text.trim();
-        // Fiyat girilmiş ve geçerli bir pozitif sayı olmalı
+        // Fiyat girilmiş ve geçerli bir sayı olmalı (minimum 50 TL)
         if (priceText.isEmpty) return false;
         final price = double.tryParse(priceText);
-        return price != null && price > 0;
+        return price != null && price >= 50;
         
       default:
         return false;
@@ -1718,7 +1719,7 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
         final priceText = _priceController.text.trim();
         if (priceText.isEmpty) return false;
         final price = double.tryParse(priceText);
-        return price != null && price > 0;
+        return price != null && price >= 50;
         
       default:
         return false;
@@ -1756,6 +1757,8 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
           missingFields.add('Saatlik ücret');
         } else if (double.tryParse(_priceController.text) == null) {
           missingFields.add('Geçerli saatlik ücret');
+        } else if (double.tryParse(_priceController.text)! < 50) {
+          missingFields.add('Minimum ₺50 saatlik ücret');
         }
         break;
     }
@@ -1946,7 +1949,7 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
             ),
             const SizedBox(height: 8),
             Text(
-              'Öğretmen profiliniz başarıyla oluşturuldu. Onay sürecinden sonra öğrenciler sizi görebilecek.',
+              'Eğitimci profiliniz başarıyla oluşturuldu. Onay sürecinden sonra öğrenciler sizi görebilecek.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppTheme.grey600,

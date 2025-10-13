@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../main.dart';
@@ -173,7 +174,7 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
         
         // AuthBloc'tan da kullanıcı bilgilerini güncelle
         final authBloc = context.read<AuthBloc>();
-        authBloc.add(const AuthRefreshRequested());
+        authBloc.add(AuthRefreshRequested());
         
         scaffoldMessenger.showSnackBar(
           SnackBar(
@@ -379,12 +380,25 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
                           child: _userProfile['profile_photo_url'] != null
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(32),
-                                  child: Image.network(
-                                    _userProfile['profile_photo_url'],
+                                  child: CachedNetworkImage(
+                                    imageUrl: _userProfile['profile_photo_url'],
                                     fit: BoxFit.cover,
+                                    placeholder: (context, url) => Container(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      child: const Icon(
+                                        Icons.person_rounded,
+                                        color: Colors.white,
+                                        size: 32,
+                                      ),
+                                    ),
+                                    errorWidget: (context, url, error) => const Icon(
+                                      Icons.person_rounded,
+                                      color: Colors.white,
+                                      size: 32,
+                                    ),
                                   ),
                                 )
-                              : Icon(
+                              : const Icon(
                                   Icons.person_rounded,
                                   color: Colors.white,
                                   size: 32,

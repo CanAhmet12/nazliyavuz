@@ -542,7 +542,7 @@ class _TeacherFiltersScreenState extends State<TeacherFiltersScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Sadece Online Öğretmenler',
+              'Sadece Online Eğitimciler',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -551,7 +551,7 @@ class _TeacherFiltersScreenState extends State<TeacherFiltersScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Şu anda müsait olan öğretmenleri göster',
+              'Şu anda müsait olan eğitimcileri göster',
               style: TextStyle(
                 fontSize: 12,
                 color: AppTheme.grey600,

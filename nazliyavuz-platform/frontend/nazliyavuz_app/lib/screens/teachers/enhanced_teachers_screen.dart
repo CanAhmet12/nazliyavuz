@@ -357,7 +357,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Text(
-                          'Öğretmenler',
+                          'Eğitimciler',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -366,7 +366,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
                           ),
                         ),
                         Text(
-                          '${_teachers.length} uzman öğretmen',
+                          '${_teachers.length} uzman eğitimci',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 12,
@@ -431,7 +431,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
                 color: AppTheme.grey900,
               ),
               decoration: InputDecoration(
-                hintText: 'Öğretmen ara...',
+                hintText: 'Eğitimci ara...',
                 hintStyle: TextStyle(
                   color: AppTheme.grey500,
                   fontSize: 14,
@@ -594,7 +594,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
               ),
               const SizedBox(width: 10),
               const Text(
-                'Öne Çıkan Öğretmenler',
+                'Öne Çıkan Eğitimciler',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -861,7 +861,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
       child: Row(
         children: [
           Text(
-            'Tüm Öğretmenler (${_teachers.length})',
+            'Tüm Eğitimciler (${_teachers.length})',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -906,7 +906,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 0.65, // Daha kompakt oran
+            childAspectRatio: 0.75, // Daha yüksek oran - buton için yer açtık
             crossAxisSpacing: 8, // Daha az boşluk
             mainAxisSpacing: 8, // Daha az boşluk
           ),
@@ -965,7 +965,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
           const CircularProgressIndicator(),
           const SizedBox(height: 16),
           const Text(
-            'Öğretmenler yükleniyor...',
+            'Eğitimciler yükleniyor...',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey,
@@ -1052,7 +1052,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'Öğretmen bulunamadı',
+            'Eğitimci bulunamadı',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,

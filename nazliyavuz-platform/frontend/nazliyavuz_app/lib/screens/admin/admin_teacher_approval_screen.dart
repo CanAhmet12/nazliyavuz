@@ -118,7 +118,7 @@ class _AdminTeacherApprovalScreenState extends State<AdminTeacherApprovalScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Öğretmen Onayları'),
+        title: const Text('Eğitimci Onayları'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -175,14 +175,14 @@ class _AdminTeacherApprovalScreenState extends State<AdminTeacherApprovalScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'Bekleyen öğretmen bulunmuyor',
+              'Bekleyen eğitimci bulunmuyor',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 color: Colors.grey[600],
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Tüm öğretmenler onaylanmış',
+              'Tüm eğitimciler onaylanmış',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Colors.grey[500],
               ),
@@ -210,7 +210,7 @@ class _AdminTeacherApprovalScreenState extends State<AdminTeacherApprovalScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Öğretmen Bilgileri
+            // Eğitimci Bilgileri
             Row(
               children: [
                 CircleAvatar(
@@ -280,7 +280,7 @@ class _AdminTeacherApprovalScreenState extends State<AdminTeacherApprovalScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'Öğretmen profili bekleniyor...',
+              'Eğitimci profili bekleniyor...',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Colors.grey[600],
               ),
@@ -355,7 +355,7 @@ class _RejectTeacherDialogState extends State<_RejectTeacherDialog> {
               controller: _reasonController,
               decoration: const InputDecoration(
                 labelText: 'Red Sebebi *',
-                hintText: 'Öğretmeni neden reddediyorsunuz?',
+                hintText: 'Eğitimciyi neden reddediyorsunuz?',
                 border: OutlineInputBorder(),
               ),
               maxLines: 3,
