@@ -63,11 +63,23 @@ class AuthController extends Controller
             // Create email verification
             $verification = EmailVerification::createForUser($user);
 
+            Log::info('📧 [REGISTER] Email verification created', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'verification_code' => $verification->verification_code,
+                'token' => $verification->token
+            ]);
+
             // Send verification email
             try {
-                $this->mailService->sendEmailVerification($user, $verification->token, $verification->verification_code);
+                Log::info('📧 [REGISTER] Attempting to send verification email...');
+                $result = $this->mailService->sendEmailVerification($user, $verification->token, $verification->verification_code);
+                Log::info('📧 [REGISTER] Mail service returned: ' . ($result ? 'SUCCESS' : 'FAILED'));
             } catch (\Exception $e) {
-                Log::warning('Failed to send verification email: ' . $e->getMessage());
+                Log::error('📧 [REGISTER] Failed to send verification email', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
             }
 
             // Generate JWT token

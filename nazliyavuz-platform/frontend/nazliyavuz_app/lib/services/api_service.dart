@@ -15,7 +15,7 @@ import '../models/assignment.dart';
 import '../models/lesson.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://10.91.204.19:8080/api/v1';  // Local Backend (PC IP)
+  static const String baseUrl = 'http://34.122.224.35/api/v1';  // VM Backend
   late Dio _dio;
   String? _token;
 
@@ -1540,6 +1540,10 @@ class ApiService {
   // Profile photo endpoints
   Future<String> updateProfilePhoto(XFile image) async {
     try {
+      print('📸 [API] Starting photo upload...');
+      print('📸 [API] Image path: ${image.path}');
+      print('📸 [API] Image name: ${image.name}');
+      
       final formData = FormData.fromMap({
         'photo': await MultipartFile.fromFile(
           image.path,
@@ -1547,14 +1551,22 @@ class ApiService {
         ),
       });
       
+      print('📸 [API] Sending POST to: $baseUrl/upload/profile-photo');
       final response = await _dio.post('/upload/profile-photo', data: formData);
+      
+      print('📸 [API] Response received: ${response.data}');
       
       // Clear user cache to force reload
       _currentUser = null;
       
       // Return the new profile photo URL
-      return response.data['profile_photo_url'] ?? '';
+      final photoUrl = response.data['profile_photo_url'] ?? '';
+      print('📸 [API] New photo URL: $photoUrl');
+      
+      return photoUrl;
     } on DioException catch (e) {
+      print('❌ [API] Photo upload error: ${e.response?.data}');
+      print('❌ [API] Status code: ${e.response?.statusCode}');
       throw Exception(handleError(e));
     }
   }
