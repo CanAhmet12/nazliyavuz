@@ -47,8 +47,16 @@ class FileUploadController extends Controller
             $filename = 'profile_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
             $filePath = $file->storeAs('profile_photos', $filename, 'public');
             
+            Log::info('📸 Photo upload debug', [
+                'filename' => $filename,
+                'filePath' => $filePath,
+                'scheme_and_host' => $request->getSchemeAndHttpHost()
+            ]);
+            
             // Generate full URL with current request host
             $fullUrl = $request->getSchemeAndHttpHost() . '/storage/' . $filePath;
+            
+            Log::info('📸 Generated URL', ['fullUrl' => $fullUrl]);
             
             // Update user profile photo URL
             $user->update([
