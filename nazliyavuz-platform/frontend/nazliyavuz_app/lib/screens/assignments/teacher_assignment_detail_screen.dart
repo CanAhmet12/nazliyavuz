@@ -512,17 +512,21 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
     });
 
     try {
-      // Implement grade submission API call
+      // Grade assignment using proper API method
       final apiService = ApiService();
-      await apiService.post('/assignments/${widget.assignment.id}/grade', {
-        'grade': _selectedGrade,
-        'feedback': _feedbackController.text.trim().isNotEmpty ? _feedbackController.text.trim() : null,
-      });
+      await apiService.gradeAssignment(
+        widget.assignment.id,
+        _selectedGrade!,
+        _feedbackController.text.trim().isNotEmpty ? _feedbackController.text.trim() : '',
+      );
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ödev başarıyla değerlendirildi')),
+          const SnackBar(
+            content: Text('Ödev başarıyla değerlendirildi'),
+            backgroundColor: AppTheme.accentGreen,
+          ),
         );
         
         // Assignment model is immutable, so we just show success message
@@ -531,7 +535,10 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e')),
+          SnackBar(
+            content: Text('Hata: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: AppTheme.accentRed,
+          ),
         );
       }
     } finally {

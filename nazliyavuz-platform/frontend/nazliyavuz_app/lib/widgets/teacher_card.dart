@@ -70,7 +70,7 @@ class TeacherCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Öğretmen Bilgileri
+                          // Eğitimci Bilgileri
                           _buildTeacherInfo(),
                           
                           const SizedBox(height: 8), // 12 -> 8
@@ -1114,7 +1114,7 @@ class TeacherGridCard extends StatelessWidget {
       },
       child: Container(
         width: double.infinity,
-        height: 26, // Overflow için küçültüldü
+        height: 24, // Overflow için daha da küçültüldü
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFF00BFA5), Color(0xFF00897B)],
@@ -1133,7 +1133,7 @@ class TeacherGridCard extends StatelessWidget {
             'Detayları Gör',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 10, // Daha küçük font
+              fontSize: 9, // Overflow için daha da küçük font
               fontWeight: FontWeight.w600,
             ),
           ),

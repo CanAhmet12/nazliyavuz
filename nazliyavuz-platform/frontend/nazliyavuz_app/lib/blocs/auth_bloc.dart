@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 
@@ -152,6 +153,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       emit(AuthLoading());
       
+      if (kDebugMode) {
+        print('📝 [AUTH_BLOC] Starting registration...');
+      }
+      
       final response = await _apiService.register(
         name: event.name,
         email: event.email,
@@ -167,9 +172,36 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
       
+      if (kDebugMode) {
+        print('✅ [AUTH_BLOC] Registration successful!');
+      }
+      
       emit(AuthAuthenticated(token: token, user: user));
     } catch (e) {
-      emit(AuthError(message: 'Kayıt başarısız: $e'));
+      if (kDebugMode) {
+        print('❌ [AUTH_BLOC] Registration failed: $e');
+      }
+      
+      // Parse error message to make it user-friendly
+      String errorMessage = e.toString();
+      
+      // Remove "Exception: " prefix if present
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring(11);
+      }
+      
+      // Check for common validation errors
+      if (errorMessage.contains('password') && errorMessage.contains('at least')) {
+        errorMessage = 'Şifre en az 8 karakter olmalıdır';
+      } else if (errorMessage.contains('email') && errorMessage.contains('already')) {
+        errorMessage = 'Bu e-posta adresi zaten kayıtlı';
+      } else if (errorMessage.contains('password') && errorMessage.contains('confirmation')) {
+        errorMessage = 'Şifreler eşleşmiyor';
+      } else if (errorMessage.contains('validation') || errorMessage.contains('422')) {
+        errorMessage = 'Lütfen tüm alanları doğru şekilde doldurun';
+      }
+      
+      emit(AuthError(message: errorMessage));
     }
   }
   

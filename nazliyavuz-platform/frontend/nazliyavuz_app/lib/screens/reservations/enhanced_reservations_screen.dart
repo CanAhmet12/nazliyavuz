@@ -901,7 +901,7 @@ class _EnhancedReservationsScreenState extends State<EnhancedReservationsScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'İlk rezervasyonunuzu oluşturmak için bir öğretmen bulun',
+            'İlk rezervasyonunuzu oluşturmak için bir eğitimci bulun',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[400],
@@ -921,7 +921,7 @@ class _EnhancedReservationsScreenState extends State<EnhancedReservationsScreen>
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
-            child: const Text('Öğretmen Bul'),
+            child: const Text('Eğitimci Bul'),
           ),
         ],
       ),
@@ -1003,7 +1003,7 @@ class _EnhancedReservationsScreenState extends State<EnhancedReservationsScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Öğretmen: ${reservation.teacher?.user?.name ?? "Bilinmiyor"}'),
+                    Text('Eğitimci: ${reservation.teacher?.user?.name ?? "Bilinmiyor"}'),
                     Text('Ders: ${reservation.subject}'),
                     Text('Tarih: ${DateFormat('dd MMM yyyy').format(reservation.proposedDatetime)}'),
                     Text('Saat: ${DateFormat('HH:mm').format(reservation.proposedDatetime)} - ${DateFormat('HH:mm').format(reservation.proposedDatetime.add(Duration(minutes: reservation.durationMinutes ?? 60)))}'),

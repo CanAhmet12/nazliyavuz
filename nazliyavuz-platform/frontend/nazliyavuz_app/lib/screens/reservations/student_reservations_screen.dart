@@ -1003,7 +1003,7 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
               ),
             ),
             icon: const Icon(Icons.search_rounded),
-            label: const Text('Öğretmen Bul'),
+            label: const Text('Eğitimci Bul'),
           ),
         ],
       ),
@@ -1083,7 +1083,7 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildStudentDetailRow('Öğretmen', reservation.teacher?.user?.name ?? "Bilinmiyor"),
+                    _buildStudentDetailRow('Eğitimci', reservation.teacher?.user?.name ?? "Bilinmiyor"),
                     _buildStudentDetailRow('Ders Konusu', reservation.subject),
                     _buildStudentDetailRow('Tarih', DateFormat('dd MMM yyyy').format(reservation.proposedDatetime)),
                     _buildStudentDetailRow('Saat', '${DateFormat('HH:mm').format(reservation.proposedDatetime)} - ${DateFormat('HH:mm').format(reservation.proposedDatetime.add(Duration(minutes: reservation.durationMinutes ?? 60)))}'),
@@ -1108,7 +1108,7 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
                     if (reservation.teacherNotes != null && reservation.teacherNotes!.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       const Text(
-                        'Öğretmen Notları:',
+                        'Eğitimci Notları:',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 8),

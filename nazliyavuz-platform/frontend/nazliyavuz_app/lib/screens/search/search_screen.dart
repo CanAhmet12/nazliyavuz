@@ -113,14 +113,24 @@ class _SearchScreenState extends State<SearchScreen>
     try {
       // Seçilen kategorilerin ID'lerini topla
       List<int> selectedCategoryIds = [];
+      
+      // Ana kategorileri ekle
       selectedCategoryIds.addAll(_selectedMainCategories.map((c) => c.id).toList());
+      
+      // Ana kategorilere ait alt kategorileri bul ve ekle
+      for (var mainCategory in _selectedMainCategories) {
+        var subCategories = _subCategories.where((cat) => cat.parentId == mainCategory.id).toList();
+        selectedCategoryIds.addAll(subCategories.map((c) => c.id).toList());
+      }
+      
+      // Manuel seçilen alt kategorileri ekle
       selectedCategoryIds.addAll(_selectedSubCategories.map((c) => c.id).toList());
       
       if (foundation.kDebugMode) {
         print('🔍 ====== FILTER DEBUG ======');
         print('🔍 Selected Main Categories: ${_selectedMainCategories.map((c) => '${c.name}(${c.id})').toList()}');
         print('🔍 Selected Sub Categories: ${_selectedSubCategories.map((c) => '${c.name}(${c.id})').toList()}');
-        print('🔍 Combined Category IDs: $selectedCategoryIds');
+        print('🔍 Combined Category IDs (including subcategories): $selectedCategoryIds');
         print('🔍 Sort By: $_sortBy');
         print('🔍 Search Text: ${_searchController.text}');
         print('🔍 ========================');
@@ -268,7 +278,7 @@ class _SearchScreenState extends State<SearchScreen>
               // Results
               Expanded(
                 child: _isLoading
-                    ? CustomWidgets.customLoading(message: 'Öğretmenler yükleniyor...')
+                    ? CustomWidgets.customLoading(message: 'Eğitimciler yükleniyor...')
                     : _error != null
                         ? _buildErrorState()
                         : _filteredTeachers.isEmpty
@@ -285,7 +295,7 @@ class _SearchScreenState extends State<SearchScreen>
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       title: const Text(
-        'Öğretmen Ara',
+        'Eğitimci Ara',
         style: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 16,
@@ -525,7 +535,7 @@ class _SearchScreenState extends State<SearchScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${_filteredTeachers.length} öğretmen',
+                '${_filteredTeachers.length} eğitimci',
                 style: TextStyle(
                   color: AppTheme.grey700,
                   fontWeight: FontWeight.w500,
@@ -597,7 +607,7 @@ class _SearchScreenState extends State<SearchScreen>
       padding: const EdgeInsets.symmetric(horizontal: 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.9, // Daha da yüksek - overflow için
+        childAspectRatio: 0.75, // Overflow için daha küçük
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
@@ -631,7 +641,7 @@ class _SearchScreenState extends State<SearchScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              'Öğretmen bulunamadı',
+              'Eğitimci bulunamadı',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
@@ -649,14 +659,6 @@ class _SearchScreenState extends State<SearchScreen>
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Debug: _teachers.length = ${_teachers.length}, _filteredTeachers.length = ${_filteredTeachers.length}, _isLoading = $_isLoading, _error = $_error',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.red,
-              ),
-              textAlign: TextAlign.center,
-            ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () {
@@ -1050,55 +1052,50 @@ class _SearchScreenState extends State<SearchScreen>
 
   Widget _buildErrorState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Bir hata oluştu',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.red[400],
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 48,
+              color: Colors.grey[400],
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _error ?? 'Bilinmeyen hata',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Debug: _teachers.length = ${_teachers.length}, _filteredTeachers.length = ${_filteredTeachers.length}, _isLoading = $_isLoading',
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.red,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _loadInitialData,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+            const SizedBox(height: 12),
+            Text(
+              'Eğitimci bulunamadı',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.grey900,
               ),
             ),
-            child: const Text('Tekrar Dene'),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              'Arama kriterlerinizi değiştirerek tekrar deneyin',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _loadInitialData,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text('Tekrar Dene'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -443,7 +443,7 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
                                 ),
                               ),
                               child: Text(
-                                _userProfile['role'] == 'teacher' ? '👨‍🏫 Öğretmen' : '👨‍🎓 Öğrenci',
+                                _userProfile['role'] == 'teacher' ? '👨‍🏫 Eğitimci' : '👨‍🎓 Öğrenci',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,
@@ -749,7 +749,7 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
                   _buildDivider(),
                   _buildMenuTile(
                     icon: Icons.work_rounded,
-                    title: 'Öğretmen Profili',
+                    title: 'Eğitimci Profili',
                     subtitle: 'Bio, fiyat ve müsaitlik bilgileri',
                     color: AppTheme.premiumGold,
                     onTap: _navigateToEditProfile,

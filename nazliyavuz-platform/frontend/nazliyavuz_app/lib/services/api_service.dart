@@ -15,7 +15,7 @@ import '../models/assignment.dart';
 import '../models/lesson.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://34.122.224.35/api/v1';  // VM Backend
+  static const String baseUrl = 'http://10.91.204.19:8080/api/v1';  // Local Backend
   late Dio _dio;
   String? _token;
 

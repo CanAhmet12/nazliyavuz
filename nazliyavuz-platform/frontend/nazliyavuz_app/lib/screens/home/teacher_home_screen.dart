@@ -247,7 +247,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Öğretmen Onayı'),
+        title: const Text('Eğitimci Onayı'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -282,7 +282,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
               ),
               const SizedBox(height: 16),
               Text(
-                'Öğretmen başvurunuz admin tarafından inceleniyor. Onay süreci genellikle 1-3 iş günü sürmektedir.',
+                'Eğitimci başvurunuz admin tarafından inceleniyor. Onay süreci genellikle 1-3 iş günü sürmektedir.',
                 style: TextStyle(
                   fontSize: 16,
                   color: AppTheme.grey600,
@@ -378,7 +378,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
               ),
               const SizedBox(height: 16),
               Text(
-                'Öğretmen başvurunuz maalesef reddedilmiştir. Red sebebi:',
+                'Eğitimci başvurunuz maalesef reddedilmiştir. Red sebebi:',
                 style: TextStyle(
                   fontSize: 16,
                   color: AppTheme.grey600,
@@ -453,7 +453,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
                 const SizedBox(height: 24),
                 
                 Text(
-                  'Öğretmen İşlemleri',
+                  'Eğitimci İşlemleri',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppTheme.grey900,
@@ -695,7 +695,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Merhaba Öğretmen,',
+                          'Merhaba Eğitimci,',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Colors.white.withOpacity( 0.8),
                             fontSize: 12,
@@ -1028,7 +1028,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Öğretim İstatistikleri',
+          'Eğitim İstatistikleri',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             color: Color(0xFF1E293B),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../../services/api_service.dart';
 
 class NotificationPreferencesScreen extends StatefulWidget {
   final Map<String, dynamic> preferences;
@@ -18,6 +19,8 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
   bool _pushNotifications = true;
   bool _lessonReminders = true;
   bool _marketingEmails = false;
+  bool _isSaving = false;
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -35,8 +38,14 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
         title: const Text('Bildirim Tercihleri'),
         actions: [
           TextButton(
-            onPressed: _savePreferences,
-            child: const Text('Kaydet'),
+            onPressed: _isSaving ? null : _savePreferences,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Kaydet'),
           ),
         ],
       ),
@@ -115,14 +124,49 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
     );
   }
 
-  void _savePreferences() {
-    // API call to save preferences
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Bildirim tercihleri kaydedildi!'),
-        backgroundColor: Colors.green,
-      ),
-    );
-    Navigator.pop(context);
+  Future<void> _savePreferences() async {
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      // API call to save preferences
+      await _apiService.updateNotificationPreferences({
+        'email_notifications': _emailNotifications,
+        'push_notifications': _pushNotifications,
+        'lesson_reminders': _lessonReminders,
+        'marketing_emails': _marketingEmails,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bildirim tercihleri kaydedildi!'),
+            backgroundColor: AppTheme.accentGreen,
+          ),
+        );
+        Navigator.pop(context, {
+          'email_notifications': _emailNotifications,
+          'push_notifications': _pushNotifications,
+          'lesson_reminders': _lessonReminders,
+          'marketing_emails': _marketingEmails,
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hata: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: AppTheme.accentRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
   }
 }

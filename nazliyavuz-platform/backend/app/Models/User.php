@@ -37,6 +37,10 @@ class User extends Authenticatable implements JWTSubject
         'approved_at',
         'rejection_reason',
         'status',
+        'email_notifications',
+        'push_notifications',
+        'lesson_reminders',
+        'marketing_emails',
         'suspended_reason',
         'suspended_by',
     ];

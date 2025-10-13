@@ -882,20 +882,13 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
         const SizedBox(height: 16),
         
         // Title
-        ShaderMask(
-          shaderCallback: (bounds) => LinearGradient(
-            colors: [AppTheme.premiumGold, AppTheme.primaryBlue],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ).createShader(bounds),
-            child: Text(
-              'TERENCE EĞİTİM',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppTheme.primaryBlue,
-              ),
-              textAlign: TextAlign.center,
-            ),
+        Text(
+          'TERENCE EĞİTİM',
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: AppTheme.primaryBlue,
+          ),
+          textAlign: TextAlign.center,
         ),
         
         const SizedBox(height: 8),

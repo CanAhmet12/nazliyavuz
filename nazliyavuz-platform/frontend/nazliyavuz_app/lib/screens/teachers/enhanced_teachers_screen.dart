@@ -492,7 +492,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
                   'Kategori',
                   Icons.category_rounded,
                   _selectedCategory.isNotEmpty,
-                  () => _showFilters(),
+                  () {}, // Modal açılmasını engelle
                 ),
               ),
               const SizedBox(width: 8),

@@ -1158,6 +1158,16 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
             IconButton(
               onPressed: () {
                 // Manuel sertifika ekleme işlemi
+                final textField = context.findAncestorWidgetOfExactType<TextFormField>();
+                if (textField != null && textField.controller != null) {
+                  final value = textField.controller!.text.trim();
+                  if (value.isNotEmpty && !_certificationsList.contains(value)) {
+                    setState(() {
+                      _certificationsList.add(value);
+                      textField.controller!.clear();
+                    });
+                  }
+                }
               },
               icon: Icon(
                 Icons.add_circle_outline,
@@ -1446,6 +1456,7 @@ class _TeacherProfileCompletionScreenState extends State<TeacherProfileCompletio
                           onPressed: () {
                             if (controller.text.trim().isNotEmpty) {
                               onAdd(controller.text.trim());
+                              controller.clear();
                             }
                           },
                         )

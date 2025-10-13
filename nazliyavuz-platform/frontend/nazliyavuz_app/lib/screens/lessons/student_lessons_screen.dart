@@ -876,7 +876,7 @@ Widget build(BuildContext context) {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Üst kısım - Öğretmen bilgisi
+                  // Üst kısım - Eğitimci bilgisi
                   Row(
                     children: [
                       Container(
@@ -1475,6 +1475,7 @@ Widget build(BuildContext context) {
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(6),
@@ -1482,21 +1483,23 @@ Widget build(BuildContext context) {
                                   color: Colors.white.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(
-                                  Icons.visibility_rounded,
-                                  size: 22,
-                                  color: Colors.white,
+                                child: Center(
+                                  child: Icon(
+                                    Icons.visibility_rounded,
+                                    size: 20,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 10),
                               Flexible(
                                 child: Text(
                                   'Ders Detaylarını Görüntüle',
                                   style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
                                     color: Colors.white,
-                                    letterSpacing: 0.3,
+                                    letterSpacing: 0.2,
                                   ),
                                   textAlign: TextAlign.center,
                                   overflow: TextOverflow.ellipsis,
@@ -1644,7 +1647,7 @@ Widget build(BuildContext context) {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Öğretmenlerinizden ders rezervasyonu yaparak başlayabilirsiniz.',
+            'Eğitimcilerinizden ders rezervasyonu yaparak başlayabilirsiniz.',
             style: TextStyle(
               fontSize: 14,
               color: AppTheme.grey500,

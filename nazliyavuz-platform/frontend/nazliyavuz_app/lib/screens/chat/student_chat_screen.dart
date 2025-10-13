@@ -277,10 +277,12 @@ class _StudentChatScreenState extends State<StudentChatScreen> {
   Widget _buildDefaultTeacherAvatar() {
     return Container(
       color: AppTheme.accentGreen.withOpacity(0.1),
-      child: Icon(
-        Icons.school_rounded,
-        color: AppTheme.accentGreen,
-        size: 20,
+      child: Center(
+        child: Icon(
+          Icons.school_rounded,
+          color: AppTheme.accentGreen,
+          size: 20,
+        ),
       ),
     );
   }
