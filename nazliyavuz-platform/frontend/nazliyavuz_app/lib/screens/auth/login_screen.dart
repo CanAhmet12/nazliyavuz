@@ -186,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen>
           'TERENCE EĞİTİM',
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w800,
-            color: AppTheme.primaryBlue,
+            color: const Color(0xFF093e7d),
             letterSpacing: -0.5,
           ),
           textAlign: TextAlign.center,

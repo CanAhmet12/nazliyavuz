@@ -804,10 +804,12 @@ class TeacherGridCard extends StatelessWidget {
                             // Rating ve Fiyat
                             _buildRatingAndPriceRow(),
                             
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 10),
                             
                             // Aksiyon Butonu
                             _buildActionButton(context),
+                            
+                            const SizedBox(height: 6),
                           ],
                         ),
                       ),
@@ -1114,12 +1116,12 @@ class TeacherGridCard extends StatelessWidget {
       },
       child: Container(
         width: double.infinity,
-        height: 24, // Overflow için daha da küçültüldü
+        height: 28, // Biraz yükseklik artırıldı
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFF00BFA5), Color(0xFF00897B)],
           ),
-          borderRadius: BorderRadius.circular(6), // Daha küçük border radius
+          borderRadius: BorderRadius.circular(8), // Biraz daha büyük border radius
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF00BFA5).withOpacity(0.2),
@@ -1133,7 +1135,7 @@ class TeacherGridCard extends StatelessWidget {
             'Detayları Gör',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 9, // Overflow için daha da küçük font
+              fontSize: 11, // Font boyutu artırıldı
               fontWeight: FontWeight.w600,
             ),
           ),

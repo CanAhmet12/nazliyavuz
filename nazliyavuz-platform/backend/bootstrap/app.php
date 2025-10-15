@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
        ->withMiddleware(function (Middleware $middleware): void {
            // Global middleware
+           $middleware->append(\App\Http\Middleware\CorsMiddleware::class);
            $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
            
            // API middleware configuration
