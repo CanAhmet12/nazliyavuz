@@ -7,11 +7,13 @@ import 'login_screen.dart';
 class EmailVerificationScreen extends StatefulWidget {
   final String email;
   final String? verificationToken;
+  final bool fromSocialAuth;
 
   const EmailVerificationScreen({
     super.key,
     required this.email,
     this.verificationToken,
+    this.fromSocialAuth = false,
   });
 
   @override

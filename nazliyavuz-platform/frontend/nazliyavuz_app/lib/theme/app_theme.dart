@@ -45,6 +45,8 @@ class AppTheme {
   static const Color backgroundColor = grey50;
   static const Color textPrimary = grey900;
   static const Color errorColor = error;
+  static const Color primary = primaryBlue;
+  static const Color secondary = premiumGold;
   
   // Premium Design Helpers
   static LinearGradient get premiumGradient => const LinearGradient(

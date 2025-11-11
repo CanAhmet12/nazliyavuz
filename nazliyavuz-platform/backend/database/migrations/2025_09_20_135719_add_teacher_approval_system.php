@@ -65,13 +65,8 @@ return new class extends Migration
     private function indexExists($table, $indexName)
     {
         try {
-            $indexes = DB::select("PRAGMA index_list($table)");
-            foreach ($indexes as $index) {
-                if ($index->name === $indexName) {
-                    return true;
-                }
-            }
-            return false;
+            $result = DB::select("SELECT 1 FROM pg_indexes WHERE indexname = ?", [$indexName]);
+            return count($result) > 0;
         } catch (Exception $e) {
             return false;
         }

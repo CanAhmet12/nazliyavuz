@@ -289,4 +289,153 @@ class SearchController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get user's search history
+     */
+    public function getSearchHistory(Request $request): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            
+            $searches = \DB::table('search_history')
+                ->where('user_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->limit(20)
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'searches' => $searches
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Get search history error: ' . $e->getMessage());
+            
+            return response()->json([
+                'error' => [
+                    'code' => 'SERVER_ERROR',
+                    'message' => 'Arama geçmişi alınırken hata oluştu'
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Save search query to history
+     */
+    public function saveSearchQuery(Request $request): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $query = $request->get('query');
+            
+            if (empty($query)) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'INVALID_INPUT',
+                        'message' => 'Arama sorgusu boş olamaz'
+                    ]
+                ], 400);
+            }
+            
+            // Check if query already exists recently (within 1 hour)
+            $recentSearch = \DB::table('search_history')
+                ->where('user_id', $user->id)
+                ->where('query', $query)
+                ->where('created_at', '>', now()->subHour())
+                ->first();
+            
+            if (!$recentSearch) {
+                \DB::table('search_history')->insert([
+                    'user_id' => $user->id,
+                    'query' => $query,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Arama sorgusu kaydedildi'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Save search query error: ' . $e->getMessage());
+            
+            return response()->json([
+                'error' => [
+                    'code' => 'SERVER_ERROR',
+                    'message' => 'Arama sorgusu kaydedilirken hata oluştu'
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Clear user's search history
+     */
+    public function clearSearchHistory(Request $request): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            
+            \DB::table('search_history')
+                ->where('user_id', $user->id)
+                ->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Arama geçmişi temizlendi'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Clear search history error: ' . $e->getMessage());
+            
+            return response()->json([
+                'error' => [
+                    'code' => 'SERVER_ERROR',
+                    'message' => 'Arama geçmişi temizlenirken hata oluştu'
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Get trending teachers
+     */
+    public function trending(): JsonResponse
+    {
+        try {
+            // Get trending teachers based on recent reservations and ratings
+            $teachers = Teacher::with(['user', 'categories'])
+                ->whereHas('user', function ($q) {
+                    $q->where('role', 'teacher');
+                })
+                ->where('is_approved', 1)
+                ->whereHas('reservations', function ($q) {
+                    // Get teachers with reservations in the last 30 days
+                    $q->where('created_at', '>=', now()->subDays(30));
+                })
+                ->orderBy('rating_avg', 'desc')
+                ->orderByRaw('(SELECT COUNT(*) FROM reservations WHERE reservations.teacher_id = teachers.user_id AND reservations.created_at >= ?)', [now()->subDays(30)])
+                ->limit(10)
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $teachers
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error getting trending teachers: ' . $e->getMessage());
+            
+            return response()->json([
+                'error' => [
+                    'code' => 'TRENDING_ERROR',
+                    'message' => 'Trend öğretmenler yüklenirken bir hata oluştu'
+                ]
+            ], 500);
+        }
+    }
 }

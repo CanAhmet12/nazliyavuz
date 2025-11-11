@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/services.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:async';
 import '../../services/api_service.dart';
 import '../../models/teacher.dart';
 import '../../models/category.dart';
@@ -22,12 +25,15 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
   final ScrollController _scrollController = ScrollController();
   
   late AnimationController _animationController;
+  late AnimationController _searchAnimationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  late Animation<double> _searchAnimation;
   
   List<Teacher> _teachers = [];
   List<Teacher> _featuredTeachers = [];
   List<Category> _categories = [];
+  Set<int> _favoriteTeacherIds = {}; // Track favorite teachers
   
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -41,6 +47,27 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
   String _sortBy = 'rating';
   String _searchQuery = '';
   
+  // Advanced search and filtering
+  List<String> _selectedLanguages = [];
+  List<String> _selectedEducation = [];
+  String _locationFilter = '';
+  bool _availableNow = false;
+  double _minPrice = 0;
+  double _maxPrice = 1000;
+  
+  // Performance optimization
+  String _lastSearchQuery = '';
+  
+  // Real-time features
+  bool _isOnline = true;
+  bool _notificationsEnabled = false;
+  Map<String, dynamic> _userPreferences = {};
+  
+  // Analytics & Statistics
+  Map<String, dynamic> _searchAnalytics = {};
+  Map<String, dynamic> _userBehavior = {};
+  List<String> _recommendedTeachers = [];
+  
   int _currentPage = 1;
   bool _hasMorePages = true;
 
@@ -48,13 +75,139 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
   void initState() {
     super.initState();
     _initializeAnimations();
+    _initializeRealTimeFeatures();
     _loadInitialData();
     _setupScrollListener();
+  }
+
+  void _initializeRealTimeFeatures() async {
+    // Check connectivity
+    _checkConnectivity();
+    
+    // Request notification permissions
+    await _requestNotificationPermissions();
+    
+    // Load user preferences
+    await _loadUserPreferences();
+    
+    // Initialize analytics
+    _initializeAnalytics();
+    
+    // Setup real-time listeners
+    _setupRealTimeListeners();
+  }
+
+  void _checkConnectivity() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    setState(() {
+      _isOnline = connectivityResult != ConnectivityResult.none;
+    });
+    
+    // Listen for connectivity changes
+    Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      setState(() {
+        _isOnline = results.isNotEmpty && results.first != ConnectivityResult.none;
+      });
+      
+      if (_isOnline && _teachers.isEmpty) {
+        _loadInitialData();
+      }
+    });
+  }
+
+  Future<void> _requestNotificationPermissions() async {
+    final status = await Permission.notification.request();
+    setState(() {
+      _notificationsEnabled = status.isGranted;
+    });
+  }
+
+  Future<void> _loadUserPreferences() async {
+    // Load user preferences from local storage
+    // This would typically use SharedPreferences or similar
+    setState(() {
+      _userPreferences = {
+        'favoriteCategories': [],
+        'preferredPriceRange': {'min': 0, 'max': 1000},
+        'notificationSettings': {
+          'newTeachers': true,
+          'priceChanges': false,
+          'availability': true,
+        },
+      };
+    });
+  }
+
+  void _initializeAnalytics() {
+    setState(() {
+      _searchAnalytics = {
+        'totalSearches': 0,
+        'popularCategories': [],
+        'averageSearchTime': 0,
+        'conversionRate': 0.0,
+      };
+      
+      _userBehavior = {
+        'timeSpent': 0,
+        'filtersUsed': [],
+        'teachersViewed': [],
+        'searchesPerformed': [],
+      };
+    });
+  }
+
+  void _setupRealTimeListeners() {
+    // Setup real-time updates for teacher availability
+    // This would typically use WebSocket or similar
+    _startRealTimeUpdates();
+  }
+
+  void _startRealTimeUpdates() {
+    // Simulate real-time updates
+    Timer.periodic(const Duration(minutes: 5), (timer) {
+      if (_isOnline) {
+        _checkForUpdates();
+      }
+    });
+  }
+
+  void _checkForUpdates() async {
+    try {
+      // Check for new teachers or availability changes
+      // TODO: Implement getTeacherUpdates method in ApiService
+      final updates = <Map<String, dynamic>>[];
+      if (updates.isNotEmpty && mounted) {
+        _showUpdateNotification(updates);
+      }
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  void _showUpdateNotification(List<Map<String, dynamic>> updates) {
+    if (_notificationsEnabled && updates.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${updates.length} yeni güncelleme mevcut'),
+          backgroundColor: AppTheme.primaryBlue,
+          action: SnackBarAction(
+            label: 'Güncelle',
+            textColor: Colors.white,
+            onPressed: _loadInitialData,
+          ),
+        ),
+      );
+    }
   }
 
   void _initializeAnimations() {
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _searchAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
     
@@ -72,6 +225,14 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
     ).animate(CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeOutBack,
+    ));
+
+    _searchAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _searchAnimationController,
+      curve: Curves.easeOutCubic,
     ));
   }
 
@@ -97,6 +258,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
         _loadTeachers(),
         _loadFeaturedTeachers(),
         _loadCategories(),
+        _loadFavorites(),
       ]);
 
       if (mounted) {
@@ -192,9 +354,117 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
       if (kDebugMode) {
         print('Categories loading error: $e');
       }
+      // Kategori yükleme hatası kullanıcıya bildirilir
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Kategoriler yüklenirken bir sorun oluştu'),
+            backgroundColor: AppTheme.accentOrange,
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Tekrar Dene',
+              textColor: Colors.white,
+              onPressed: _loadCategories,
+            ),
+          ),
+        );
+      }
     }
   }
 
+
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await _apiService.getFavorites();
+      if (mounted) {
+        setState(() {
+          _favoriteTeacherIds = favorites.map((teacher) => teacher.id ?? teacher.userId).where((id) => id != 0).toSet();
+        });
+      }
+    } catch (e) {
+      // Favorites loading error, continue with empty set
+      if (kDebugMode) {
+        print('Error loading favorites: $e');
+      }
+    }
+  }
+
+  Future<void> _toggleFavorite(Teacher teacher) async {
+    try {
+      // Try to use teacher.id first, fallback to userId
+      final teacherId = teacher.id ?? teacher.userId;
+      if (teacherId == 0) {
+        if (kDebugMode) {
+          print('⚠️ [FAVORITE] Teacher ID is 0, cannot toggle favorite');
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Öğretmen bilgisi eksik'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      
+      final isFavorite = _favoriteTeacherIds.contains(teacherId);
+      
+      if (kDebugMode) {
+        print('❤️ [FAVORITE] Toggling favorite for teacher $teacherId, current state: $isFavorite');
+      }
+      
+      if (isFavorite) {
+        await _apiService.removeFromFavorites(teacherId);
+        if (mounted) {
+          setState(() {
+            _favoriteTeacherIds.remove(teacherId);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Favorilerden çıkarıldı'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      } else {
+        await _apiService.addToFavorites(teacherId);
+        if (mounted) {
+          setState(() {
+            _favoriteTeacherIds.add(teacherId);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Favorilere eklendi'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      }
+      
+      if (kDebugMode) {
+        print('✅ [FAVORITE] Successfully toggled favorite for teacher $teacherId: ${!isFavorite}');
+        print('📊 [FAVORITE] Current favorite count: ${_favoriteTeacherIds.length}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [FAVORITE] Error toggling favorite: $e');
+      }
+      
+      // Show error message to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Favori durumu güncellenirken hata oluştu: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _loadMoreTeachers() async {
     setState(() {
@@ -230,14 +500,109 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
       _onlineOnly = false;
       _sortBy = 'rating';
       _searchQuery = '';
+      _selectedLanguages.clear();
+      _selectedEducation.clear();
+      _locationFilter = '';
+      _availableNow = false;
+      _minPrice = 0;
+      _maxPrice = 1000;
       _searchController.clear();
     });
+    
+    _searchAnimationController.reverse();
     _applyFilters();
+  }
+
+
+  void _performAdvancedSearch() async {
+    if (_searchQuery != _lastSearchQuery) {
+      setState(() {
+        _lastSearchQuery = _searchQuery;
+      });
+      
+      _searchAnimationController.forward();
+    }
+    
+    // Track search analytics
+    _trackSearchAnalytics();
+    
+    try {
+      final response = await _apiService.searchTeachers(
+        query: _searchQuery,
+        category: _selectedCategory,
+        onlineOnly: _onlineOnly,
+        sortBy: _sortBy,
+      );
+      
+      final teachers = response['teachers'] as List<Teacher>;
+      
+      if (mounted) {
+        setState(() {
+          _teachers = teachers;
+          _isLoading = false;
+        });
+        
+        // Generate smart recommendations
+        _generateSmartRecommendations(teachers);
+        
+        // Update user behavior
+        _updateUserBehavior();
+        
+        _animationController.forward();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _trackSearchAnalytics() {
+    setState(() {
+      _searchAnalytics['totalSearches'] = (_searchAnalytics['totalSearches'] as int) + 1;
+      _searchAnalytics['popularCategories'].add(_selectedCategory);
+      _userBehavior['searchesPerformed'].add({
+        'query': _searchQuery,
+        'category': _selectedCategory,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+    });
+  }
+
+  void _generateSmartRecommendations(List<Teacher> teachers) async {
+    try {
+      // Get AI-powered recommendations based on user behavior
+      // TODO: Implement getSmartRecommendations method in ApiService
+      final recommendations = <String>[];
+      
+      if (mounted) {
+        setState(() {
+          _recommendedTeachers = recommendations;
+        });
+      }
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  void _updateUserBehavior() {
+    setState(() {
+      _userBehavior['timeSpent'] = (_userBehavior['timeSpent'] as int) + 1;
+      _userBehavior['filtersUsed'].addAll([
+        if (_selectedCategory.isNotEmpty) 'category',
+        if (_onlineOnly) 'online',
+        if (_minRating > 0) 'rating',
+      ]);
+    });
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _searchAnimationController.dispose();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -484,7 +849,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
           
           const SizedBox(height: 12),
           
-          // Filter Row
+          // Simple Filter Row
           Row(
             children: [
               Expanded(
@@ -492,7 +857,7 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
                   'Kategori',
                   Icons.category_rounded,
                   _selectedCategory.isNotEmpty,
-                  () {}, // Modal açılmasını engelle
+                  () => _showCategoryFilter(),
                 ),
               ),
               const SizedBox(width: 8),
@@ -513,6 +878,12 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
               ),
             ],
           ),
+          
+          // Smart Recommendations Section
+          if (_recommendedTeachers.isNotEmpty) _buildSmartRecommendationsSection(),
+          
+          // Analytics Dashboard (for admin users)
+          if (_userPreferences['showAnalytics'] == true) _buildAnalyticsDashboard(),
         ],
       ),
     );
@@ -915,9 +1286,14 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
               if (index < _teachers.length) {
                 return TeacherGridCard(
                   teacher: _teachers[index],
+                  isFavorite: (_teachers[index].id ?? _teachers[index].userId) != 0 && _favoriteTeacherIds.contains(_teachers[index].id ?? _teachers[index].userId),
                   onTap: () {
                     HapticFeedback.lightImpact();
                     _navigateToTeacherDetail(_teachers[index]);
+                  },
+                  onFavoriteToggle: () {
+                    HapticFeedback.lightImpact();
+                    _toggleFavorite(_teachers[index]);
                   },
                 );
               } else if (_isLoadingMore) {
@@ -938,7 +1314,12 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
               if (index < _teachers.length) {
                 return TeacherCard(
                   teacher: _teachers[index],
+                  isFavorite: (_teachers[index].id ?? _teachers[index].userId) != 0 && _favoriteTeacherIds.contains(_teachers[index].id ?? _teachers[index].userId),
                   onTap: null, // Rezerve Et butonunun çalışması için null yapıyoruz
+                  onFavoriteToggle: () {
+                    HapticFeedback.lightImpact();
+                    _toggleFavorite(_teachers[index]);
+                  },
                 );
               } else if (_isLoadingMore) {
                 return const Padding(
@@ -1006,19 +1387,10 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            _error ?? 'Bilinmeyen hata',
+            'Veriler yüklenirken bir sorun oluştu.\nLütfen tekrar deneyin.',
             style: const TextStyle(
               fontSize: 14,
               color: Colors.grey,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Debug: _teachers.length = ${_teachers.length}, _isLoading = $_isLoading',
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.red,
             ),
             textAlign: TextAlign.center,
           ),
@@ -1061,19 +1433,14 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Arama kriterlerinizi değiştirmeyi deneyin',
+            _selectedCategory.isNotEmpty
+                ? 'Bu kategoride eğitimci bulunamadı.\nBaşka bir kategori deneyin.'
+                : _searchQuery.isNotEmpty
+                    ? 'Arama için sonuç bulunamadı.\nFarklı kelimeler deneyin.'
+                    : 'Arama kriterlerinizi değiştirmeyi deneyin',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[400],
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Debug: _teachers.length = ${_teachers.length}, _isLoading = $_isLoading, _error = $_error, _selectedCategory = $_selectedCategory, categories.length = ${_categories.length}',
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.red,
             ),
             textAlign: TextAlign.center,
           ),
@@ -1095,13 +1462,19 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
     );
   }
 
-  void _showFilters() {
+
+
+
+
+
+
+  void _showCategoryFilter() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
+        height: MediaQuery.of(context).size.height * 0.6,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -1109,138 +1482,72 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
         child: Column(
           children: [
             Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: AppTheme.grey300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
               padding: const EdgeInsets.all(20),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Filtreler',
+                    'Kategori Seçin',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
+                      color: AppTheme.grey900,
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Fiyat Aralığı',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            decoration: const InputDecoration(
-                              labelText: 'Min Fiyat',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
+                  const SizedBox(height: 20),
+                  
+                  // Category List
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _categories.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return ListTile(
+                            title: const Text('Tüm Kategoriler'),
+                            leading: const Icon(Icons.all_inclusive),
+                            trailing: _selectedCategory.isEmpty
+                                ? const Icon(Icons.check, color: AppTheme.primaryBlue)
+                                : null,
+                            onTap: () {
+                              setState(() {
+                                _selectedCategory = '';
+                              });
+                              Navigator.pop(context);
+                              _applyFilters();
+                            },
+                          );
+                        }
+                        
+                        final category = _categories[index - 1];
+                        final isSelected = _selectedCategory == category.id.toString();
+                        
+                        return ListTile(
+                          title: Text(category.name),
+                          leading: Icon(
+                            Icons.category,
+                            color: isSelected ? AppTheme.primaryBlue : AppTheme.grey600,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            decoration: const InputDecoration(
-                              labelText: 'Max Fiyat',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Puan',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: List.generate(5, (index) {
-                        return GestureDetector(
+                          trailing: isSelected
+                              ? const Icon(Icons.check, color: AppTheme.primaryBlue)
+                              : null,
                           onTap: () {
                             setState(() {
-                              _minRating = _minRating == 0 ? 4.0 : 0.0;
+                              _selectedCategory = category.id.toString();
                             });
-                            _loadTeachers();
+                            Navigator.pop(context);
+                            _applyFilters();
                           },
-                          child: Icon(
-                            Icons.star,
-                            color: index < 4 ? AppTheme.premiumGold : Colors.grey[300],
-                            size: 32,
-                          ),
                         );
-                      }),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Online Ders',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SwitchListTile(
-                      title: const Text('Sadece online ders verenler'),
-                      value: _onlineOnly,
-                      onChanged: (value) {
-                        setState(() {
-                          _onlineOnly = value;
-                        });
-                        _loadTeachers();
                       },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        setState(() {
-                          _minRating = 0.0;
-                          _onlineOnly = false;
-                        });
-                        _loadTeachers();
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Temizle'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        _loadTeachers();
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryBlue,
-                      ),
-                      child: const Text('Uygula'),
                     ),
                   ),
                 ],
@@ -1251,6 +1558,264 @@ class _EnhancedTeachersScreenState extends State<EnhancedTeachersScreen>
       ),
     );
   }
+
+  Widget _buildSmartRecommendationsSection() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primaryBlue.withOpacity(0.1),
+            AppTheme.accentPurple.withOpacity(0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryBlue.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.auto_awesome,
+                color: AppTheme.primaryBlue,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Sizin İçin Önerilenler',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.grey900,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: _refreshRecommendations,
+                child: const Text(
+                  'Yenile',
+                  style: TextStyle(
+                    color: AppTheme.primaryBlue,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _recommendedTeachers.length,
+              itemBuilder: (context, index) {
+                return Container(
+                  width: 200,
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _recommendedTeachers[index],
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.grey900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'AI Önerisi',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.primaryBlue,
+                          ),
+                        ),
+                        const Spacer(),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.trending_up,
+                              size: 16,
+                              color: AppTheme.accentGreen,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Popüler',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.accentGreen,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsDashboard() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.analytics,
+                color: AppTheme.primaryBlue,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Arama Analitikleri',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.grey900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildAnalyticsCard(
+                  'Toplam Arama',
+                  '${_searchAnalytics['totalSearches']}',
+                  Icons.search,
+                  AppTheme.primaryBlue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAnalyticsCard(
+                  'Geçen Süre',
+                  '${_userBehavior['timeSpent']} dk',
+                  Icons.timer,
+                  AppTheme.accentGreen,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildAnalyticsCard(
+                  'Kullanılan Filtreler',
+                  '${(_userBehavior['filtersUsed'] as List).length}',
+                  Icons.filter_list,
+                  AppTheme.accentOrange,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAnalyticsCard(
+                  'Dönüşüm Oranı',
+                  '${(_searchAnalytics['conversionRate'] * 100).toStringAsFixed(1)}%',
+                  Icons.trending_up,
+                  AppTheme.accentPurple,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 4),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.grey600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _refreshRecommendations() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    _generateSmartRecommendations(_teachers);
+    
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
 
   void _showSortOptions() {
     showModalBottomSheet(

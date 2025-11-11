@@ -4,15 +4,70 @@ namespace App\Http\Controllers;
 
 use App\Models\TeacherAvailability;
 use App\Models\Teacher;
+use App\Models\TeacherException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 
 class AvailabilityController extends Controller
 {
     /**
-     * Get teacher availabilities
+     * Get current authenticated teacher's availabilities
+     */
+    public function getCurrentTeacherAvailabilities(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $teacher = Teacher::where('user_id', $user->id)->first();
+            
+            if (!$teacher) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'NOT_A_TEACHER',
+                        'message' => 'Bu kullanıcı bir öğretmen değil'
+                    ]
+                ], 403);
+            }
+            
+            $availabilities = $teacher->availabilities()
+                ->where('is_available', true)
+                ->orderBy('day_of_week')
+                ->orderBy('start_time')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $availabilities->map(function ($availability) {
+                    return [
+                        'id' => $availability->id,
+                        'day_of_week' => $availability->day_of_week,
+                        'day_name' => $availability->day_name,
+                        'start_time' => $availability->start_time ? $availability->start_time->format('H:i') : '',
+                        'end_time' => $availability->end_time ? $availability->end_time->format('H:i') : '',
+                        'formatted_time_range' => $availability->formatted_time_range ?? '',
+                    ];
+                })
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting current teacher availabilities: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'AVAILABILITIES_FETCH_ERROR',
+                    'message' => 'Müsaitlik bilgileri yüklenirken hata oluştu',
+                    'details' => $e->getMessage()
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Get teacher availabilities (public - for students)
      */
     public function index(Request $request, int $teacherId): JsonResponse
     {
@@ -31,9 +86,9 @@ class AvailabilityController extends Controller
                     'id' => $availability->id,
                     'day_of_week' => $availability->day_of_week,
                     'day_name' => $availability->day_name,
-                    'start_time' => $availability->start_time->format('H:i'),
-                    'end_time' => $availability->end_time->format('H:i'),
-                    'formatted_time_range' => $availability->formatted_time_range,
+                    'start_time' => $availability->start_time ? $availability->start_time->format('H:i') : '',
+                    'end_time' => $availability->end_time ? $availability->end_time->format('H:i') : '',
+                    'formatted_time_range' => $availability->formatted_time_range ?? '',
                 ];
             })
         ]);
@@ -88,9 +143,9 @@ class AvailabilityController extends Controller
                 'id' => $availability->id,
                 'day_of_week' => $availability->day_of_week,
                 'day_name' => $availability->day_name,
-                'start_time' => $availability->start_time->format('H:i'),
-                'end_time' => $availability->end_time->format('H:i'),
-                'formatted_time_range' => $availability->formatted_time_range,
+                'start_time' => $availability->start_time ? $availability->start_time->format('H:i') : '',
+                'end_time' => $availability->end_time ? $availability->end_time->format('H:i') : '',
+                'formatted_time_range' => $availability->formatted_time_range ?? '',
             ]
         ], 201);
     }
@@ -119,8 +174,8 @@ class AvailabilityController extends Controller
                 ->where('is_available', true)
                 ->where('id', '!=', $id)
                 ->where(function ($query) use ($request, $availability) {
-                    $startTime = $request->start_time ?? $availability->start_time->format('H:i');
-                    $endTime = $request->end_time ?? $availability->end_time->format('H:i');
+                    $startTime = $request->start_time ?? ($availability->start_time ? $availability->start_time->format('H:i') : '');
+                    $endTime = $request->end_time ?? ($availability->end_time ? $availability->end_time->format('H:i') : '');
                     
                     $query->whereBetween('start_time', [$startTime, $endTime])
                           ->orWhereBetween('end_time', [$startTime, $endTime])
@@ -148,9 +203,9 @@ class AvailabilityController extends Controller
                 'id' => $availability->id,
                 'day_of_week' => $availability->day_of_week,
                 'day_name' => $availability->day_name,
-                'start_time' => $availability->start_time->format('H:i'),
-                'end_time' => $availability->end_time->format('H:i'),
-                'formatted_time_range' => $availability->formatted_time_range,
+                'start_time' => $availability->start_time ? $availability->start_time->format('H:i') : '',
+                'end_time' => $availability->end_time ? $availability->end_time->format('H:i') : '',
+                'formatted_time_range' => $availability->formatted_time_range ?? '',
                 'is_available' => $availability->is_available,
             ]
         ]);
@@ -180,18 +235,49 @@ class AvailabilityController extends Controller
     {
         $request->validate([
             'date' => 'required|date|after_or_equal:today',
+            'duration' => 'sometimes|integer|in:30,60,90,120,180,240', // minutes
         ]);
 
         $teacher = Teacher::findOrFail($teacherId);
         $date = $request->date;
+        $duration = (int) ($request->duration ?? 60); // Default 1 hour - cast to int!
         $dayOfWeek = strtolower(date('l', strtotime($date)));
 
-        // Get teacher's availability for this day
-        $availabilities = $teacher->availabilities()
-            ->where('day_of_week', $dayOfWeek)
-            ->where('is_available', true)
-            ->orderBy('start_time')
-            ->get();
+        // Check for exceptions first (izin, tatil, özel saatler)
+        $exception = $teacher->exceptions()
+            ->byDate($date)
+            ->active()
+            ->first();
+
+        // Eğer bu gün tamamen müsait değilse
+        if ($exception && $exception->isUnavailable()) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'message' => $exception->reason ?? 'Öğretmen bu tarihte müsait değil.',
+                'exception' => [
+                    'type' => 'unavailable',
+                    'reason' => $exception->reason,
+                ]
+            ]);
+        }
+
+        // Eğer özel saatler varsa, onları kullan (haftalık takvim yerine)
+        if ($exception && $exception->hasCustomHours()) {
+            $availabilities = collect([
+                (object)[
+                    'start_time' => $exception->start_time,
+                    'end_time' => $exception->end_time,
+                ]
+            ]);
+        } else {
+            // Normal haftalık takvimi kullan
+            $availabilities = $teacher->availabilities()
+                ->where('day_of_week', $dayOfWeek)
+                ->where('is_available', true)
+                ->orderBy('start_time')
+                ->get();
+        }
 
         if ($availabilities->isEmpty()) {
             return response()->json([
@@ -213,17 +299,18 @@ class AvailabilityController extends Controller
             $startTime = $availability->start_time;
             $endTime = $availability->end_time;
             
-            // Generate 1-hour slots
+            // Generate slots with requested duration
             $currentTime = $startTime->copy();
-            while ($currentTime->addHour()->lte($endTime)) {
-                $slotStart = $currentTime->copy()->subHour();
-                $slotEnd = $currentTime->copy();
+            while ($currentTime->copy()->addMinutes($duration)->lte($endTime)) {
+                $slotStart = $currentTime->copy();
+                $slotEnd = $currentTime->copy()->addMinutes($duration);
                 
                 // Check if this slot conflicts with existing reservations
                 $hasConflict = $existingReservations->contains(function ($reservation) use ($slotStart, $slotEnd) {
                     $reservationStart = \Carbon\Carbon::parse($reservation->proposed_datetime);
                     $reservationEnd = $reservationStart->copy()->addMinutes($reservation->duration_minutes);
                     
+                    // Check overlap: slot overlaps if it starts before reservation ends AND ends after reservation starts
                     return $slotStart->lt($reservationEnd) && $slotEnd->gt($reservationStart);
                 });
 
@@ -232,14 +319,25 @@ class AvailabilityController extends Controller
                         'start_time' => $slotStart->format('H:i'),
                         'end_time' => $slotEnd->format('H:i'),
                         'formatted_time' => $slotStart->format('H:i') . ' - ' . $slotEnd->format('H:i'),
+                        'duration_minutes' => $duration,
                     ];
                 }
+                
+                // Move to next slot (30 min intervals)
+                $currentTime->addMinutes(30);
             }
         }
 
         return response()->json([
             'success' => true,
-            'data' => $availableSlots
+            'data' => $availableSlots,
+            'meta' => [
+                'date' => $date,
+                'day_of_week' => $dayOfWeek,
+                'teacher_id' => $teacherId,
+                'requested_duration' => $duration,
+                'total_slots' => count($availableSlots),
+            ]
         ]);
     }
 }

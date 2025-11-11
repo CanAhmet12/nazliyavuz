@@ -17,14 +17,11 @@ class TeacherAvailability extends Model
         'is_available',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'start_time' => 'datetime:H:i',
-            'end_time' => 'datetime:H:i',
-            'is_available' => 'boolean',
-        ];
-    }
+    protected $casts = [
+        'start_time' => 'datetime',
+        'end_time' => 'datetime',
+        'is_available' => 'boolean',
+    ];
 
     /**
      * Get the teacher that owns the availability
@@ -39,6 +36,9 @@ class TeacherAvailability extends Model
      */
     public function getFormattedTimeRangeAttribute()
     {
+        if (!$this->start_time || !$this->end_time) {
+            return '';
+        }
         return $this->start_time->format('H:i') . ' - ' . $this->end_time->format('H:i');
     }
 

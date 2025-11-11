@@ -6,6 +6,7 @@ use App\Models\VideoCall;
 use App\Models\User;
 use App\Models\Reservation;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Carbon;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\VideoCall>
@@ -26,33 +27,40 @@ class VideoCallFactory extends Factory
      */
     public function definition(): array
     {
-        $callerId = User::factory()->create(['role' => 'teacher'])->id;
-        $receiverId = User::factory()->create(['role' => 'student'])->id;
-        
         $status = $this->faker->randomElement(['initiated', 'active', 'ended', 'rejected', 'missed']);
         $callType = $this->faker->randomElement(['video', 'audio']);
-        
-        $startedAt = $this->faker->dateTimeBetween('-1 week', 'now');
+
+        $startedAt = Carbon::instance($this->faker->dateTimeBetween('-1 week', 'now'));
         $endedAt = null;
+        $answeredAt = null;
         $durationSeconds = null;
-        
-        if (in_array($status, ['ended', 'rejected', 'missed'])) {
-            $endedAt = $this->faker->dateTimeBetween($startedAt, 'now');
-            $durationSeconds = $endedAt->getTimestamp() - $startedAt->getTimestamp();
+
+        if ($status === 'active') {
+            $answeredAt = $startedAt->copy()->addSeconds($this->faker->numberBetween(10, 120));
+        }
+
+        if (in_array($status, ['ended', 'rejected', 'missed'], true)) {
+            $answeredAt = $answeredAt ?? $startedAt->copy()->addSeconds($this->faker->numberBetween(10, 60));
+            $durationSeconds = $this->faker->numberBetween(60, 900);
+            $endedAt = $startedAt->copy()->addSeconds($durationSeconds);
+
+            if ($status !== 'ended') {
+                $durationSeconds = $status === 'rejected' ? 0 : null;
+            }
         }
 
         return [
             'call_id' => 'call_' . $this->faker->uuid(),
-            'caller_id' => $callerId,
-            'receiver_id' => $receiverId,
+            'caller_id' => User::factory()->teacher(),
+            'receiver_id' => User::factory()->student(),
             'call_type' => $callType,
             'subject' => $this->faker->optional(0.7)->sentence(3),
-            'reservation_id' => $this->faker->optional(0.3)->randomElement(
-                Reservation::pluck('id')->toArray() ?: [null]
-            ),
+            'reservation_id' => $this->faker->optional(0.3)->boolean()
+                ? Reservation::factory()
+                : null,
             'status' => $status,
             'started_at' => $startedAt,
-            'answered_at' => $status === 'active' ? $this->faker->dateTimeBetween($startedAt, 'now') : null,
+            'answered_at' => $answeredAt,
             'ended_at' => $endedAt,
             'duration_seconds' => $durationSeconds,
             'end_reason' => $endedAt ? $this->faker->randomElement([
@@ -103,15 +111,16 @@ class VideoCallFactory extends Factory
      */
     public function ended(): static
     {
-        $startedAt = $this->faker->dateTimeBetween('-1 hour', 'now');
-        $endedAt = $this->faker->dateTimeBetween($startedAt, 'now');
+        $startedAt = Carbon::instance($this->faker->dateTimeBetween('-1 hour', 'now'));
+        $duration = $this->faker->numberBetween(60, 900);
+        $endedAt = $startedAt->copy()->addSeconds($duration);
         
         return $this->state(fn (array $attributes) => [
             'status' => 'ended',
             'started_at' => $startedAt,
-            'answered_at' => $this->faker->dateTimeBetween($startedAt, $endedAt),
+            'answered_at' => $startedAt->copy()->addSeconds($this->faker->numberBetween(5, 30)),
             'ended_at' => $endedAt,
-            'duration_seconds' => $endedAt->getTimestamp() - $startedAt->getTimestamp(),
+            'duration_seconds' => $duration,
             'end_reason' => $this->faker->randomElement([
                 'Call completed',
                 'Call ended by user',

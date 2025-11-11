@@ -2,11 +2,11 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
+use App\Services\AdminBackupService;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
 
 class BackupDatabaseCommand extends Command
 {
@@ -27,26 +27,60 @@ class BackupDatabaseCommand extends Command
      */
     protected $description = 'Create database backup with compression and retention';
 
-    /**
-     * Execute the console command.
-     */
+    protected AdminBackupService $backupService;
+
+    public function __construct(AdminBackupService $backupService)
+    {
+        parent::__construct();
+        $this->backupService = $backupService;
+    }
+
     public function handle()
     {
+        $startedAt = microtime(true);
+        $localPath = null;
+        $storedPath = null;
+
         try {
             $this->info('🗄️ Starting database backup...');
 
-            $storage = $this->option('storage');
+            $storageOption = $this->option('storage');
+            $storage = ($storageOption === 'local' && config('backup.storage_disk') !== 'local')
+                ? config('backup.storage_disk')
+                : $storageOption;
             $compress = $this->option('compress') === 'true';
-            $retention = (int) $this->option('retention');
+            $retention = (int) ($this->option('retention') ?? config('backup.retention_days', 30));
 
             // Create backup
-            $backupPath = $this->createBackup($compress);
+            $localPath = $this->createBackup($compress);
             
             // Upload to storage
-            $this->uploadToStorage($backupPath, $storage);
+            $storedPath = $this->uploadToStorage($localPath, $storage);
             
             // Clean old backups
             $this->cleanOldBackups($retention, $storage);
+
+            $resolvedPath = null;
+            if ($storedPath) {
+                try {
+                    $resolvedPath = Storage::disk($storage)->path($storedPath);
+                } catch (\Throwable $e) {
+                    $resolvedPath = "{$storage}://{$storedPath}";
+                }
+            }
+
+            $this->backupService->recordAutomationEvent([
+                'event' => 'backup',
+                'filename' => basename($storedPath ?? $localPath ?? ''),
+                'filepath' => $resolvedPath ?? $localPath,
+                'type' => 'database',
+                'status' => 'completed',
+                'source' => 'scheduler',
+                'storage' => $storage,
+                'trigger' => 'artisan:backup:database',
+                'run_at' => now()->toIso8601String(),
+                'duration_seconds' => round(microtime(true) - $startedAt, 4),
+            ]);
             
             $this->info('✅ Database backup completed successfully!');
             
@@ -57,6 +91,18 @@ class BackupDatabaseCommand extends Command
             \Log::error('Database backup failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
+            ]);
+
+            $this->backupService->recordAutomationEvent([
+                'event' => 'backup',
+                'filename' => basename($storedPath ?? $localPath ?? 'unknown'),
+                'type' => 'database',
+                'status' => 'failed',
+                'source' => 'scheduler',
+                'storage' => $storage ?? config('backup.storage_disk', 'local'),
+                'trigger' => 'artisan:backup:database',
+                'run_at' => now()->toIso8601String(),
+                'message' => $e->getMessage(),
             ]);
             
             return Command::FAILURE;
@@ -190,7 +236,7 @@ class BackupDatabaseCommand extends Command
     /**
      * Upload backup to storage
      */
-    private function uploadToStorage(string $backupPath, string $storage): void
+    private function uploadToStorage(string $backupPath, string $storage): string
     {
         $filename = basename($backupPath);
         $storagePath = "backups/{$filename}";
@@ -203,7 +249,11 @@ class BackupDatabaseCommand extends Command
         $this->info("✅ Uploaded to {$storage}: {$storagePath}");
         
         // Remove local file after upload
-        unlink($backupPath);
+        if (file_exists($backupPath)) {
+            unlink($backupPath);
+        }
+
+        return $storagePath;
     }
 
     /**

@@ -52,21 +52,36 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
                       widget.assignment.status != 'submitted';
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC), // Modern light background
       appBar: AppBar(
-        title: const Text('Ödev Detayı'),
-        backgroundColor: AppTheme.primaryBlue,
+        title: const Text(
+          'Ödev Detayı',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+          ),
+        ),
+        backgroundColor: const Color(0xFF3B82F6), // AppTheme.primaryBlue
         foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           if (widget.assignment.status == 'submitted')
-            IconButton(
-              icon: const Icon(Icons.grade_rounded),
-              onPressed: _showGradingDialog,
-              tooltip: 'Değerlendir',
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.grade_rounded, size: 20),
+                onPressed: _showGradingDialog,
+                tooltip: 'Değerlendir',
+              ),
             ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -75,15 +90,18 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    statusColor.withOpacity(0.1),
-                    statusColor.withOpacity(0.05),
-                  ],
-                ),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: statusColor.withOpacity(0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
                 border: Border.all(
-                  color: statusColor.withOpacity(0.3),
+                  color: statusColor.withOpacity(0.15),
+                  width: 1,
                 ),
               ),
               child: Column(
@@ -92,15 +110,16 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        width: 48,
+                        height: 48,
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
+                          color: statusColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
                           _getStatusIcon(widget.assignment.status),
                           color: statusColor,
-                          size: 20,
+                          size: 24,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -108,9 +127,9 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
                         child: Text(
                           widget.assignment.title,
                           style: const TextStyle(
-                            fontSize: 20,
+                            fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: Colors.black87,
+                            color: Color(0xFF1E293B),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -120,15 +139,19 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: AppTheme.premiumGold.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            color: const Color(0xFFF59E0B).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFFF59E0B).withOpacity(0.3),
+                              width: 1,
+                            ),
                           ),
                           child: Text(
                             widget.assignment.grade!,
-                            style: TextStyle(
-                              fontSize: 16,
+                            style: const TextStyle(
+                              fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.premiumGold,
+                              color: Color(0xFFF59E0B),
                             ),
                           ),
                         ),
@@ -203,19 +226,20 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
 
   Widget _buildInfoChip(IconData icon, String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: color.withOpacity(0.2),
+          width: 1,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
           Text(
             text,
             style: TextStyle(
@@ -235,9 +259,17 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
         border: Border.all(
-          color: AppTheme.grey300,
+          color: const Color(0xFFE2E8F0),
+          width: 1,
         ),
       ),
       child: Column(
@@ -245,14 +277,22 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: AppTheme.primaryBlue),
-              const SizedBox(width: 8),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 18, color: const Color(0xFF3B82F6)),
+              ),
+              const SizedBox(width: 12),
               Text(
                 title,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.grey800,
+                  color: Color(0xFF1E293B),
                 ),
               ),
             ],
@@ -262,7 +302,7 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
             content,
             style: const TextStyle(
               fontSize: 14,
-              color: AppTheme.grey600,
+              color: Color(0xFF64748B),
               height: 1.5,
             ),
           ),
@@ -276,10 +316,18 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.accentGreen.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF10B981).withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
         border: Border.all(
-          color: AppTheme.accentGreen.withOpacity(0.2),
+          color: const Color(0xFF10B981).withOpacity(0.15),
+          width: 1,
         ),
       ),
       child: Column(
@@ -287,14 +335,22 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
         children: [
           Row(
             children: [
-              Icon(Icons.upload_rounded, size: 20, color: AppTheme.accentGreen),
-              const SizedBox(width: 8),
-              Text(
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.upload_rounded, size: 18, color: Color(0xFF10B981)),
+              ),
+              const SizedBox(width: 12),
+              const Text(
                 'Teslim Detayları',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.accentGreen,
+                  color: Color(0xFF1E293B),
                 ),
               ),
             ],
@@ -304,24 +360,24 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
             _buildInfoChip(
               Icons.access_time_rounded,
               'Teslim Tarihi: ${_formatDateTime(widget.assignment.submittedAt!)}',
-              AppTheme.accentGreen,
+              const Color(0xFF10B981),
             ),
           if (widget.assignment.submissionFileName != null) ...[
             const SizedBox(height: 8),
             _buildInfoChip(
               Icons.attach_file_rounded,
               'Dosya: ${widget.assignment.submissionFileName}',
-              AppTheme.primaryBlue,
+              const Color(0xFF3B82F6),
             ),
           ],
           if (widget.assignment.submissionNotes != null) ...[
             const SizedBox(height: 12),
-            Text(
+            const Text(
               'Öğrenci Notları:',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.grey700,
+                color: Color(0xFF374151),
               ),
             ),
             const SizedBox(height: 4),
@@ -329,7 +385,7 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
               widget.assignment.submissionNotes!,
               style: const TextStyle(
                 fontSize: 14,
-                color: AppTheme.grey600,
+                color: Color(0xFF64748B),
                 height: 1.5,
               ),
             ),
@@ -344,10 +400,18 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.premiumGold.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
         border: Border.all(
-          color: AppTheme.premiumGold.withOpacity(0.2),
+          color: const Color(0xFFF59E0B).withOpacity(0.15),
+          width: 1,
         ),
       ),
       child: Column(
@@ -355,14 +419,22 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
         children: [
           Row(
             children: [
-              Icon(Icons.grade_rounded, size: 20, color: AppTheme.premiumGold),
-              const SizedBox(width: 8),
-              Text(
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.grade_rounded, size: 18, color: Color(0xFFF59E0B)),
+              ),
+              const SizedBox(width: 12),
+              const Text(
                 'Değerlendirme',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.premiumGold,
+                  color: Color(0xFF1E293B),
                 ),
               ),
             ],
@@ -372,24 +444,24 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
             _buildInfoChip(
               Icons.star_rounded,
               'Not: ${widget.assignment.grade}',
-              AppTheme.premiumGold,
+              const Color(0xFFF59E0B),
             ),
           if (widget.assignment.gradedAt != null) ...[
             const SizedBox(height: 8),
             _buildInfoChip(
               Icons.access_time_rounded,
               'Değerlendirme Tarihi: ${_formatDateTime(widget.assignment.gradedAt!)}',
-              AppTheme.premiumGold,
+              const Color(0xFFF59E0B),
             ),
           ],
           if (widget.assignment.feedback != null) ...[
             const SizedBox(height: 12),
-            Text(
+            const Text(
               'Geri Bildirim:',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.grey700,
+                color: Color(0xFF374151),
               ),
             ),
             const SizedBox(height: 4),
@@ -397,7 +469,7 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
               widget.assignment.feedback!,
               style: const TextStyle(
                 fontSize: 14,
-                color: AppTheme.grey600,
+                color: Color(0xFF64748B),
                 height: 1.5,
               ),
             ),
@@ -408,24 +480,43 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
   }
 
   Widget _buildActionButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _showGradingDialog,
-            icon: const Icon(Icons.grade_rounded),
-            label: const Text('Değerlendir'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accentGreen,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF10B981), Color(0xFF059669)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF10B981).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: _showGradingDialog,
+        icon: const Icon(Icons.grade_rounded, size: 20),
+        label: const Text(
+          'Değerlendir',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
         ),
-      ],
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
     );
   }
 
@@ -433,7 +524,16 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Ödev Değerlendir'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          'Ödev Değerlendir',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -441,9 +541,15 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
               // Grade Selection
               DropdownButtonFormField<String>(
                 value: _selectedGrade,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Not',
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+                  ),
                 ),
                 items: _gradeOptions.map((grade) {
                   return DropdownMenuItem(
@@ -463,9 +569,15 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
               TextField(
                 controller: _feedbackController,
                 maxLines: 4,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Geri Bildirim',
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+                  ),
                   hintText: 'Öğrenciye geri bildirim yazın...',
                 ),
               ),
@@ -475,24 +587,47 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
-          ),
-          ElevatedButton(
-            onPressed: _isGrading ? null : _submitGrade,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accentGreen,
-              foregroundColor: Colors.white,
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF64748B),
             ),
-            child: _isGrading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            child: const Text(
+              'İptal',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF10B981), Color(0xFF059669)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ElevatedButton(
+              onPressed: _isGrading ? null : _submitGrade,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: _isGrading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Kaydet',
+                      style: TextStyle(fontWeight: FontWeight.w600),
                     ),
-                  )
-                : const Text('Kaydet'),
+            ),
           ),
         ],
       ),
@@ -525,7 +660,7 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Ödev başarıyla değerlendirildi'),
-            backgroundColor: AppTheme.accentGreen,
+            backgroundColor: Color(0xFF10B981),
           ),
         );
         
@@ -537,7 +672,7 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Hata: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: AppTheme.accentRed,
+            backgroundColor: const Color(0xFFEF4444),
           ),
         );
       }
@@ -553,11 +688,11 @@ class _TeacherAssignmentDetailScreenState extends State<TeacherAssignmentDetailS
   Color _getStatusColor(String status) {
     switch (status) {
       case 'pending':
-        return AppTheme.accentOrange;
+        return const Color(0xFF3B82F6);
       case 'submitted':
-        return AppTheme.accentGreen;
+        return const Color(0xFF10B981);
       case 'graded':
-        return AppTheme.accentPurple;
+        return const Color(0xFF8B5CF6);
       default:
         return Colors.grey;
     }

@@ -7,9 +7,10 @@ use App\Models\User;
 use App\Models\Teacher;
 use App\Models\Reservation;
 use App\Services\AdvancedCacheService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
+use App\Models\Category;
 
 class AdvancedCacheServiceTest extends TestCase
 {
@@ -20,6 +21,8 @@ class AdvancedCacheServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['cache.default' => 'array']);
+        Cache::flush();
         $this->cacheService = new AdvancedCacheService();
     }
 
@@ -55,21 +58,23 @@ class AdvancedCacheServiceTest extends TestCase
         $user = User::factory()->create(['role' => 'teacher']);
         $teacher = Teacher::factory()->create([
             'user_id' => $user->id,
-            'rating' => 4.5,
+            'rating_avg' => 4.5,
             'rating_count' => 10,
+            'price_hour' => 350,
         ]);
 
         // Act
-        $result = $this->cacheService->cacheTeacher($teacher->id);
+        $result = $this->cacheService->cacheTeacher($teacher->user_id);
 
         // Assert
         $this->assertIsArray($result);
-        $this->assertEquals($teacher->rating, $result['rating']);
+        $this->assertEquals(4.5, $result['rating_avg']);
+        $this->assertEquals(350.0, $result['price_per_hour']);
         $this->assertEquals($teacher->rating_count, $result['rating_count']);
         $this->assertArrayHasKey('statistics', $result);
 
         // Check if data is cached
-        $cachedData = Cache::get('teacher:' . $teacher->id);
+        $cachedData = Cache::get('teacher:' . $teacher->user_id);
         $this->assertNotNull($cachedData);
     }
 
@@ -78,8 +83,8 @@ class AdvancedCacheServiceTest extends TestCase
     {
         // Arrange
         $user = User::factory()->create(['role' => 'teacher']);
-        $teacher = Teacher::factory()->create(['user_id' => $user->id]);
-        
+        Teacher::factory()->create(['user_id' => $user->id]);
+
         Reservation::factory()->count(3)->create([
             'teacher_id' => $user->id,
             'status' => 'accepted',
@@ -163,14 +168,28 @@ class AdvancedCacheServiceTest extends TestCase
     public function it_can_cache_search_results()
     {
         // Arrange
-        $user = User::factory()->create(['role' => 'teacher']);
+        $category = Category::create([
+            'name' => 'Matematik',
+            'slug' => 'matematik',
+            'description' => 'Test category',
+            'is_active' => true,
+        ]);
+
+        $user = User::factory()->create([
+            'role' => 'teacher',
+            'name' => 'Test Teacher',
+        ]);
+
         $teacher = Teacher::factory()->create([
             'user_id' => $user->id,
             'is_approved' => true,
+            'online_available' => true,
+            'rating_avg' => 4.9,
         ]);
+        $teacher->categories()->attach($category->id);
 
         $query = 'Test Teacher';
-        $filters = ['category' => 1];
+        $filters = ['category' => $category->id];
 
         // Act
         $result = $this->cacheService->cacheSearchResults($query, $filters);
@@ -190,11 +209,12 @@ class AdvancedCacheServiceTest extends TestCase
     public function it_can_warm_up_cache()
     {
         // Arrange
-        User::factory()->create(['role' => 'teacher']);
+        $teacherUser = User::factory()->create(['role' => 'teacher']);
         Teacher::factory()->create([
+            'user_id' => $teacherUser->id,
             'is_approved' => true,
             'online_available' => true,
-            'rating' => 5.0,
+            'rating_avg' => 5.0,
         ]);
 
         DB::table('categories')->insert([
@@ -257,8 +277,8 @@ class AdvancedCacheServiceTest extends TestCase
     {
         // Arrange
         $user = User::factory()->create(['role' => 'teacher']);
-        $teacher = Teacher::factory()->create(['user_id' => $user->id]);
-        
+        Teacher::factory()->create(['user_id' => $user->id]);
+
         $student1 = User::factory()->create(['role' => 'student']);
         $student2 = User::factory()->create(['role' => 'student']);
         
@@ -275,7 +295,7 @@ class AdvancedCacheServiceTest extends TestCase
         ]);
 
         // Act
-        $result = $this->cacheService->cacheTeacher($teacher->id);
+        $result = $this->cacheService->cacheTeacher($user->id);
 
         // Assert
         $this->assertEquals(2, $result['statistics']['total_students']);

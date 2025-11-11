@@ -16,12 +16,16 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PushNotificationController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\PerformanceDashboardController;
 use App\Http\Controllers\LessonController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\FileSharingController;
 use App\Http\Controllers\FileUploadController;
 use App\Http\Controllers\VideoCallController;
+use App\Http\Controllers\TeacherExceptionController;
+use App\Http\Controllers\AdminFinanceController;
+use App\Http\Controllers\ExperimentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,10 +58,16 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('auth_rate_limit');
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('auth_rate_limit');
     
-    // Social Authentication (public) - Disabled for now
-    // Route::post('/auth/social/google', [SocialAuthController::class, 'googleAuth'])->middleware('auth_rate_limit');
-    // Route::post('/auth/social/facebook', [SocialAuthController::class, 'facebookAuth'])->middleware('auth_rate_limit');
-    // Route::post('/auth/social/apple', [SocialAuthController::class, 'appleAuth'])->middleware('auth_rate_limit');
+    // Social Authentication (public)
+    Route::post('/auth/social/google', [App\Http\Controllers\SocialAuthController::class, 'googleAuth'])->middleware('auth_rate_limit');
+    Route::post('/auth/social/facebook', [App\Http\Controllers\SocialAuthController::class, 'facebookAuth'])->middleware('auth_rate_limit');
+    Route::post('/auth/social/apple', [App\Http\Controllers\SocialAuthController::class, 'appleAuth'])->middleware('auth_rate_limit');
+    Route::post('/auth/test-google-api', [App\Http\Controllers\SocialAuthController::class, 'testGoogleApi']); // Test endpoint
+    
+    // User role selection (requires auth)
+    Route::middleware('auth:api')->group(function () {
+        Route::post('/auth/set-role', [App\Http\Controllers\SocialAuthController::class, 'setUserRole']);
+    });
     
     // Mail status check (public)
     Route::get('/auth/mail-status', [AuthController::class, 'getMailStatus']);
@@ -68,10 +78,19 @@ Route::prefix('v1')->group(function () {
     Route::get('/categories/fallback/{slug}', [CategoryController::class, 'showWithFallback'])->middleware('advanced_cache:category,1800');
     
     // Search
-    Route::get('/search/teachers', [SearchController::class, 'searchTeachers']);
-    Route::get('/search/suggestions', [SearchController::class, 'getSuggestions']);
-    Route::get('/search/popular', [SearchController::class, 'getPopularSearches']);
-    Route::get('/search/filters', [SearchController::class, 'getFilters']);
+            Route::get('/search/teachers', [SearchController::class, 'searchTeachers']);
+            Route::get('/search/suggestions', [SearchController::class, 'getSuggestions']);
+            Route::get('/search/popular', [SearchController::class, 'getPopularSearches']);
+            Route::get('/search/filters', [SearchController::class, 'getFilters']);
+            
+            // Search history routes
+            Route::get('/search/history', [SearchController::class, 'getSearchHistory']);
+            Route::post('/search/history', [SearchController::class, 'saveSearchQuery']);
+            Route::delete('/search/history', [SearchController::class, 'clearSearchHistory']);
+            
+            // Analytics routes
+            Route::get('/analytics', [AnalyticsController::class, 'getDashboard']);
+            Route::post('/analytics/track', [AnalyticsController::class, 'track']);
     
     // Teachers (public)
     Route::get('/teachers', [TeacherController::class, 'index']);
@@ -92,7 +111,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/payments/callback', [PaymentController::class, 'handleCallback']);
     
     // Protected routes
-    Route::middleware(['auth:api', 'rate_limit:api,60,1'])->group(function () {
+    Route::middleware(['auth:api', 'rate_limit:api,60,1', 'update_user_activity'])->group(function () {
         
         // User profile
         Route::get('/user', [UserController::class, 'profile']);
@@ -105,10 +124,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/user/notification-preferences', [UserController::class, 'getNotificationPreferences']);
         Route::put('/user/notification-preferences', [UserController::class, 'updateNotificationPreferences']);
         
-        // Social account linking - Disabled for now
-        // Route::post('/auth/social/link', [SocialAuthController::class, 'linkSocialAccount']);
-        // Route::get('/auth/social/accounts', [SocialAuthController::class, 'getLinkedAccounts']);
-        // Route::delete('/auth/social/unlink/{provider}', [SocialAuthController::class, 'unlinkSocialAccount']);
+        // User activity endpoints
+        Route::post('/user/activity', [UserController::class, 'updateActivity']);
+        Route::post('/user/online-status', [UserController::class, 'updateOnlineStatus']);
+        
+        // Social account linking
+        Route::post('/auth/social/link', [App\Http\Controllers\SocialAuthController::class, 'linkSocialAccount']);
+        Route::get('/auth/social/accounts', [App\Http\Controllers\SocialAuthController::class, 'getLinkedAccounts']);
+        Route::delete('/auth/social/unlink/{provider}', [App\Http\Controllers\SocialAuthController::class, 'unlinkSocialAccount']);
         
         // Teacher profile management
         Route::middleware('role:teacher')->group(function () {
@@ -125,7 +148,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/reservations', [ReservationController::class, 'index'])->middleware('advanced_cache:reservations,300');
         Route::get('/reservations/statistics', [ReservationController::class, 'getStatistics'])->middleware('advanced_cache:statistics,600');
         Route::post('/reservations', [ReservationController::class, 'store']);
+        Route::put('/reservations/{reservation}', [ReservationController::class, 'update']);
         Route::put('/reservations/{reservation}/status', [ReservationController::class, 'updateStatus']);
+        Route::post('/reservations/{reservation}/complete', [ReservationController::class, 'complete']);
+        Route::post('/reservations/{reservation}/reschedule-request', [ReservationController::class, 'requestReschedule']);
+        Route::post('/reservations/{reservation}/reschedule-handle', [ReservationController::class, 'handleRescheduleRequest']);
+        Route::post('/reservations/{reservation}/rating', [ReservationController::class, 'submitRating']);
         Route::delete('/reservations/{reservation}', [ReservationController::class, 'destroy']);
         
         // Lessons (accessible by both students and teachers)
@@ -155,9 +183,10 @@ Route::prefix('v1')->group(function () {
         Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
         
         // Payments
-        Route::post('/payments/create', [PaymentController::class, 'createPayment']);
-        Route::post('/payments/confirm', [PaymentController::class, 'confirmPayment']);
-        Route::get('/payments/history', [PaymentController::class, 'getPaymentHistory']);
+            Route::post('/payments/create', [PaymentController::class, 'createPayment']);
+            Route::post('/payments/confirm', [PaymentController::class, 'confirmPayment']);
+            Route::get('/payments/history', [PaymentController::class, 'getPaymentHistory']);
+            Route::get('/payments/{paymentId}/status', [PaymentController::class, 'getPaymentStatus']);
         
         // File sharing
         Route::get('/files/shared', [App\Http\Controllers\FileSharingController::class, 'getSharedFiles']);
@@ -165,16 +194,21 @@ Route::prefix('v1')->group(function () {
         Route::get('/files/download/{file}', [App\Http\Controllers\FileSharingController::class, 'downloadSharedFile']);
         
         // Video calls
-        Route::post('/video-call/start', [VideoCallController::class, 'startCall'])->middleware(['advanced_rate_limit:video_call,10,1', 'sql_injection_protection']);
-        Route::post('/video-call/answer', [VideoCallController::class, 'answerCall'])->middleware(['advanced_rate_limit:video_call,10,1', 'sql_injection_protection']);
-        Route::post('/video-call/reject', [VideoCallController::class, 'rejectCall'])->middleware(['advanced_rate_limit:video_call,10,1', 'sql_injection_protection']);
-        Route::post('/video-call/end', [VideoCallController::class, 'endCall'])->middleware(['advanced_rate_limit:video_call,10,1', 'sql_injection_protection']);
-        Route::post('/video-call/toggle-mute', [VideoCallController::class, 'toggleMute'])->middleware(['advanced_rate_limit:video_call,30,1', 'sql_injection_protection']);
-        Route::post('/video-call/toggle-video', [VideoCallController::class, 'toggleVideo'])->middleware(['advanced_rate_limit:video_call,30,1', 'sql_injection_protection']);
-        Route::get('/video-call/history', [VideoCallController::class, 'getCallHistory'])->middleware(['advanced_rate_limit:api,60,1']);
-        Route::get('/video-call/statistics', [VideoCallController::class, 'getCallStatistics'])->middleware(['advanced_rate_limit:api,60,1']);
-        Route::post('/video-call/set-availability', [VideoCallController::class, 'setAvailabilityStatus'])->middleware(['advanced_rate_limit:api,10,1', 'sql_injection_protection']);
-        Route::get('/video-call/availability/{userId}', [VideoCallController::class, 'checkUserAvailability'])->middleware(['advanced_rate_limit:api,60,1']);
+        Route::post('/video-call/start', [VideoCallController::class, 'startCall']);
+        Route::post('/video-call/answer', [VideoCallController::class, 'answerCall']);
+        Route::post('/video-call/reject', [VideoCallController::class, 'rejectCall']);
+        Route::post('/video-call/end', [VideoCallController::class, 'endCall']);
+        Route::post('/video-call/toggle-mute', [VideoCallController::class, 'toggleMute']);
+        Route::post('/video-call/toggle-video', [VideoCallController::class, 'toggleVideo']);
+        Route::get('/video-call/history', [VideoCallController::class, 'getCallHistory']);
+        Route::get('/video-call/statistics', [VideoCallController::class, 'getCallStatistics']);
+        Route::post('/video-call/set-availability', [VideoCallController::class, 'setAvailabilityStatus']);
+        Route::get('/video-call/availability/{userId}', [VideoCallController::class, 'checkUserAvailability']);
+        
+        // WebRTC Signaling (PAKET 1 - İyileştirme)
+        Route::post('/video-call/send-offer', [VideoCallController::class, 'sendOffer']);
+        Route::post('/video-call/send-answer', [VideoCallController::class, 'sendAnswer']);
+        Route::post('/video-call/send-ice-candidate', [VideoCallController::class, 'sendIceCandidate']);
         
         // Lessons
         Route::get('/lessons', [App\Http\Controllers\LessonController::class, 'getUserLessons']);
@@ -193,8 +227,13 @@ Route::prefix('v1')->group(function () {
         Route::get('/assignments/teacher', [App\Http\Controllers\AssignmentController::class, 'getTeacherAssignments']);
         Route::get('/assignments/student/statistics', [App\Http\Controllers\AssignmentController::class, 'getStudentAssignmentStatistics']);
         Route::post('/assignments', [App\Http\Controllers\AssignmentController::class, 'store']);
+        Route::put('/assignments/{assignment}', [App\Http\Controllers\AssignmentController::class, 'update']);
+        Route::delete('/assignments/{assignment}', [App\Http\Controllers\AssignmentController::class, 'destroy']);
         Route::post('/assignments/{assignment}/submit', [App\Http\Controllers\AssignmentController::class, 'submit']);
         Route::post('/assignments/{assignment}/grade', [App\Http\Controllers\AssignmentController::class, 'grade']);
+        Route::get('/assignments/{assignment}/download', [App\Http\Controllers\AssignmentController::class, 'downloadSubmission']);
+        Route::post('/assignments/{assignment}/request-resubmission', [App\Http\Controllers\AssignmentController::class, 'requestResubmission']);
+        Route::post('/assignments/{assignment}/extend-deadline', [App\Http\Controllers\AssignmentController::class, 'extendDeadline']);
         
         // Video call signaling
         Route::post('/chat/signaling', [ChatController::class, 'sendSignalingMessage']);
@@ -214,9 +253,17 @@ Route::prefix('v1')->group(function () {
         Route::post('/upload/presigned-url', [App\Http\Controllers\FileUploadController::class, 'generatePresignedUrl']);
         
         // Teacher availability management
+        Route::get('/teacher/availabilities', [AvailabilityController::class, 'getCurrentTeacherAvailabilities']);
         Route::post('/teacher/availabilities', [AvailabilityController::class, 'store']);
         Route::put('/teacher/availabilities/{availability}', [AvailabilityController::class, 'update']);
         Route::delete('/teacher/availabilities/{availability}', [AvailabilityController::class, 'destroy']);
+        
+        // Teacher exceptions management (izin, tatil, özel günler)
+        Route::get('/teacher/exceptions', [TeacherExceptionController::class, 'index']);
+        Route::post('/teacher/exceptions', [TeacherExceptionController::class, 'store']);
+        Route::put('/teacher/exceptions/{id}', [TeacherExceptionController::class, 'update']);
+        Route::delete('/teacher/exceptions/{id}', [TeacherExceptionController::class, 'destroy']);
+        Route::post('/teacher/exceptions/bulk-unavailable', [TeacherExceptionController::class, 'addBulkUnavailable']);
         
             // Push notification routes
             Route::post('/notifications/register-token', [PushNotificationController::class, 'registerToken']);
@@ -227,6 +274,7 @@ Route::prefix('v1')->group(function () {
             
             // Chat routes
             Route::get('/chats', [ChatController::class, 'index']);
+            Route::get('/chats/unread-count', [ChatController::class, 'getUnreadCount']);
             Route::post('/chats/get-or-create', [ChatController::class, 'getOrCreateChat']);
             Route::post('/chats/messages', [ChatController::class, 'sendMessage']);
             Route::put('/chats/mark-read', [ChatController::class, 'markAsRead']);
@@ -236,15 +284,32 @@ Route::prefix('v1')->group(function () {
             Route::post('/chat/typing', [ChatController::class, 'sendTypingIndicator']);
             Route::post('/chat/messages/{messageId}/reaction', [ChatController::class, 'sendMessageReaction']);
             Route::get('/chat/messages/{messageId}/reactions', [ChatController::class, 'getMessageReactions']);
+            Route::delete('/chat/messages/{messageId}', [ChatController::class, 'deleteMessage']);
+            Route::post('/chat/upload-file', [ChatController::class, 'uploadMessageFile']);
             Route::post('/chat/voice-message', [ChatController::class, 'sendVoiceMessage']);
             Route::post('/chat/video-call', [ChatController::class, 'sendVideoCallInvitation']);
             Route::post('/chat/video-call-response', [ChatController::class, 'respondToVideoCall']);
+            Route::get('/chat/search-messages', [ChatController::class, 'searchMessages']);
+            Route::get('/chat/statistics', [ChatController::class, 'getChatStatistics']);
+            
+            // Advanced message features
+            Route::post('/chat/messages/{messageId}/pin', [ChatController::class, 'pinMessage']);
+            Route::post('/chat/messages/{messageId}/unpin', [ChatController::class, 'unpinMessage']);
+            Route::put('/chat/messages/{messageId}/edit', [ChatController::class, 'editMessage']);
+            Route::post('/chat/messages/{messageId}/forward', [ChatController::class, 'forwardMessage']);
+            Route::post('/chat/messages/{messageId}/reply', [ChatController::class, 'replyToMessage']);
+            Route::post('/chat/messages/{messageId}/thread', [ChatController::class, 'createThread']);
+            Route::get('/chat/threads/{threadId}', [ChatController::class, 'getThread']);
+            Route::post('/chat/messages/{messageId}/translate', [ChatController::class, 'translateMessage']);
+            Route::get('/chat/pinned-messages', [ChatController::class, 'getPinnedMessages']);
         
         // Admin routes
-        Route::middleware(['role:admin', 'throttle:60,1'])->group(function () {
+        Route::middleware(['role:admin', 'admin.security', 'throttle:60,1'])->group(function () {
             // Dashboard ve Analytics
             Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
             Route::get('/admin/analytics', [AdminController::class, 'getAnalytics']);
+            Route::get('/admin/analytics/real-time', [AdminController::class, 'getRealTimeAnalytics']);
+            Route::post('/admin/analytics/clear-cache', [AdminController::class, 'clearAnalyticsCache']);
             
             // Kullanıcı Yönetimi
             Route::get('/admin/users', [AdminController::class, 'getUsers']);
@@ -263,9 +328,87 @@ Route::prefix('v1')->group(function () {
             
             // Rezervasyon Yönetimi
             Route::get('/admin/reservations', [AdminController::class, 'getReservations']);
+            Route::get('/admin/reservations/calendar', [AdminController::class, 'getReservationCalendar']);
+            Route::put('/admin/reservations/{reservation}/status', [AdminController::class, 'updateReservationStatus']);
+            Route::put('/admin/reservations/{reservation}/schedule', [AdminController::class, 'updateReservationSchedule']);
+            Route::post('/admin/reservations/{reservation}/refund', [AdminController::class, 'refundReservation']);
+            Route::post('/admin/reservations/{reservation}/reschedule', [AdminController::class, 'handleRescheduleRequest']);
+            Route::post('/admin/reservations/bulk/status', [AdminController::class, 'bulkUpdateReservationStatus']);
+            Route::post('/admin/reservations/bulk/cancel', [AdminController::class, 'bulkCancelReservations']);
+            Route::post('/admin/reservations/bulk/reminders', [AdminController::class, 'bulkSendReservationReminders']);
+            Route::post('/admin/reservations/bulk/undo', [AdminController::class, 'bulkUndoReservationActions']);
+            Route::get('/admin/reservations/reminder-settings', [AdminController::class, 'listReminderSettings']);
+            Route::post('/admin/reservations/reminder-settings', [AdminController::class, 'createReminderSetting']);
+            Route::put('/admin/reservations/reminder-settings/{reminderSetting}', [AdminController::class, 'updateReminderSetting']);
+            Route::delete('/admin/reservations/reminder-settings/{reminderSetting}', [AdminController::class, 'deleteReminderSetting']);
+            Route::get('/admin/reservations/reminder-workflows', [AdminController::class, 'listReminderWorkflows']);
+            Route::post('/admin/reservations/reminder-workflows', [AdminController::class, 'createReminderWorkflow']);
+            Route::put('/admin/reservations/reminder-workflows/{reminderWorkflow}', [AdminController::class, 'updateReminderWorkflow']);
+            Route::delete('/admin/reservations/reminder-workflows/{reminderWorkflow}', [AdminController::class, 'deleteReminderWorkflow']);
+            Route::post('/admin/reservations/reminder-workflows/{reminderWorkflow}/steps', [AdminController::class, 'createReminderWorkflowStep']);
+            Route::put('/admin/reservations/reminder-workflows/{reminderWorkflow}/steps/{reminderSetting}', [AdminController::class, 'updateReminderWorkflowStep']);
+            Route::delete('/admin/reservations/reminder-workflows/{reminderWorkflow}/steps/{reminderSetting}', [AdminController::class, 'deleteReminderWorkflowStep']);
+            Route::post('/admin/reservations/reminder-workflows/{reminderWorkflow}/steps/reorder', [AdminController::class, 'reorderReminderWorkflowSteps']);
             
             // Kategori Yönetimi
             Route::get('/admin/categories', [AdminController::class, 'getCategories']);
+            
+            // Bildirim Yönetimi
+            Route::post('/admin/notifications/send', [AdminController::class, 'sendNotification']);
+            Route::post('/admin/notifications/bulk', [AdminController::class, 'sendBulkNotification']);
+            Route::post('/admin/notifications/user', [AdminController::class, 'sendUserNotification']);
+            Route::get('/admin/notifications/scheduled', [AdminController::class, 'listScheduledNotifications']);
+            Route::post('/admin/notifications/scheduled', [AdminController::class, 'createScheduledNotification']);
+            Route::put('/admin/notifications/scheduled/{scheduledNotification}', [AdminController::class, 'updateScheduledNotification']);
+            Route::post('/admin/notifications/scheduled/{scheduledNotification}/schedule', [AdminController::class, 'scheduleScheduledNotification']);
+            Route::post('/admin/notifications/scheduled/{scheduledNotification}/send-now', [AdminController::class, 'sendScheduledNotificationNow']);
+            Route::post('/admin/notifications/scheduled/{scheduledNotification}/cancel', [AdminController::class, 'cancelScheduledNotification']);
+            Route::get('/admin/notifications/scheduled/{scheduledNotification}/logs', [AdminController::class, 'getScheduledNotificationLogs']);
+            Route::get('/admin/notification-templates', [AdminController::class, 'listNotificationTemplates']);
+            Route::get('/admin/notification-templates/variables', [AdminController::class, 'getNotificationTemplateVariables']);
+            Route::post('/admin/notification-templates/{notificationTemplate}/render', [AdminController::class, 'renderNotificationTemplate']);
+            Route::get('/admin/notification-templates/{notificationTemplate}', [AdminController::class, 'getNotificationTemplate']);
+            Route::post('/admin/notification-templates', [AdminController::class, 'createNotificationTemplate']);
+            Route::put('/admin/notification-templates/{notificationTemplate}', [AdminController::class, 'updateNotificationTemplate']);
+            Route::post('/admin/notification-templates/{notificationTemplate}/publish', [AdminController::class, 'publishNotificationTemplate']);
+            Route::post('/admin/notification-templates/{notificationTemplate}/archive', [AdminController::class, 'archiveNotificationTemplate']);
+            Route::post('/admin/notification-templates/{notificationTemplate}/duplicate', [AdminController::class, 'duplicateNotificationTemplate']);
+            Route::post('/admin/notification-templates/{notificationTemplate}/test-send', [AdminController::class, 'testSendNotificationTemplate']);
+            Route::get('/admin/notification-integrations', [AdminController::class, 'getNotificationIntegrationStatus']);
+            Route::put('/admin/notification-integrations', [AdminController::class, 'updateNotificationIntegrations']);
+            Route::get('/admin/notifications', [AdminController::class, 'getNotifications']);
+            Route::get('/admin/notifications/stats', [AdminController::class, 'getNotificationStats']);
+            Route::get('/admin/notifications/analytics', [AdminController::class, 'getNotificationAnalytics']);
+            Route::post('/admin/notifications/mark-read', [AdminController::class, 'markNotificationsAsRead']);
+            Route::delete('/admin/notifications/cleanup', [AdminController::class, 'cleanupOldNotifications']);
+            
+            // Raporlama ve Analitik
+            Route::post('/admin/reports/generate', [AdminController::class, 'generateSystemReport']);
+            Route::post('/admin/reports/export-csv', [AdminController::class, 'exportReportToCsv']);
+            
+            // Yedekleme Sistemi
+            Route::post('/admin/backups/database', [AdminController::class, 'createDatabaseBackup']);
+            Route::post('/admin/backups/filesystem', [AdminController::class, 'createFilesystemBackup']);
+            Route::post('/admin/backups/full', [AdminController::class, 'createFullBackup']);
+            Route::get('/admin/backups', [AdminController::class, 'listBackups']);
+            Route::get('/admin/backups/stats', [AdminController::class, 'getBackupStats']);
+            Route::post('/admin/backups/restore', [AdminController::class, 'restoreFromBackup']);
+            Route::delete('/admin/backups/delete', [AdminController::class, 'deleteBackup']);
+            Route::get('/admin/finance/overview', [AdminFinanceController::class, 'overview']);
+            Route::get('/admin/finance/exports/payments', [AdminFinanceController::class, 'exportPayments']);
+            Route::get('/admin/finance/exports/payouts', [AdminFinanceController::class, 'exportPayouts']);
+            Route::get('/admin/finance/forecast', [AdminFinanceController::class, 'forecast']);
+            Route::get('/admin/analytics/user-segmentation', [AdminController::class, 'getUserSegmentation']);
+            Route::get('/admin/analytics/teacher-benchmark', [AdminController::class, 'getTeacherBenchmark']);
+            Route::get('/admin/experiments', [ExperimentController::class, 'index']);
+            Route::post('/admin/experiments', [ExperimentController::class, 'store']);
+            Route::put('/admin/experiments/{experiment}', [ExperimentController::class, 'update']);
+            Route::post('/admin/experiments/{experiment}/status', [ExperimentController::class, 'updateStatus']);
+            Route::post('/admin/experiments/{experiment}/variants', [ExperimentController::class, 'addVariant']);
+            Route::put('/admin/experiments/{experiment}/variants/{variant}', [ExperimentController::class, 'updateVariant']);
+            Route::delete('/admin/experiments/{experiment}/variants/{variant}', [ExperimentController::class, 'deleteVariant']);
+            Route::post('/admin/experiments/{experiment}/assign', [ExperimentController::class, 'assign']);
+            Route::post('/admin/experiments/{experiment}/variants/{variant}/convert', [ExperimentController::class, 'recordConversion']);
             Route::post('/admin/categories', [AdminController::class, 'createCategory']);
             
             // Bildirim Sistemi
@@ -290,20 +433,20 @@ Route::prefix('v1')->group(function () {
             Route::get('/performance/export', [PerformanceDashboardController::class, 'export']);
         });
     });
-});
-
-// Public routes (no authentication required)
-Route::middleware('cache_response:600')->group(function () {
-    Route::get('/teachers/{teacher}/availabilities', [AvailabilityController::class, 'index']);
-    Route::get('/teachers/{teacher}/available-slots', [AvailabilityController::class, 'getAvailableSlots']);
     
-    // Search routes
-    Route::get('/search', [SearchController::class, 'search']);
-    Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
-    Route::get('/search/popular', [SearchController::class, 'popularSearches']);
-    Route::get('/search/filters', [SearchController::class, 'filters']);
-    Route::get('/search/trending', [SearchController::class, 'trending']);
+    // Public routes (no authentication required) - inside v1 prefix
+    Route::middleware('cache_response:600')->group(function () {
+        Route::get('/teachers/{teacher}/availabilities', [AvailabilityController::class, 'index']);
+        Route::get('/teachers/{teacher}/available-slots', [AvailabilityController::class, 'getAvailableSlots']);
+        
+        // Search routes
+        Route::get('/search', [SearchController::class, 'search']);
+        Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
+        Route::get('/search/popular', [SearchController::class, 'popularSearches']);
+        Route::get('/search/filters', [SearchController::class, 'filters']);
+        Route::get('/search/trending', [SearchController::class, 'trending']);
+    });
+    
+    // PayTR callback (public route - inside v1 prefix)
+    Route::post('/payments/callback', [PaymentController::class, 'handleCallback']);
 });
-
-// PayTR callback (public route - outside auth middleware)
-Route::post('/payments/callback', [PaymentController::class, 'handleCallback']);

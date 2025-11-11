@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Allow HTTP traffic to local development server -->
+        <domain includeSubdomains="false">10.226.70.19</domain>
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">192.168.1.1</domain>
+        <domain includeSubdomains="false">192.168.0.1</domain>
+        <!-- Allow HTTP traffic to production VM -->
+        <domain includeSubdomains="false">34.14.61.40</domain>
+    </domain-config>
+</network-security-config>

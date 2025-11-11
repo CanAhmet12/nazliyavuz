@@ -26,6 +26,7 @@ class _TeacherSearchScreenState extends State<TeacherSearchScreen>
   List<String> _recentSearches = [];
   List<String> _popularSearches = [];
   List<Teacher> _trendingTeachers = [];
+  Set<int> _favoriteTeacherIds = {};
   
   bool _isSearching = false;
   bool _hasSearched = false;
@@ -67,6 +68,7 @@ class _TeacherSearchScreenState extends State<TeacherSearchScreen>
         _loadTrendingTeachers(),
         _loadPopularSearches(),
         _loadRecentSearches(),
+        _loadFavorites(),
       ]);
       
       if (mounted) {
@@ -224,6 +226,78 @@ class _TeacherSearchScreenState extends State<TeacherSearchScreen>
       _searchResults = [];
       _error = null;
     });
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await _apiService.getFavorites();
+      if (mounted) {
+        setState(() {
+          _favoriteTeacherIds = favorites.map((teacher) => teacher.id ?? teacher.userId).where((id) => id != 0).toSet();
+        });
+      }
+    } catch (e) {
+      // Favorites loading error, continue with empty set
+    }
+  }
+
+  Future<void> _toggleFavorite(Teacher teacher) async {
+    try {
+      final teacherId = teacher.id ?? teacher.userId;
+      if (teacherId == 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Öğretmen bilgisi eksik'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      
+      final isFavorite = _favoriteTeacherIds.contains(teacherId);
+      
+      if (isFavorite) {
+        await _apiService.removeFromFavorites(teacherId);
+        if (mounted) {
+          setState(() {
+            _favoriteTeacherIds.remove(teacherId);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Favorilerden çıkarıldı'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      } else {
+        await _apiService.addToFavorites(teacherId);
+        if (mounted) {
+          setState(() {
+            _favoriteTeacherIds.add(teacherId);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Favorilere eklendi'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Favori durumu güncellenirken hata oluştu: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -455,32 +529,56 @@ class _TeacherSearchScreenState extends State<TeacherSearchScreen>
           children: [
             // Profile Image
             Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.primaryBlue.withValues(alpha: 0.1),
-                      AppTheme.primaryBlue.withValues(alpha: 0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Center(
-                  child: CircleAvatar(
-                    radius: 20,
-                    backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
-                    child: Text(
-                      teacher.user?.name?.substring(0, 1).toUpperCase() ?? '?',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.primaryBlue,
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primaryBlue.withValues(alpha: 0.1),
+                          AppTheme.primaryBlue.withValues(alpha: 0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Center(
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                        child: Text(
+                          teacher.user?.name?.substring(0, 1).toUpperCase() ?? '?',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primaryBlue,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: Icon(
+                        (teacher.id ?? teacher.userId) != 0 && _favoriteTeacherIds.contains(teacher.id ?? teacher.userId)
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: (teacher.id ?? teacher.userId) != 0 && _favoriteTeacherIds.contains(teacher.id ?? teacher.userId)
+                            ? Colors.red
+                            : Colors.grey,
+                        size: 16,
+                      ),
+                      onPressed: () {
+                        _toggleFavorite(teacher);
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
             
@@ -661,11 +759,32 @@ class _TeacherSearchScreenState extends State<TeacherSearchScreen>
               ),
             ),
             
-            // Arrow
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 16,
-              color: AppTheme.grey400,
+            // Favorite and Arrow
+            Column(
+              children: [
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: Icon(
+                    (teacher.id ?? teacher.userId) != 0 && _favoriteTeacherIds.contains(teacher.id ?? teacher.userId)
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    color: (teacher.id ?? teacher.userId) != 0 && _favoriteTeacherIds.contains(teacher.id ?? teacher.userId)
+                        ? Colors.red
+                        : Colors.grey,
+                    size: 24,
+                  ),
+                  onPressed: () {
+                    _toggleFavorite(teacher);
+                  },
+                ),
+                const SizedBox(height: 8),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: AppTheme.grey400,
+                ),
+              ],
             ),
           ],
         ),

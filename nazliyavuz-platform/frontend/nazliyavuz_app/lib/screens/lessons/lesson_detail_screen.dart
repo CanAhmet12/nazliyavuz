@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import '../../models/lesson.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 
+/// 🎯 PROFESYONEL DERS DETAY SAYFASI
+/// Modern, kullanıcı dostu ve interaktif ders yönetim arayüzü
 class LessonDetailScreen extends StatefulWidget {
   final Lesson lesson;
 
@@ -20,26 +23,26 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
     with TickerProviderStateMixin {
   final ApiService _apiService = ApiService();
   final TextEditingController _notesController = TextEditingController();
+  final TextEditingController _feedbackController = TextEditingController();
   
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   
   bool _isUpdatingNotes = false;
-  bool _isRating = false;
   int _selectedRating = 0;
-  final TextEditingController _feedbackController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
     _notesController.text = widget.lesson.notes ?? '';
+    _selectedRating = widget.lesson.rating ?? 0;
   }
 
   void _initializeAnimations() {
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
@@ -70,25 +73,41 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
     });
 
     try {
-      await _apiService.updateLessonNotes(
-        lessonId: widget.lesson.id,
-        notes: _notesController.text.trim(),
-      );
+      await _apiService.put('/lessons/notes', {
+        'lesson_id': widget.lesson.id,
+        'notes': _notesController.text.trim(),
+      });
 
       if (mounted) {
+        HapticFeedback.lightImpact();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ders notları güncellendi'),
-            backgroundColor: AppTheme.accentGreen,
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Ders notları güncellendi'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
+        HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Hata: $e'),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         );
       }
@@ -104,42 +123,48 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
   Future<void> _rateLesson() async {
     if (_selectedRating == 0) return;
 
-    setState(() {
-      _isRating = true;
-    });
-
     try {
-      await _apiService.rateLesson(
-        lessonId: widget.lesson.id,
-        rating: _selectedRating,
-        feedback: _feedbackController.text.trim().isNotEmpty 
+      await _apiService.post('/lessons/rate', {
+        'lesson_id': widget.lesson.id,
+        'rating': _selectedRating,
+        'feedback': _feedbackController.text.trim().isNotEmpty 
             ? _feedbackController.text.trim() 
             : null,
-      );
+      });
 
       if (mounted) {
+        HapticFeedback.lightImpact();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ders değerlendirildi'),
-            backgroundColor: AppTheme.accentGreen,
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.star, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Ders değerlendirildi'),
+              ],
+            ),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
+        HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Hata: $e'),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isRating = false;
-        });
       }
     }
   }
@@ -147,60 +172,13 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
   void _showRatingDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Dersi Değerlendir'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${widget.lesson.subject} dersini nasıl değerlendiriyorsunuz?',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (index) {
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedRating = index + 1;
-                    });
-                  },
-                  child: Icon(
-                    index < _selectedRating ? Icons.star : Icons.star_border,
-                    color: AppTheme.accentOrange,
-                    size: 32,
-                  ),
-                );
-              }),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _feedbackController,
-              decoration: const InputDecoration(
-                labelText: 'Geri bildirim (opsiyonel)',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
-          ),
-          ElevatedButton(
-            onPressed: _selectedRating > 0 ? _rateLesson : null,
-            child: _isRating 
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Değerlendir'),
-          ),
-        ],
+      builder: (context) => _RatingDialog(
+        lesson: widget.lesson,
+        onRate: (rating, feedback) {
+          _selectedRating = rating;
+          _feedbackController.text = feedback ?? '';
+          _rateLesson();
+        },
       ),
     );
   }
@@ -216,7 +194,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Colors.grey[50],
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: SlideTransition(
@@ -234,87 +212,169 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 120,
+      expandedHeight: 240,
       pinned: true,
       elevation: 0,
-      backgroundColor: const Color(0xFFF8FAFC),
-      foregroundColor: AppTheme.grey900,
+      backgroundColor: _getStatusColor().withOpacity(0.1),
+      foregroundColor: _getStatusColor(),
       flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppTheme.primaryBlue,
-                AppTheme.accentGreen,
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.book_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
+        background: LayoutBuilder(
+          builder: (context, constraints) {
+            return Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _getStatusColor().withOpacity(0.1),
+                    _getStatusColor().withOpacity(0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header with lesson info
+                    Row(
                       children: [
-                        Text(
-                          widget.lesson.subject,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _getStatusColor().withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            _getStatusIcon(),
                             color: Colors.white,
-                            fontSize: 16,
-                            letterSpacing: -0.3,
+                            size: 28,
                           ),
                         ),
-                        Text(
-                          widget.lesson.statusText,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.lesson.subject ?? 'Ders Detayı',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF111827),
+                                  fontSize: 24,
+                                  letterSpacing: -0.5,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: _getStatusColor(),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  widget.lesson.statusText ?? 'Durum',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
+                        if (widget.lesson.isCompleted && !widget.lesson.isRated)
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: IconButton(
+                              onPressed: _showRatingDialog,
+                              icon: const Icon(
+                                Icons.star_outline,
+                                color: Colors.orange,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    // Quick info chips
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        _buildInfoChip(
+                          Icons.schedule_outlined,
+                          _formatDateTime(widget.lesson.scheduledAt),
+                          Colors.blue,
+                        ),
+                        _buildInfoChip(
+                          Icons.person_outline,
+                          widget.lesson.teacherName ?? 'Öğretmen',
+                          Colors.green,
+                        ),
+                        _buildInfoChip(
+                          Icons.timer_outlined,
+                          '${widget.lesson.durationMinutes ?? 60} dk',
+                          Colors.purple,
                         ),
                       ],
                     ),
-                  ),
-                  if (widget.lesson.isCompleted && !widget.lesson.isRated)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: IconButton(
-                        onPressed: _showRatingDialog,
-                        icon: const Icon(
-                          Icons.star_outline,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                ],
+                  ],
+                ),
               ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -322,114 +382,148 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
   Widget _buildContent() {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Lesson Info Card
-            _buildLessonInfoCard(),
-            const SizedBox(height: 16),
+            // Lesson Overview Card
+            _buildLessonOverviewCard(),
+            const SizedBox(height: 20),
             
-            // Student/Teacher Info
-            _buildParticipantInfo(),
-            const SizedBox(height: 16),
+            // Participants Card
+            _buildParticipantsCard(),
+            const SizedBox(height: 20),
             
             // Notes Section
             _buildNotesSection(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             
-            // Rating Section
-            if (widget.lesson.isRated) _buildRatingSection(),
+            // Rating Section (if rated)
+            if (widget.lesson.isRated) ...[
+              _buildRatingSection(),
+              const SizedBox(height: 20),
+            ],
+            
+            // Action Buttons
+            _buildActionButtons(),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLessonInfoCard() {
+  Widget _buildLessonOverviewCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Ders Bilgileri',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.grey900,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                color: AppTheme.primaryBlue,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Ders Bilgileri',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF111827),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           _buildInfoRow(
             Icons.calendar_today_outlined,
             'Tarih',
             _formatDateTime(widget.lesson.scheduledAt),
+            Colors.blue,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           _buildInfoRow(
             Icons.access_time_outlined,
             'Süre',
             '${widget.lesson.durationMinutes ?? 60} dakika',
+            Colors.green,
           ),
-          const SizedBox(height: 8),
-          _buildStatusRow(
-            Icons.info_outline,
-            'Durum',
-            widget.lesson.statusText,
+          const SizedBox(height: 12),
+          _buildInfoRow(
+            Icons.school_outlined,
+            'Konu',
+            widget.lesson.subject ?? 'Belirtilmemiş',
+            Colors.purple,
           ),
+          const SizedBox(height: 12),
+          _buildStatusRow(),
         ],
       ),
     );
   }
 
-  Widget _buildParticipantInfo() {
+  Widget _buildParticipantsCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Katılımcılar',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.grey900,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.people_outline,
+                color: AppTheme.primaryBlue,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Katılımcılar',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF111827),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           _buildParticipantRow(
             Icons.person_outline,
             'Öğrenci',
             widget.lesson.studentName,
+            Colors.blue,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           _buildParticipantRow(
             Icons.school_outlined,
             'Öğretmen',
             widget.lesson.teacherName,
+            Colors.green,
           ),
         ],
       ),
@@ -438,50 +532,77 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
 
   Widget _buildNotesSection() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Ders Notları',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.grey900,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.note_outlined,
+                color: AppTheme.primaryBlue,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Ders Notları',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF111827),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _notesController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Ders notlarınızı buraya yazın...',
-              border: OutlineInputBorder(),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppTheme.primaryBlue),
+              ),
+              contentPadding: const EdgeInsets.all(16),
             ),
             maxLines: 4,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
+            child: ElevatedButton.icon(
               onPressed: _isUpdatingNotes ? null : _updateNotes,
-              child: _isUpdatingNotes
+              icon: _isUpdatingNotes
                   ? const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Notları Kaydet'),
+                  : const Icon(Icons.save),
+              label: Text(_isUpdatingNotes ? 'Kaydediliyor...' : 'Notları Kaydet'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
         ],
@@ -491,57 +612,75 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
 
   Widget _buildRatingSection() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Değerlendirme',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.grey900,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.star_outline,
+                color: Colors.orange,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Değerlendirme',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF111827),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Row(
             children: [
               ...List.generate(5, (index) {
                 return Icon(
                   index < (widget.lesson.rating ?? 0) ? Icons.star : Icons.star_border,
-                  color: AppTheme.accentOrange,
-                  size: 20,
+                  color: Colors.orange,
+                  size: 24,
                 );
               }),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Text(
                 '${widget.lesson.rating}/5',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.grey700,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF111827),
                 ),
               ),
             ],
           ),
           if (widget.lesson.feedback != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              widget.lesson.feedback!,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppTheme.grey600,
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Text(
+                widget.lesson.feedback!,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF6B7280),
+                ),
               ),
             ),
           ],
@@ -550,29 +689,39 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildActionButtons() {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: AppTheme.grey600,
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '$label: ',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.grey700,
+        if (widget.lesson.isCompleted && !widget.lesson.isRated) ...[
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _showRatingDialog,
+              icon: const Icon(Icons.star),
+              label: const Text('Değerlendir'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
           ),
-        ),
+          const SizedBox(width: 12),
+        ],
         Expanded(
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppTheme.grey600,
+          child: OutlinedButton.icon(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Geri Dön'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primaryBlue,
+              side: BorderSide(color: AppTheme.primaryBlue),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ),
@@ -580,37 +729,64 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
     );
   }
 
-  Widget _buildStatusRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(IconData icon, String label, String value, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 12),
+        Text(
+          '$label:',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF6B7280),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF111827),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusRow() {
     return Row(
       children: [
         Icon(
-          icon,
-          size: 16,
-          color: AppTheme.grey600,
+          Icons.info_outline,
+          size: 20,
+          color: _getStatusColor(),
         ),
-        const SizedBox(width: 8),
-        Text(
-          '$label',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.grey700,
-          ),
-        ),
+        const SizedBox(width: 12),
         const Text(
-          ': ',
+          'Durum:',
           style: TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.grey700,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF6B7280),
           ),
         ),
-        Expanded(
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: _getStatusColor().withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _getStatusColor().withOpacity(0.3)),
+          ),
           child: Text(
-            value,
+            widget.lesson.statusText,
             style: TextStyle(
-              fontSize: 14,
-              color: AppTheme.grey600,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _getStatusColor(),
             ),
           ),
         ),
@@ -618,29 +794,26 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
     );
   }
 
-  Widget _buildParticipantRow(IconData icon, String label, String name) {
+  Widget _buildParticipantRow(IconData icon, String label, String name, Color color) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: AppTheme.grey600,
-        ),
-        const SizedBox(width: 8),
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 12),
         Text(
-          '$label: ',
-          style: TextStyle(
+          '$label:',
+          style: const TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.grey700,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF6B7280),
           ),
         ),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             name,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: AppTheme.grey600,
+              color: Color(0xFF111827),
             ),
           ),
         ),
@@ -648,7 +821,148 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
     );
   }
 
+  Color _getStatusColor() {
+    switch (widget.lesson.status) {
+      case 'scheduled':
+        return Colors.blue;
+      case 'in_progress':
+        return Colors.orange;
+      case 'completed':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon() {
+    switch (widget.lesson.status) {
+      case 'scheduled':
+        return Icons.schedule;
+      case 'in_progress':
+        return Icons.play_circle;
+      case 'completed':
+        return Icons.check_circle;
+      case 'cancelled':
+        return Icons.cancel;
+      default:
+        return Icons.help;
+    }
+  }
+
   String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final lessonDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    
+    String dateText;
+    if (lessonDate == today) {
+      dateText = 'Bugün';
+    } else if (lessonDate == tomorrow) {
+      dateText = 'Yarın';
+    } else {
+      dateText = DateFormat('dd/MM').format(dateTime);
+    }
+    
+    final timeText = DateFormat('HH:mm').format(dateTime);
+    
+    return '$dateText $timeText';
+  }
+}
+
+/// 🌟 Değerlendirme Dialog
+class _RatingDialog extends StatefulWidget {
+  final Lesson lesson;
+  final Function(int rating, String? feedback) onRate;
+
+  const _RatingDialog({
+    required this.lesson,
+    required this.onRate,
+  });
+
+  @override
+  State<_RatingDialog> createState() => _RatingDialogState();
+}
+
+class _RatingDialogState extends State<_RatingDialog> {
+  int _selectedRating = 0;
+  final TextEditingController _feedbackController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text(
+        '🌟 Dersi Değerlendir',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${widget.lesson.subject} dersini nasıl değerlendiriyorsunuz?',
+            style: const TextStyle(fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (index) {
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedRating = index + 1;
+                  });
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Icon(
+                    index < _selectedRating ? Icons.star : Icons.star_border,
+                    color: Colors.orange,
+                    size: 36,
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _feedbackController,
+            decoration: const InputDecoration(
+              labelText: 'Geri bildirim (opsiyonel)',
+              border: OutlineInputBorder(),
+              hintText: 'Ders hakkında görüşlerinizi paylaşın...',
+            ),
+            maxLines: 3,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('İptal'),
+        ),
+        ElevatedButton(
+          onPressed: _selectedRating > 0 
+              ? () {
+                  widget.onRate(_selectedRating, _feedbackController.text.trim());
+                  Navigator.pop(context);
+                }
+              : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Değerlendir'),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _feedbackController.dispose();
+    super.dispose();
   }
 }

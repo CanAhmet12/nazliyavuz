@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
 import '../../models/chat.dart';
 import '../../models/user.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../main.dart';
-import 'chat_screen.dart';
 import 'student_chat_screen.dart';
 import 'teacher_chat_screen.dart';
+import '../notifications/notification_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -19,16 +21,36 @@ class ChatListScreen extends StatefulWidget {
 
 class _ChatListScreenState extends State<ChatListScreen> {
   final _apiService = ApiService();
-  List<Chat> _chats = [];
   List<Chat> _filteredChats = [];
   bool _isLoading = true;
   String? _error;
-  String _searchQuery = '';
+  int _unreadNotificationCount = 0;
 
   @override
   void initState() {
     super.initState();
     _loadChats();
+    _loadNotificationCount();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> _loadNotificationCount() async {
+    try {
+      final count = await _apiService.getUnreadNotificationCount();
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount = count;
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [CHAT_LIST] Failed to load notification count: $e');
+      }
+    }
   }
 
   Future<void> _loadChats() async {
@@ -41,7 +63,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
       final chats = await _apiService.getChats();
       
       setState(() {
-        _chats = chats;
         _filteredChats = chats;
         _isLoading = false;
       });
@@ -50,12 +71,84 @@ class _ChatListScreenState extends State<ChatListScreen> {
         _error = e.toString();
         _isLoading = false;
       });
+      
+      if (kDebugMode) {
+        print('❌ [CHAT_LIST] Error loading chats: $e');
+      }
     }
   }
 
   Future<void> _refreshChats() async {
     await _loadChats();
   }
+
+  PreferredSizeWidget _buildModernAppBar() {
+    return AppBar(
+      backgroundColor: const Color(0xFFF5F7FA), // Anasayfa ile uyumlu arka plan
+      foregroundColor: Colors.black87,
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+      title: const Text(
+        'Mesajların',
+        style: TextStyle(
+          fontSize: 20, // Anasayfa ile uyumlu font boyutu
+          fontWeight: FontWeight.w700, // Anasayfa ile uyumlu font weight
+          color: Colors.black87,
+          letterSpacing: -0.2,
+        ),
+      ),
+      actions: [
+        Stack(
+          children: [
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationScreen(),
+                  ),
+                ).then((_) {
+                  // Bildirim sayfasından döndükten sonra sayıyı güncelle
+                  _loadNotificationCount();
+                });
+              },
+              icon: const Icon(
+                Icons.notifications,
+                color: Colors.black87,
+                size: 20, // Anasayfa ile uyumlu icon boyutu
+              ),
+            ),
+            if (_unreadNotificationCount > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      _unreadNotificationCount > 99 ? '99+' : _unreadNotificationCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11, // Anasayfa ile uyumlu font boyutu
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -70,20 +163,46 @@ class _ChatListScreenState extends State<ChatListScreen> {
         final user = state.user;
         
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Mesajlar'),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search),
-                onPressed: () {
-                  _showSearchDialog();
-                },
+          backgroundColor: const Color(0xFFF5F7FA), // Anasayfa ile uyumlu arka plan
+          appBar: _buildModernAppBar(),
+          body: Column(
+            children: [
+              // Arama çubuğu
+              Container(
+                padding: const EdgeInsets.all(16),
+                color: const Color(0xFFF5F7FA),
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Mesaj ara...',
+                      hintStyle: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.grey[500],
+                        size: 20,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                    ),
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
               ),
+              Expanded(child: _buildBody(user)),
             ],
           ),
-          body: _buildBody(user),
         );
       },
     );
@@ -97,38 +216,81 @@ class _ChatListScreenState extends State<ChatListScreen> {
     }
 
     if (_error != null) {
+      final isAuthError = _error!.contains('401') || 
+                         _error!.contains('Unauthenticated') ||
+                         _error!.contains('Unauthorized') ||
+                         _error!.contains('Oturum süresi doldu');
+      
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Mesajlar yüklenirken hata oluştu',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isAuthError ? Icons.lock_outline : Icons.error_outline,
+                size: 64,
+                color: isAuthError ? Colors.orange[400] : Colors.grey[400],
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
+              const SizedBox(height: 16),
+              Text(
+                isAuthError ? 'Oturum Süresi Doldu' : 'Mesajlar yüklenirken hata oluştu',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isAuthError ? Colors.orange[600] : Colors.grey[600],
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadChats,
-              child: const Text('Tekrar Dene'),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                isAuthError 
+                  ? 'Güvenlik nedeniyle oturumunuz sonlandırıldı.\nLütfen tekrar giriş yapın.'
+                  : _error!,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (isAuthError) ...[
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          '/login',
+                          (route) => false,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange[400],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text('Giriş Yap'),
+                    ),
+                    const SizedBox(width: 16),
+                  ],
+                  ElevatedButton(
+                    onPressed: _loadChats,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text('Tekrar Dene'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -164,276 +326,207 @@ class _ChatListScreenState extends State<ChatListScreen> {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _refreshChats,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _filteredChats.length,
-        itemBuilder: (context, index) {
-          final chat = _filteredChats[index];
-          return _buildChatItem(chat, user);
-        },
+    return Container(
+      color: const Color(0xFFF5F7FA), // Anasayfa ile uyumlu arka plan
+      child: RefreshIndicator(
+        onRefresh: _refreshChats,
+        color: const Color(0xFF8B5CF6), // Mor accent
+        backgroundColor: Colors.white,
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          itemCount: _filteredChats.length,
+          itemBuilder: (context, index) {
+            final chat = _filteredChats[index];
+            return _buildModernChatItem(chat, user);
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildChatItem(Chat chat, User currentUser) {
+  Widget _buildModernChatItem(Chat chat, User currentUser) {
     final isUnread = chat.unreadCount > 0;
+    final lastMessageTime = _formatTime(chat.updatedAt);
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            // Role-based navigation to appropriate chat screen
-            if (currentUser.isStudent) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => StudentChatScreen(
-                    teacher: chat.otherUser,
-                  ),
-                ),
-              );
-            } else if (currentUser.isTeacher) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TeacherChatScreen(
-                    student: chat.otherUser,
-                  ),
-                ),
-              );
-            } else {
-              // Fallback to generic chat screen
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatScreen(
-                    otherUser: chat.otherUser,
-                  ),
-                ),
-              );
-            }
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isUnread ? Colors.white : Colors.grey[50],
-              borderRadius: BorderRadius.circular(20),
-              border: isUnread 
-                  ? Border.all(color: AppTheme.primaryBlue.withOpacity(0.1), width: 1.5)
-                  : null,
-              boxShadow: [
-                BoxShadow(
-                  color: isUnread 
-                      ? AppTheme.primaryBlue.withOpacity(0.08)
-                      : Colors.black.withOpacity(0.03),
-                  blurRadius: isUnread ? 15 : 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-          child: Row(
-            children: [
-              // Profile Photo with Online Status
-              Stack(
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          AppTheme.primaryBlue,
-                          AppTheme.accentPurple,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryBlue.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: chat.otherUser.profilePhotoUrl == null
-                        ? Center(
-                            child: Text(
-                              chat.otherUser.name[0].toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          )
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(32),
-                            child: Image.network(
-                              chat.otherUser.profilePhotoUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Center(
-                                  child: Text(
-                                    chat.otherUser.name[0].toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                  ),
-                  // Online Status Indicator
-                  Positioned(
-                    bottom: 2,
-                    right: 2,
-                    child: Container(
-                      width: 16,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentGreen,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 16),
-              
-              // Chat Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            chat.otherUser.name,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: isUnread ? FontWeight.w700 : FontWeight.w600,
-                              color: isUnread ? const Color(0xFF1E293B) : const Color(0xFF475569),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (chat.unreadCount > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppTheme.primaryBlue,
-                                  AppTheme.accentPurple,
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.primaryBlue.withOpacity(0.3),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              chat.unreadCount.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: chat.otherUser.role == 'teacher' 
-                            ? AppTheme.accentOrange.withOpacity(0.1)
-                            : AppTheme.accentGreen.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        chat.otherUser.role == 'teacher' ? '👨‍🏫 Öğretmen' : '👨‍🎓 Öğrenci',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: chat.otherUser.role == 'teacher' 
-                              ? AppTheme.accentOrange
-                              : AppTheme.accentGreen,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    if (chat.lastMessage != null)
-                      Text(
-                        chat.lastMessage!.content,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: isUnread ? const Color(0xFF1E293B) : Colors.grey[600],
-                          fontWeight: isUnread ? FontWeight.w500 : FontWeight.w400,
-                          height: 1.3,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      )
-                    else
-                      Text(
-                        '💬 Henüz mesaj yok',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[500],
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              
-              // Time and Status
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _formatTime(chat.updatedAt),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (chat.lastMessage != null)
-                    Icon(
-                      chat.lastMessage!.isRead ? Icons.done_all : Icons.done,
-                      size: 16,
-                      color: chat.lastMessage!.isRead 
-                          ? AppTheme.primaryBlue 
-                          : Colors.grey[400],
-                    ),
-                ],
-              ),
-            ],
+      margin: EdgeInsets.zero, // Boşluk kaldırıldı
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.zero, // Köşeleri tamamen kaldırıldı
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.grey[200]!,
+            width: 0.5,
           ),
         ),
       ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToChat(chat, currentUser),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                // Avatar - Figma tasarımına uygun
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    shape: BoxShape.circle,
+                  ),
+                  child: chat.otherUser?.profilePhotoUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(30),
+                          child: Image.network(
+                            chat.otherUser!.profilePhotoUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.person_rounded,
+                                  color: Colors.grey[500],
+                                  size: 30,
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      : Icon(
+                          Icons.person_rounded,
+                          color: Colors.grey[500],
+                          size: 30,
+                        ),
+                ),
+                const SizedBox(width: 16),
+                // Chat Content - Figma tasarımına uygun
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                              child: Text(
+                                chat.otherUser?.name ?? 'Buse Köse',
+                                style: const TextStyle(
+                                  fontSize: 16, // Anasayfa ile uyumlu font boyutu
+                                  fontWeight: FontWeight.w700, // Anasayfa ile uyumlu font weight
+                                  color: Colors.black87,
+                                  letterSpacing: -0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ),
+                          Text(
+                            lastMessageTime,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                              child: Text(
+                                chat.lastMessage?.content ?? '✓✓ Thanks',
+                                style: TextStyle(
+                                  fontSize: 14, // Anasayfa ile uyumlu font boyutu
+                                  color: Colors.grey[700],
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.2,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ),
+                          if (isUnread) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF8B5CF6), // Mor renk
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${chat.unreadCount}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11, // Anasayfa ile uyumlu font boyutu
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
+  }
+
+  void _navigateToChat(Chat chat, User currentUser) {
+    final otherUser = chat.otherUser;
+    if (otherUser == null) return;
+    
+    if (currentUser.isStudent) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => StudentChatScreen(
+            teacher: otherUser,
+          ),
+        ),
+      );
+    } else if (currentUser.isTeacher) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TeacherChatScreen(
+            student: otherUser,
+          ),
+        ),
+      );
+    } else {
+      if (otherUser.role == 'teacher') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StudentChatScreen(
+              teacher: otherUser,
+            ),
+          ),
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TeacherChatScreen(
+              student: otherUser,
+            ),
+          ),
+        );
+      }
+    }
   }
 
   String _formatTime(DateTime dateTime) {
@@ -448,53 +541,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
       return '${difference.inMinutes}dk';
     } else {
       return 'Şimdi';
-    }
-  }
-
-  void _showSearchDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sohbet Ara'),
-        content: TextField(
-          decoration: const InputDecoration(
-            hintText: 'Kullanıcı adı veya mesaj ara...',
-            border: OutlineInputBorder(),
-          ),
-          onChanged: (value) {
-            _searchQuery = value;
-            _filterChats();
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              _filterChats();
-              Navigator.pop(context);
-            },
-            child: const Text('Ara'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _filterChats() {
-    if (_searchQuery.isEmpty) {
-      setState(() {
-        _filteredChats = _chats;
-      });
-    } else {
-      setState(() {
-        _filteredChats = _chats.where((chat) {
-          return chat.otherUser.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                 (chat.lastMessage?.content.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
-        }).toList();
-      });
     }
   }
 }

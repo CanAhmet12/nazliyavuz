@@ -41,6 +41,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
   // Recent lessons data
   List<Lesson> _recentLessons = [];
   bool _isLoadingLessons = false;
+  
+  // Statistics data
+  Map<String, dynamic> _statistics = {};
+  bool _isLoadingStats = false;
 
   @override
   void initState() {
@@ -56,8 +60,35 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
         _fabAnimationController.forward();
         _loadRecommendedTeachers();
         _loadRecentLessons();
+        _loadStatistics();
       }
     });
+  }
+  
+  Future<void> _loadStatistics() async {
+    if (_isLoadingStats) return;
+    
+    setState(() {
+      _isLoadingStats = true;
+    });
+
+    try {
+      final stats = await ApiService().get('/user/statistics');
+      
+      if (mounted) {
+        setState(() {
+          _statistics = stats['data'] ?? {};
+          _isLoadingStats = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingStats = false;
+        });
+      }
+      print('❌ Error loading statistics: $e');
+    }
   }
 
   @override
@@ -949,7 +980,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
                 width: MediaQuery.of(context).size.width * 0.28,
                 child: _buildModernStatCard(
                   'Aktif Dersler',
-                  '3',
+                  _isLoadingStats ? '...' : '${_statistics['upcoming_lessons'] ?? 0}',
                   Icons.play_circle_filled_rounded,
                   const Color(0xFF10B981),
                   '',
@@ -960,7 +991,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
                 width: MediaQuery.of(context).size.width * 0.28,
                 child: _buildModernStatCard(
                   'Tamamlanan',
-                  '12',
+                  _isLoadingStats ? '...' : '${_statistics['completed_lessons'] ?? 0}',
                   Icons.check_circle_rounded,
                   const Color(0xFF3B82F6),
                   '',
@@ -970,8 +1001,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
               SizedBox(
                 width: MediaQuery.of(context).size.width * 0.28,
                 child: _buildModernStatCard(
-                  'Eğitimciler',
-                  '5',
+                  'Favoriler',
+                  _isLoadingStats ? '...' : '${_statistics['favorite_teachers'] ?? 0}',
                   Icons.people_rounded,
                   const Color(0xFF8B5CF6),
                   '',

@@ -71,7 +71,9 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
   }
 
   void _onTabChanged() {
-    // Tab changed - filtered data will be updated automatically via _getFilteredAssignments
+    setState(() {
+      // Trigger rebuild when tab changes to update filtered list
+    });
   }
 
   Future<void> _loadInitialData() async {
@@ -88,13 +90,53 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
         _error = null;
       });
 
-      final response = await _apiService.get('/assignments/student');
-      if (response['success'] == true && mounted) {
+      // Force token loading from SharedPreferences
+      await _apiService.loadTokenFromStorage();
+      
+      // Check authentication after loading token
+      if (!_apiService.isAuthenticated) {
         setState(() {
-          _assignments = (response['assignments'] as List)
-              .map((json) => Assignment.fromJson(json as Map<String, dynamic>))
-              .toList();
+          _error = 'Oturum süresi doldu. Lütfen tekrar giriş yapın.';
           _isLoading = false;
+        });
+        return;
+      }
+
+      final response = await _apiService.get('/assignments/student');
+      if (mounted) {
+        setState(() {
+          try {
+            // Handle different response structures
+            List<dynamic> assignmentsData = [];
+            if (response['success'] == true && response['assignments'] != null) {
+              assignmentsData = response['assignments'] as List;
+            } else if (response['data'] != null) {
+              assignmentsData = response['data'] as List;
+            } else if (response is List) {
+              assignmentsData = response as List;
+            }
+            
+            _assignments = assignmentsData
+                .where((json) => json != null && json is Map<String, dynamic>)
+                .map((json) {
+                  try {
+                    return Assignment.fromJson(json as Map<String, dynamic>);
+                  } catch (e) {
+                    print('Assignment parsing error: $e');
+                    print('JSON: $json');
+                    return null;
+                  }
+                })
+                .where((assignment) => assignment != null)
+                .cast<Assignment>()
+                .toList();
+            _isLoading = false;
+          } catch (e) {
+            print('Assignments processing error: $e');
+            _assignments = [];
+            _isLoading = false;
+            _error = 'Ödevler yüklenirken hata oluştu: $e';
+          }
         });
       }
     } catch (e) {
@@ -103,6 +145,19 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
           _error = e.toString();
           _isLoading = false;
         });
+        
+        // Check if it's an authentication error
+        if (e.toString().contains('401') || 
+            e.toString().contains('Unauthenticated') ||
+            e.toString().contains('Unauthorized')) {
+          // Navigate to login screen
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/login',
+              (route) => false,
+            );
+          });
+        }
       }
     }
   }
@@ -165,60 +220,60 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 120,
+      expandedHeight: 80, // 100 -> 80 daha kompakt
       floating: false,
       pinned: true,
-      backgroundColor: AppTheme.primaryBlue,
+      elevation: 0,
+      backgroundColor: Colors.transparent,
       flexibleSpace: FlexibleSpaceBar(
-        title: null, // Remove duplicate title
         background: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppTheme.primaryBlue,
-                AppTheme.accentPurple,
+                const Color(0xFF3B82F6), // AppTheme.primaryBlue
+                const Color(0xFF8B5CF6), // AppTheme.accentPurple
               ],
             ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF3B82F6).withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
+                  // Ödevlerim Icon
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 36, // 40 -> 36 daha küçük
+                    height: 36, // 40 -> 36 daha küçük
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withOpacity(0.25),
-                          Colors.white.withOpacity(0.15),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.4),
-                        width: 1.5,
-                      ),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18), // 20 -> 18
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
                     child: const Icon(
-                      Icons.task_alt_rounded,
-                      color: Colors.white,
-                      size: 24,
+                      Icons.assignment_rounded,
+                      color: Color(0xFF3B82F6),
+                      size: 18, // 20 -> 18 daha küçük
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  
+                  const SizedBox(width: 12),
+                  
+                  // Title and Subtitle
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,41 +282,42 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
                         const Text(
                           'Ödevlerim',
                           style: TextStyle(
-                            fontWeight: FontWeight.w700,
                             color: Colors.white,
-                            fontSize: 24,
-                            letterSpacing: 0.2,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black26,
-                                blurRadius: 2,
-                                offset: Offset(0, 1),
-                              ),
-                            ],
+                            fontSize: 18, // 20 -> 18 daha küçük
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            '${_assignments.length} ödev',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.2,
-                            ),
+                        Text(
+                          'Ödevleriniz ve durumları',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 12, // 14 -> 12 daha küçük
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  
+                  // View Toggle Button
+                  Container(
+                    width: 32, // 36 -> 32 daha küçük
+                    height: 32, // 36 -> 32 daha küçük
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(
+                        Icons.view_list_rounded,
+                        color: Colors.white,
+                        size: 16, // 18 -> 16 daha küçük
+                      ),
+                      onPressed: () {
+                        // Toggle view logic can be added here
+                      },
                     ),
                   ),
                 ],
@@ -270,40 +326,6 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
           ),
         ),
       ),
-      actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 8),
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withOpacity(0.25),
-                Colors.white.withOpacity(0.15),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.4),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: IconButton(
-            padding: EdgeInsets.zero,
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
-            onPressed: _refreshData,
-          ),
-        ),
-      ],
     );
   }
 
@@ -341,7 +363,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                _error!,
+                'Ödevler yüklenirken bir sorun oluştu.\nLütfen tekrar deneyin.',
                 style: TextStyle(
                   color: Colors.grey[600],
                 ),
@@ -378,111 +400,185 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
   }
 
   Widget _buildStatistics() {
+    final completionRate = _statistics['completion_rate']?.toString() ?? '0';
+    final averageGrade = _statistics['average_grade_letter']?.toString() ?? '-';
+    final overdue = _statistics['overdue']?.toString() ?? '0';
+    
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // 16 -> 12 daha kompakt
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: _buildStatCard(
-              'Toplam',
-              _statistics['total']?.toString() ?? '0',
-              Icons.assignment_rounded,
-              AppTheme.primaryBlue,
+          const Text(
+            'Ödev İstatistikleri',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1E293B),
+              fontSize: 16, // 18 -> 16 daha küçük
             ),
           ),
-          Expanded(
-            child: _buildStatCard(
-              'Bekleyen',
-              _statistics['pending']?.toString() ?? '0',
-              Icons.pending_rounded,
-              AppTheme.accentOrange,
-            ),
+          const SizedBox(height: 12),
+          // Ana istatistik kartları (Grid)
+          Row(
+            children: [
+              Expanded(
+                child: _buildModernStatCard(
+                  'Ortalama Not',
+                  averageGrade,
+                  Icons.star_rounded,
+                  const Color(0xFF3B82F6), // AppTheme.primaryBlue
+                ),
+              ),
+              const SizedBox(width: 8), // 12 -> 8 daha kompakt
+              Expanded(
+                child: _buildModernStatCard(
+                  'Tamamlanma',
+                  '${completionRate}%',
+                  Icons.check_circle_rounded,
+                  const Color(0xFF10B981), // AppTheme.accentGreen
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: _buildStatCard(
-              'Teslim Edilen',
-              _statistics['submitted']?.toString() ?? '0',
-              Icons.upload_rounded,
-              AppTheme.accentGreen,
-            ),
-          ),
-          Expanded(
-            child: _buildStatCard(
-              'Notlanan',
-              _statistics['graded']?.toString() ?? '0',
-              Icons.grade_rounded,
-              AppTheme.primaryBlue,
-            ),
+          const SizedBox(height: 8), // 12 -> 8 daha kompakt
+          Row(
+            children: [
+              Expanded(
+                child: _buildModernStatCard(
+                  'Bekleyen',
+                  '${_statistics['pending']?.toString() ?? '0'}',
+                  Icons.hourglass_empty_rounded,
+                  const Color(0xFFF59E0B), // AppTheme.accentOrange
+                ),
+              ),
+              const SizedBox(width: 8), // 12 -> 8 daha kompakt
+              Expanded(
+                child: _buildModernStatCard(
+                  'Gecikmiş',
+                  '${overdue}',
+                  Icons.warning_rounded,
+                  const Color(0xFFEF4444), // AppTheme.accentRed
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 24),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
+  Widget _buildModernStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12), // 16 -> 12 daha küçük
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.08),
+            blurRadius: 8, // 12 -> 8 daha küçük
+            offset: const Offset(0, 2), // 4 -> 2 daha küçük
           ),
+        ],
+        border: Border.all(
+          color: color.withOpacity(0.15),
+          width: 1,
         ),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12), // 16 -> 12 daha kompakt
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 24), // 32 -> 24 daha küçük, white -> color
+            const SizedBox(height: 6), // 8 -> 6 daha küçük
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20, // 24 -> 20 daha küçük
+                fontWeight: FontWeight.w800,
+                color: color, // white -> color
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11, // 12 -> 11 daha küçük
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF64748B), // white.withOpacity(0.9) -> Color(0xFF64748B)
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildStatusTabs() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // 16 -> 12 daha kompakt
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Ödev Durumları',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1E293B),
+              fontSize: 16, // 18 -> 16 daha küçük
+            ),
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _statusTabs.map((tab) {
+                final isSelected = _tabController.index == _statusTabs.indexOf(tab);
+                return Container(
+                  margin: const EdgeInsets.only(right: 8), // 12 -> 8 daha kompakt
+                  child: FilterChip(
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      final index = _statusTabs.indexOf(tab);
+                      _tabController.animateTo(index);
+                    },
+                    label: Text(
+                      tab['label'],
+                      style: TextStyle(
+                        fontSize: 12, // 14 -> 12 daha küçük
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? Colors.white : tab['color'],
+                      ),
+                    ),
+                    avatar: Icon(
+                      tab['icon'],
+                      size: 16, // 18 -> 16 daha küçük
+                      color: isSelected ? Colors.white : tab['color'],
+                    ),
+                    backgroundColor: Colors.white,
+                    selectedColor: tab['color'],
+                    checkmarkColor: Colors.white,
+                    side: BorderSide(
+                      color: tab['color'].withOpacity(0.3),
+                      width: 1,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20), // 24 -> 20 daha küçük
+                    ),
+                    elevation: isSelected ? 2 : 0,
+                    shadowColor: tab['color'].withOpacity(0.3),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
-      ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          color: AppTheme.primaryBlue.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        labelColor: AppTheme.primaryBlue,
-        unselectedLabelColor: Colors.grey[600],
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-        dividerColor: Colors.transparent, // Remove divider below tabs
-        tabs: _statusTabs.map((tab) => Tab(
-          icon: Icon(tab['icon'], size: 20),
-          text: tab['label'],
-        )).toList(),
       ),
     );
   }
@@ -549,25 +645,37 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
 
   Widget _buildAssignmentCard(Assignment assignment) {
     final dueDate = assignment.dueDate;
-    final isOverdue = dueDate.isBefore(DateTime.now()) && assignment.status == 'pending';
+    final safeStatus = assignment.status.isNotEmpty ? assignment.status : 'pending';
+    final isOverdue = dueDate.isBefore(DateTime.now()) && safeStatus == 'pending';
+    final statusInfo = _getStatusInfo(safeStatus, isOverdue);
     
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // 16 -> 12, bottom: 16 -> vertical: 6 daha kompakt
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12), // 16 -> 12 daha küçük
+        border: Border.all(
+          color: statusInfo['color'].withOpacity(0.15), // 0.2 -> 0.15 daha hafif
+          width: 1, // 1.5 -> 1 daha ince
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: statusInfo['color'].withOpacity(0.08), // 0.1 -> 0.08 daha hafif
+            blurRadius: 8, // 12 -> 8 daha küçük
+            offset: const Offset(0, 2), // 4 -> 2 daha küçük
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03), // 0.05 -> 0.03 daha hafif
+            blurRadius: 6, // 8 -> 6 daha küçük
+            offset: const Offset(0, 1), // 2 -> 1 daha küçük
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           onTap: () {
             Navigator.push(
               context,
@@ -577,151 +685,227 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
             );
           },
           child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.all(12), // 16 -> 12 daha kompakt
+            child: Row(
               children: [
-                Row(
+                // Sol taraf - Avatar ve durum
+                Column(
                   children: [
-                    Expanded(
+                    Container(
+                      width: 40, // 50 -> 40 daha küçük
+                      height: 40, // 50 -> 40 daha küçük
+                      decoration: BoxDecoration(
+                        color: statusInfo['color'].withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10), // 12 -> 10 daha küçük
+                        border: Border.all(
+                          color: statusInfo['color'].withOpacity(0.2), // 0.3 -> 0.2 daha hafif
+                          width: 1, // 2 -> 1 daha ince
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.assignment_rounded,
+                        size: 20, // 24 -> 20 daha küçük
+                        color: statusInfo['color'],
+                      ),
+                    ),
+                    const SizedBox(height: 6), // 8 -> 6 daha küçük
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), // 8,4 -> 6,3 daha küçük
+                      decoration: BoxDecoration(
+                        color: statusInfo['color'].withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6), // 8 -> 6 daha küçük
+                      ),
                       child: Text(
-                        assignment.title,
-                        style: const TextStyle(
-                          fontSize: 18,
+                        statusInfo['label'] ?? 'Bilinmiyor',
+                        style: TextStyle(
+                          fontSize: 9, // 10 -> 9 daha küçük
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: statusInfo['color'],
                         ),
                       ),
                     ),
-                    _buildStatusChip(assignment.status, isOverdue),
                   ],
                 ),
-                const SizedBox(height: 8),
-                if (assignment.description.isNotEmpty)
-                  Text(
-                    assignment.description,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      height: 1.4,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                const SizedBox(height: 12),
-                Row(
+              
+              const SizedBox(width: 12), // 16 -> 12 daha kompakt
+              
+              // Orta kısım - Ödev bilgileri
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.person_rounded,
-                      size: 16,
-                      color: Colors.grey[500],
-                    ),
-                    const SizedBox(width: 4),
                     Text(
-                      '${assignment.teacherName ?? 'Öğretmen'}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
+                      (assignment.title.isNotEmpty) ? assignment.title : 'Başlık Yok',
+                      style: const TextStyle(
+                        fontSize: 14, // 16 -> 14 daha küçük
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B), // 0xFF0F172A -> 0xFF1E293B daha yumuşak
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), // 8,3 -> 6,2 daha küçük
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8B5CF6).withOpacity(0.1), // AppTheme.accentPurple -> Color(0xFF8B5CF6)
+                        borderRadius: BorderRadius.circular(4), // 6 -> 4 daha küçük
+                      ),
+                      child: Text(
+                        _getDifficultyText(assignment.difficulty.isNotEmpty ? assignment.difficulty : 'medium'),
+                        style: const TextStyle(
+                          fontSize: 10, // 11 -> 10 daha küçük
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF8B5CF6), // AppTheme.accentPurple -> Color(0xFF8B5CF6)
+                        ),
                       ),
                     ),
-                    const Spacer(),
-                    Icon(
-                      Icons.schedule_rounded,
-                      size: 16,
-                      color: isOverdue ? Colors.red[500] : Colors.grey[500],
+                    const SizedBox(height: 6), // 8 -> 6 daha küçük
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_rounded,
+                          size: 12, // 14 -> 12 daha küçük
+                          color: const Color(0xFF64748B), // AppTheme.grey600 -> Color(0xFF64748B)
+                        ),
+                        const SizedBox(width: 4), // 6 -> 4 daha kompakt
+                        Text(
+                          _formatDate(assignment.dueDate),
+                          style: const TextStyle(
+                            fontSize: 11, // 12 -> 11 daha küçük
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF64748B), // AppTheme.grey600 -> Color(0xFF64748B)
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      DateFormat('dd.MM.yyyy HH:mm').format(dueDate),
-                      style: TextStyle(
-                        color: isOverdue ? Colors.red[500] : Colors.grey[600],
-                        fontSize: 14,
-                        fontWeight: isOverdue ? FontWeight.w600 : FontWeight.normal,
-                      ),
+                    const SizedBox(height: 3), // 4 -> 3 daha küçük
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 12, // 14 -> 12 daha küçük
+                          color: const Color(0xFF64748B), // AppTheme.grey600 -> Color(0xFF64748B)
+                        ),
+                        const SizedBox(width: 4), // 6 -> 4 daha kompakt
+                        Text(
+                          _formatTime(assignment.dueDate),
+                          style: const TextStyle(
+                            fontSize: 11, // 12 -> 11 daha küçük
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF64748B), // AppTheme.grey600 -> Color(0xFF64748B)
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                if (assignment.grade != null && assignment.grade!.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.grade_rounded,
-                        size: 16,
-                        color: AppTheme.primaryBlue,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Not: ${assignment.grade}',
-                        style: const TextStyle(
-                          color: AppTheme.primaryBlue,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
+              ),
+              
+              // Sağ taraf - Ok işareti
+              Container(
+                width: 28, // 32 -> 28 daha küçük
+                height: 28, // 32 -> 28 daha küçük
+                decoration: BoxDecoration(
+                  color: statusInfo['color'].withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6), // 8 -> 6 daha küçük
+                ),
+                child: Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14, // 16 -> 14 daha küçük
+                  color: statusInfo['color'],
+                ),
+              ),
+            ],
           ),
         ),
       ),
+      ),
     );
   }
 
-  Widget _buildStatusChip(String status, bool isOverdue) {
-    Color backgroundColor;
-    Color textColor;
-    String label;
-    IconData icon;
-
-    switch (status) {
-      case 'pending':
-        backgroundColor = isOverdue ? Colors.red[50]! : AppTheme.accentOrange.withOpacity(0.1);
-        textColor = isOverdue ? Colors.red[600]! : AppTheme.accentOrange;
-        label = isOverdue ? 'Süresi Geçmiş' : 'Bekleyen';
-        icon = isOverdue ? Icons.warning_rounded : Icons.pending_rounded;
-        break;
-      case 'submitted':
-        backgroundColor = AppTheme.accentGreen.withOpacity(0.1);
-        textColor = AppTheme.accentGreen;
-        label = 'Teslim Edildi';
-        icon = Icons.upload_rounded;
-        break;
-      case 'graded':
-        backgroundColor = AppTheme.primaryBlue.withOpacity(0.1);
-        textColor = AppTheme.primaryBlue;
-        label = 'Notlandı';
-        icon = Icons.grade_rounded;
-        break;
-      default:
-        backgroundColor = Colors.grey[100]!;
-        textColor = Colors.grey[600]!;
-        label = 'Bilinmiyor';
-        icon = Icons.help_rounded;
+  Map<String, dynamic> _getStatusInfo(String status, bool isOverdue) {
+    // Null safety koruması
+    final safeStatus = status.isNotEmpty ? status : 'pending';
+    
+    if (safeStatus == 'pending' && isOverdue) {
+      return {
+        'label': 'Süresi Geçmiş',
+        'icon': Icons.warning_rounded,
+        'color': const Color(0xFFEF5350),
+      };
     }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: textColor),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
+    
+    switch (safeStatus) {
+      case 'pending':
+        return {
+          'label': 'Bekleyen',
+          'icon': Icons.hourglass_empty_rounded,
+          'color': const Color(0xFF42A5F5),
+        };
+      case 'submitted':
+        return {
+          'label': 'Teslim Edildi',
+          'icon': Icons.check_circle_rounded,
+          'color': const Color(0xFF66BB6A),
+        };
+      case 'graded':
+        return {
+          'label': 'Notlandı',
+          'icon': Icons.grade_rounded,
+          'color': const Color(0xFFFFA726),
+        };
+      default:
+        return {
+          'label': status,
+          'icon': Icons.help_rounded,
+          'color': Colors.grey,
+        };
+    }
   }
+
+
+
+
+  String _getDifficultyText(String difficulty) {
+    if (difficulty.isEmpty) return 'Bilinmiyor';
+    
+    try {
+      switch (difficulty.toLowerCase()) {
+        case 'easy':
+          return 'Kolay';
+        case 'medium':
+          return 'Orta';
+        case 'hard':
+          return 'Zor';
+        default:
+          return 'Bilinmiyor';
+      }
+    } catch (e) {
+      return 'Bilinmiyor';
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = date.difference(now);
+    
+    if (difference.inDays == 0) {
+      return 'Bugün';
+    } else if (difference.inDays == 1) {
+      return 'Yarın';
+    } else if (difference.inDays == -1) {
+      return 'Dün';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays} gün sonra';
+    } else {
+      return '${-difference.inDays} gün önce';
+    }
+  }
+
+  String _formatTime(DateTime date) {
+    final formatter = DateFormat('HH:mm');
+    return formatter.format(date);
+  }
+
 }

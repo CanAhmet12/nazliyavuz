@@ -227,7 +227,7 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFFF5F7FA), // Anasayfa ile uyumlu arka plan
       body: _isLoading
           ? _buildLoadingState()
           : _error != null
@@ -414,10 +414,10 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
                             Text(
                               _userProfile['name'] ?? 'Kullanıcı',
                               style: const TextStyle(
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w700, // Anasayfa ile uyumlu font weight
                                 color: Colors.white,
-                                fontSize: 20,
-                                letterSpacing: -0.5,
+                                fontSize: 20, // Anasayfa ile uyumlu font boyutu
+                                letterSpacing: -0.2,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -425,7 +425,7 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
                               _userProfile['email'] ?? '',
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 14,
+                                fontSize: 14, // Anasayfa ile uyumlu font boyutu
                                 fontWeight: FontWeight.w500,
                               ),
                               maxLines: 1,
@@ -563,24 +563,24 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
           Icon(
             icon,
             color: color,
-            size: 24,
+            size: 20, // Anasayfa ile uyumlu icon boyutu
           ),
           const SizedBox(height: 12),
           Text(
             value,
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 20, // Anasayfa ile uyumlu font boyutu
               fontWeight: FontWeight.w800,
               color: color,
-              letterSpacing: -0.5,
+              letterSpacing: -0.2,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             title,
             style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontSize: 11, // Anasayfa ile uyumlu font boyutu
+              fontWeight: FontWeight.w500,
               color: Colors.black87,
             ),
             textAlign: TextAlign.center,
@@ -1137,13 +1137,36 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
     );
   }
 
-  void _navigateToNotificationPreferences() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const NotificationPreferencesScreen(preferences: {}),
-      ),
-    );
+  void _navigateToNotificationPreferences() async {
+    try {
+      // Load current preferences first
+      final response = await _apiService.get('/user/notification-preferences');
+      final preferences = response['data'] ?? {};
+      
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => NotificationPreferencesScreen(preferences: preferences),
+        ),
+      );
+      
+      // If preferences were updated, refresh the profile
+      if (result != null) {
+        _loadInitialData();
+      }
+    } catch (e) {
+      // If loading preferences fails, still open the screen with empty preferences
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const NotificationPreferencesScreen(preferences: {}),
+        ),
+      );
+      
+      if (result != null) {
+        _loadInitialData();
+      }
+    }
   }
 
   void _navigateToActivityHistory() {

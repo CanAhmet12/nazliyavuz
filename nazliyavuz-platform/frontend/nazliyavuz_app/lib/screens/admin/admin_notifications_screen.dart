@@ -86,14 +86,12 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen>
     });
 
     try {
-      print('🔍 [NOTIFICATIONS] Sending notification...');
       final result = await _apiService.sendAdminNotification(
         title: _titleController.text.trim(),
         message: _messageController.text.trim(),
         targetUsers: _selectedTargetUsers,
         type: _selectedType,
       );
-      print('✅ [NOTIFICATIONS] Notification sent successfully');
 
       if (mounted) {
         _showSnackBar(
@@ -110,7 +108,6 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen>
         });
       }
     } catch (e) {
-      print('❌ [NOTIFICATIONS] Error sending notification: $e');
       if (mounted) {
         _showSnackBar('Bildirim gönderilemedi: $e', isSuccess: false);
       }

@@ -60,6 +60,14 @@ class Lesson extends Model
     }
 
     /**
+     * Get the teacher profile for this lesson
+     */
+    public function teacherProfile()
+    {
+        return $this->belongsTo(Teacher::class, 'teacher_id', 'user_id');
+    }
+
+    /**
      * Scope for scheduled lessons
      */
     public function scopeScheduled($query)
@@ -148,5 +156,60 @@ class Lesson extends Model
     public function getCanBeRatedAttribute()
     {
         return $this->status === 'completed' && !$this->rating;
+    }
+
+    /**
+     * Get status text in Turkish
+     */
+    public function getStatusTextAttribute()
+    {
+        $statuses = [
+            'scheduled' => 'Planlandı',
+            'in_progress' => 'Devam Ediyor',
+            'completed' => 'Tamamlandı',
+            'cancelled' => 'İptal Edildi',
+        ];
+
+        return $statuses[$this->status] ?? 'Bilinmiyor';
+    }
+
+    /**
+     * Check if lesson is completed
+     */
+    public function getIsCompletedAttribute()
+    {
+        return $this->status === 'completed';
+    }
+
+    /**
+     * Check if lesson is rated
+     */
+    public function getIsRatedAttribute()
+    {
+        return !is_null($this->rating);
+    }
+
+    /**
+     * Get teacher name
+     */
+    public function getTeacherNameAttribute()
+    {
+        return $this->teacher ? $this->teacher->name : null;
+    }
+
+    /**
+     * Get student name
+     */
+    public function getStudentNameAttribute()
+    {
+        return $this->student ? $this->student->name : null;
+    }
+
+    /**
+     * Get subject from reservation
+     */
+    public function getSubjectAttribute()
+    {
+        return $this->reservation ? $this->reservation->subject : null;
     }
 }

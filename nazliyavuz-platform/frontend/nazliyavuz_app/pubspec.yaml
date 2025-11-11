@@ -43,6 +43,8 @@ dependencies:
   equatable: ^2.0.7
   image_picker: ^1.1.2
   flutter_html: ^3.0.0
+  video_player: ^2.9.2
+  audioplayers: ^6.1.0
   
   # Enhanced UI Dependencies
   fl_chart: ^0.68.0
@@ -60,7 +62,7 @@ dependencies:
   
   # Social Authentication
   google_sign_in: ^6.2.1
-  # sign_in_with_apple: ^6.1.2 # Temporarily disabled due to compatibility issues
+  sign_in_with_apple: ^6.1.2
   
   # Biometric Authentication
   local_auth: ^2.3.0
@@ -75,8 +77,8 @@ dependencies:
   cached_network_image: ^3.3.1
   flutter_staggered_animations: ^1.1.1
   
-  # WebRTC for video calls (temporarily disabled due to compatibility issues)
-  # flutter_webrtc: ^0.9.48+hotfix.1
+  # WebRTC for video calls
+  flutter_webrtc: ^1.2.0
   # WebView for payment
   webview_flutter: ^4.4.2
   file_picker: ^8.1.4 # Updated for compatibility
@@ -85,11 +87,12 @@ dependencies:
   # Real-time communication
   pusher_channels_flutter: ^2.2.1
   
-  # Audio recording for voice messages - TEMPORARILY DISABLED
-  # record: ^5.0.4  # Disabled due to record_linux compatibility issues
+  # Audio recording for voice messages
+  flutter_sound: ^9.2.13
   permission_handler: ^11.0.1
-  # Alternative audio recording
-  audioplayers: ^6.0.0
+  path_provider: ^2.1.1
+  # Audio playback
+  audio_waveforms: ^1.0.5
   flutter_svg: ^2.0.10
   google_fonts: ^6.2.1
   flutter_animate: ^4.5.0

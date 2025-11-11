@@ -724,15 +724,15 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
               ),
             ),
             
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             
             Expanded(
               child: _buildSocialButton(
-                icon: Icons.facebook,
-                label: 'Facebook',
+                icon: Icons.apple,
+                label: 'Apple',
                 onPressed: () async {
                   HapticFeedback.lightImpact();
-                  await _handleFacebookRegister();
+                  await _handleAppleRegister();
                 },
               ),
             ),
@@ -833,16 +833,71 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
     }
   }
 
+  Future<void> _handleAppleRegister() async {
+    try {
+      final result = await SocialAuthService.signInWithApple();
+      
+      if (result != null && mounted) {
+        final user = result['user'];
+        if (user != null) {
+          context.read<AuthBloc>().add(AuthUserChanged(User.fromJson(user)));
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('Apple ile kayıt başarılı!')),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [REGISTER_SCREEN] Apple register error: $e');
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Apple kaydı başarısız: ${e.toString()}')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _handleFacebookRegister() async {
     try {
-      // Facebook register implementation
+      // Facebook register will be implemented in next phase
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: [
               const Icon(Icons.info_outline, color: Colors.white),
               const SizedBox(width: 8),
-              Expanded(child: Text('Facebook kaydı yakında aktif olacak!')),
+              Expanded(child: Text('Facebook kaydı bir sonraki güncellemede aktif olacak!')),
             ],
           ),
           backgroundColor: Colors.orange,

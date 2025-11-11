@@ -89,6 +89,13 @@ class Handler extends ExceptionHandler
      */
     private function handleApiException(Request $request, Throwable $exception): JsonResponse
     {
+        if ($exception instanceof ValidationException) {
+            return response()->json([
+                'message' => 'Girilen veriler geçersiz. Lütfen kontrol edin.',
+                'errors' => $exception->errors(),
+            ], 422);
+        }
+
         $statusCode = $this->getStatusCode($exception);
         $message = $this->getMessage($exception);
         $code = $this->getErrorCode($exception);

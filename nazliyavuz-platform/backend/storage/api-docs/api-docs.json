@@ -1,17 +1,32 @@
 {
-    "openapi": "3.0.0",
+    "openapi": "3.0.3",
     "info": {
-        "title": "Nazliyavuz Platform API",
-        "description": "Modern eğitim platformu API dokümantasyonu",
+        "title": "Nazliyavuz Education Platform API",
+        "description": "# Nazliyavuz Education Platform API\n\nA comprehensive REST API for the Nazliyavuz education platform that connects students with qualified teachers.\n\n## Features\n\n- **User Management**: Registration, authentication, profile management\n- **Teacher Profiles**: Detailed teacher profiles with ratings and reviews\n- **Reservation System**: Book lessons with teachers\n- **Search & Discovery**: Advanced search with filters and AI-powered recommendations\n- **Real-time Chat**: Instant messaging between students and teachers\n- **Payment Integration**: Secure payment processing\n- **Admin Panel**: Comprehensive admin tools and analytics\n\n## Authentication\n\nThis API uses JWT (JSON Web Tokens) for authentication. Include the token in the Authorization header:\n\n```\nAuthorization: Bearer your-jwt-token-here\n```\n\n## Rate Limiting\n\nAPI requests are rate limited to ensure fair usage:\n- **Authenticated users**: 1000 requests per hour\n- **Unauthenticated users**: 100 requests per hour\n\n## Error Handling\n\nAll errors follow a consistent format:\n\n```json\n{\n  \"error\": {\n    \"code\": \"ERROR_CODE\",\n    \"message\": \"Human readable error message\",\n    \"details\": \"Additional error details (optional)\"\n  }\n}\n```",
+        "version": "1.0.0",
         "contact": {
-            "email": "info@nazliyavuz.com"
+            "name": "API Support",
+            "email": "support@nazliyavuz.com",
+            "url": "https://nazliyavuz.com/support"
         },
-        "version": "1.0.0"
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        }
     },
     "servers": [
         {
-            "url": "http://localhost:8000/api/v1",
-            "description": "Development Server"
+            "url": "http://10.226.70.19:8080/api",
+            "description": "Production server"
+        },
+        {
+            "url": "http://localhost:8000/api",
+            "description": "Development server"
+        }
+    ],
+    "security": [
+        {
+            "bearerAuth": []
         }
     ],
     "paths": {
@@ -20,89 +35,148 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Yeni kullanıcı kaydı",
-                "description": "Sisteme yeni kullanıcı kaydı oluşturur",
-                "operationId": "ed42f392010c301892e640067141676e",
+                "summary": "Register new user",
+                "description": "Create a new user account with email verification",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "name",
-                                    "email",
-                                    "password",
-                                    "password_confirmation",
-                                    "role"
-                                ],
-                                "properties": {
-                                    "name": {
-                                        "type": "string",
-                                        "example": "Ahmet Yılmaz"
-                                    },
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email",
-                                        "example": "ahmet@example.com"
-                                    },
-                                    "password": {
-                                        "type": "string",
-                                        "format": "password",
-                                        "example": "password123"
-                                    },
-                                    "password_confirmation": {
-                                        "type": "string",
-                                        "format": "password",
-                                        "example": "password123"
-                                    },
-                                    "role": {
-                                        "type": "string",
-                                        "enum": [
-                                            "student",
-                                            "teacher"
-                                        ],
-                                        "example": "student"
-                                    }
-                                },
-                                "type": "object"
+                                "$ref": "#/components/schemas/RegisterRequest"
                             }
                         }
                     }
                 },
                 "responses": {
                     "201": {
-                        "description": "Kullanıcı başarıyla oluşturuldu",
+                        "description": "User registered successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Kullanıcı başarıyla oluşturuldu"
-                                        },
-                                        "user": {
-                                            "type": "object"
-                                        },
-                                        "token": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
+                                    "$ref": "#/components/schemas/AuthResponse"
                                 }
                             }
                         }
                     },
                     "422": {
-                        "description": "Validation hatası",
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "User login",
+                "description": "Authenticate user and return JWT token",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
+                                    "$ref": "#/components/schemas/AuthResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    }
+                }
+            }
+        },
+        "/auth/social/google": {
+            "post": {
+                "tags": [
+                    "Social Auth"
+                ],
+                "summary": "Google OAuth login",
+                "description": "Authenticate using Google OAuth token",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SocialAuthRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Social login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/teachers": {
+            "get": {
+                "tags": [
+                    "Teachers"
+                ],
+                "summary": "Get teachers list",
+                "description": "Retrieve paginated list of teachers with filters",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/PageParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/PerPageParam"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Teachers retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeacherListResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/search": {
+            "get": {
+                "tags": [
+                    "Search"
+                ],
+                "summary": "Search teachers",
+                "description": "Advanced search for teachers with multiple filters",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/SearchQueryParam"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Search results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SearchResponse"
                                 }
                             }
                         }
@@ -115,15 +189,351 @@
         "securitySchemes": {
             "bearerAuth": {
                 "type": "http",
+                "scheme": "bearer",
                 "bearerFormat": "JWT",
-                "scheme": "bearer"
+                "description": "JWT token obtained from login endpoint"
+            },
+            "apiKey": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-API-Key",
+                "description": "API key for external integrations"
+            }
+        },
+        "schemas": {
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "John Doe"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "john@example.com"
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "student",
+                            "teacher",
+                            "admin"
+                        ],
+                        "example": "student"
+                    },
+                    "profile_photo_url": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "email_verified_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "Teacher": {
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/User"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "bio": {
+                                "type": "string"
+                            },
+                            "education": {
+                                "type": "string"
+                            },
+                            "experience_years": {
+                                "type": "integer"
+                            },
+                            "price_hour": {
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "rating_avg": {
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "total_ratings": {
+                                "type": "integer"
+                            },
+                            "languages": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "categories": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Category"
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+            "RegisterRequest": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "email",
+                    "password",
+                    "password_confirmation",
+                    "role"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "example": "John Doe"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "john@example.com"
+                    },
+                    "password": {
+                        "type": "string",
+                        "minLength": 8,
+                        "example": "password123"
+                    },
+                    "password_confirmation": {
+                        "type": "string",
+                        "example": "password123"
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "student",
+                            "teacher"
+                        ],
+                        "example": "student"
+                    }
+                }
+            },
+            "LoginRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "password"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "john@example.com"
+                    },
+                    "password": {
+                        "type": "string",
+                        "example": "password123"
+                    }
+                }
+            },
+            "SocialAuthRequest": {
+                "type": "object",
+                "required": [
+                    "access_token"
+                ],
+                "properties": {
+                    "access_token": {
+                        "type": "string",
+                        "example": "ya29.a0AfH6SMC..."
+                    },
+                    "id_token": {
+                        "type": "string",
+                        "example": "eyJhbGciOiJSUzI1NiIs..."
+                    }
+                }
+            },
+            "AuthResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Login successful"
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/User"
+                    },
+                    "token": {
+                        "type": "string",
+                        "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                    },
+                    "is_new_user": {
+                        "type": "boolean",
+                        "example": false
+                    }
+                }
+            },
+            "Category": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "icon": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "example": "VALIDATION_ERROR"
+                            },
+                            "message": {
+                                "type": "string",
+                                "example": "The given data was invalid"
+                            },
+                            "details": {
+                                "type": "object",
+                                "nullable": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "responses": {
+            "ValidationError": {
+                "description": "Validation error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "UnauthorizedError": {
+                "description": "Unauthorized",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "NotFoundError": {
+                "description": "Resource not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "parameters": {
+            "PageParam": {
+                "name": "page",
+                "in": "query",
+                "description": "Page number",
+                "required": false,
+                "schema": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 1
+                }
+            },
+            "PerPageParam": {
+                "name": "per_page",
+                "in": "query",
+                "description": "Items per page",
+                "required": false,
+                "schema": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 20
+                }
+            },
+            "SearchQueryParam": {
+                "name": "query",
+                "in": "query",
+                "description": "Search query",
+                "required": false,
+                "schema": {
+                    "type": "string",
+                    "maxLength": 255
+                }
             }
         }
     },
     "tags": [
         {
             "name": "Authentication",
-            "description": "Kimlik doğrulama işlemleri"
+            "description": "User authentication and authorization"
+        },
+        {
+            "name": "Social Auth",
+            "description": "Social media authentication (Google, Facebook, Apple)"
+        },
+        {
+            "name": "Teachers",
+            "description": "Teacher profiles and management"
+        },
+        {
+            "name": "Students",
+            "description": "Student profiles and management"
+        },
+        {
+            "name": "Reservations",
+            "description": "Reservation management"
+        },
+        {
+            "name": "Search",
+            "description": "Search and discovery features"
+        },
+        {
+            "name": "Chat",
+            "description": "Real-time messaging"
+        },
+        {
+            "name": "Admin",
+            "description": "Admin panel operations"
+        },
+        {
+            "name": "Files",
+            "description": "File upload and management"
         }
-    ]
+    ],
+    "externalDocs": {
+        "description": "Find more info here",
+        "url": "https://nazliyavuz.com/docs"
+    }
 }

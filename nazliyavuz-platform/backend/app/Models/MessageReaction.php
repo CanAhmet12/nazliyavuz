@@ -16,6 +16,11 @@ class MessageReaction extends Model
         'emoji',
     ];
 
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
     /**
      * Get the message this reaction belongs to
      */

@@ -154,7 +154,7 @@ class Teacher extends Model
      */
     public function reservations()
     {
-        return $this->hasMany(Reservation::class);
+        return $this->hasMany(Reservation::class, 'teacher_id', 'user_id');
     }
 
     /**
@@ -162,7 +162,15 @@ class Teacher extends Model
      */
     public function availabilities()
     {
-        return $this->hasMany(TeacherAvailability::class);
+        return $this->hasMany(TeacherAvailability::class, 'teacher_id', 'user_id');
+    }
+
+    /**
+     * Get the teacher's exceptions (special days, holidays, custom hours)
+     */
+    public function exceptions()
+    {
+        return $this->hasMany(TeacherException::class, 'teacher_id', 'user_id');
     }
 
     /**
@@ -170,8 +178,16 @@ class Teacher extends Model
      */
     public function favoritedBy()
     {
-        return $this->belongsToMany(User::class, 'favorites')
+        return $this->belongsToMany(User::class, 'favorites', 'teacher_id', 'user_id')
                     ->withTimestamps();
+    }
+
+    /**
+     * Get favorite records for this teacher
+     */
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class, 'teacher_id', 'user_id');
     }
 
     /**

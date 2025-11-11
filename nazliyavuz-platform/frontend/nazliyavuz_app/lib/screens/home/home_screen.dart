@@ -34,6 +34,9 @@ class _HomeScreenState extends State<HomeScreen>
   
   // Performance optimization - cache featured teachers
   Future<List<Teacher>>? _featuredTeachersFuture;
+  
+  // Unread message count
+  int _unreadMessageCount = 0;
 
   @override
   void initState() {
@@ -50,10 +53,27 @@ class _HomeScreenState extends State<HomeScreen>
       parent: _fabAnimationController,
       curve: Curves.easeInOut,
     ));
+    
+    // Load unread message count
+    _loadUnreadMessageCount();
     _fabAnimationController.forward();
     
     // Initialize featured teachers cache
     _featuredTeachersFuture = _getFeaturedTeachers();
+  }
+
+  Future<void> _loadUnreadMessageCount() async {
+    try {
+      final apiService = ApiService();
+      final count = await apiService.getUnreadMessageCount();
+      if (mounted) {
+        setState(() {
+          _unreadMessageCount = count;
+        });
+      }
+    } catch (e) {
+      print('Error loading unread message count: $e');
+    }
   }
 
   @override
@@ -764,6 +784,7 @@ class _HomeScreenState extends State<HomeScreen>
                 title: 'Mesajlar',
                 subtitle: 'Eğitimcilerle konuş',
                 color: const Color(0xFF8B5CF6),
+                badgeCount: _unreadMessageCount,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -786,6 +807,7 @@ class _HomeScreenState extends State<HomeScreen>
     required String subtitle,
     required Color color,
     required VoidCallback onTap,
+    int? badgeCount,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -805,18 +827,47 @@ class _HomeScreenState extends State<HomeScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withOpacity( 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 24,
-              ),
+            Stack(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity( 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 24,
+                  ),
+                ),
+                if (badgeCount != null && badgeCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Text(
+                        badgeCount > 99 ? '99+' : badgeCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 12),
             Text(

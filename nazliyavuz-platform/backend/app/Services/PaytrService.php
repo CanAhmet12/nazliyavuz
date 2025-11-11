@@ -213,31 +213,68 @@ class PaytrService
     }
 
     /**
-     * Refund payment
+     * Refund payment via PayTR
      */
-    public function refundPayment(string $merchantOid, float $amount): array
+    public function refundPayment(string $merchantOid, float $amount, ?string $reason = null): array
     {
         try {
-            $hashStr = $this->merchantId . $merchantOid . $this->merchantSalt;
-            $paytrToken = base64_encode(hash_hmac('sha256', $hashStr, $this->merchantKey, true));
+            $amountInKurus = (int) round($amount * 100);
 
-            $response = Http::asForm()->post('https://www.paytr.com/odeme/api/refund', [
+            if ($amountInKurus <= 0) {
+                return [
+                    'success' => false,
+                    'message' => 'Refund amount must be greater than zero',
+                ];
+            }
+
+            if ($this->testMode) {
+                Log::info('PayTR refund simulated (test mode)', [
+                    'merchant_oid' => $merchantOid,
+                    'amount' => $amount,
+                    'reason' => $reason,
+                ]);
+
+                return [
+                    'success' => true,
+                    'status' => 'success',
+                    'message' => 'Test mode refund simulated',
+                    'merchant_oid' => $merchantOid,
+                    'refund_amount' => $amountInKurus,
+                ];
+            }
+
+            $params = [
                 'merchant_id' => $this->merchantId,
                 'merchant_oid' => $merchantOid,
-                'amount' => $amount * 100, // Convert to kuruş
-                'paytr_token' => $paytrToken,
-            ]);
+                'return_amount' => $amountInKurus,
+                'paytr_token' => $this->generateRefundToken($merchantOid, $amountInKurus),
+            ];
+
+            if ($reason) {
+                $params['reason'] = $reason;
+            }
+
+            $response = Http::asForm()->post('https://www.paytr.com/odeme/api/refund', $params);
 
             if (!$response->successful()) {
-                throw new \Exception('PayTR refund failed: ' . $response->body());
+                throw new \Exception('PayTR refund request failed: ' . $response->body());
             }
 
             $result = $response->json();
 
+            if (($result['status'] ?? null) !== 'success') {
+                return [
+                    'success' => false,
+                    'message' => $result['err_msg'] ?? 'Unknown PayTR refund error',
+                    'response' => $result,
+                ];
+            }
+
             return [
-                'success' => $result['status'] === 'success',
-                'message' => $result['message'] ?? 'İade işlemi tamamlandı',
-                'data' => $result,
+                'success' => true,
+                'status' => $result['status'],
+                'message' => $result['reason'] ?? 'Refund successful',
+                'response' => $result,
             ];
 
         } catch (\Exception $e) {
@@ -249,8 +286,15 @@ class PaytrService
 
             return [
                 'success' => false,
-                'error' => 'İade işlemi başarısız: ' . $e->getMessage(),
+                'message' => 'Refund failed: ' . $e->getMessage(),
             ];
         }
+    }
+
+    private function generateRefundToken(string $merchantOid, int $amountInKurus): string
+    {
+        $hashStr = $this->merchantId . $merchantOid . $amountInKurus . $this->merchantSalt;
+
+        return base64_encode(hash_hmac('sha256', $hashStr, $this->merchantKey, true));
     }
 }

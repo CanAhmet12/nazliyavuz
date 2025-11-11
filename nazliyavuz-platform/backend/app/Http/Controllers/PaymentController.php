@@ -392,4 +392,50 @@ class PaymentController extends Controller
             ]);
         }
     }
+
+    /**
+     * Get payment status
+     */
+    public function getPaymentStatus(Request $request, $paymentId): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            $payment = Payment::where('id', $paymentId)
+                ->where('user_id', $user->id)
+                ->first();
+            
+            if (!$payment) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'PAYMENT_NOT_FOUND',
+                        'message' => 'Ödeme bulunamadı'
+                    ]
+                ], 404);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'payment' => [
+                    'id' => $payment->id,
+                    'status' => $payment->status,
+                    'amount' => $payment->amount,
+                    'currency' => $payment->currency,
+                    'description' => $payment->description,
+                    'created_at' => $payment->created_at,
+                    'updated_at' => $payment->updated_at,
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Get payment status error: ' . $e->getMessage());
+            
+            return response()->json([
+                'error' => [
+                    'code' => 'SERVER_ERROR',
+                    'message' => 'Ödeme durumu alınırken hata oluştu'
+                ]
+            ], 500);
+        }
+    }
 }

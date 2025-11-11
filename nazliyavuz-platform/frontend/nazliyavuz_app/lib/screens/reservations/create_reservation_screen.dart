@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/teacher.dart';
 import '../../models/category.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_theme.dart';
 // import '../../widgets/custom_widgets.dart'; // Temporarily unused
 
 class CreateReservationScreen extends StatefulWidget {
@@ -30,10 +31,16 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   
   Category? _selectedCategory;
   DateTime? _selectedDateTime;
+  DateTime? _selectedDate; // Only date (no time)
   int _selectedDuration = 60; // Default 1 hour
   bool _isLoading = false;
   
-  final List<int> _durationOptions = [30, 40, 60, 90, 120, 180, 240]; // 30 min to 4 hours
+  // Available slots
+  List<Map<String, dynamic>> _availableSlots = [];
+  bool _loadingSlots = false;
+  String? _selectedSlot;
+  
+  final List<int> _durationOptions = [30, 60, 90, 120, 180, 240]; // 30 min to 4 hours
 
   // All subject suggestions by category
   final Map<String, List<String>> _allSubjectSuggestions = {
@@ -136,24 +143,46 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Ders Rezervasyonu'),
-        backgroundColor: Colors.transparent,
+        title: const Text(
+          'Ders Rezervasyonu',
+          style: TextStyle(
+            color: Color(0xFF111827),
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.4,
+          ),
+        ),
+        backgroundColor: Colors.white,
         elevation: 0,
+        foregroundColor: const Color(0xFF111827),
+        surfaceTintColor: Colors.white,
+        shadowColor: Colors.transparent,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: const Color(0xFFE5E7EB),
+          ),
+        ),
         actions: [
           if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: SizedBox(
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              child: const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6B7280)),
+                ),
               ),
             ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16), // Daha kompakt padding
         child: Form(
           key: _formKey,
           child: Column(
@@ -161,17 +190,17 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
             children: [
               // Teacher Info Card
               _buildTeacherInfoCard(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16), // Daha kompakt spacing
               
               // Category Selection
               _buildSectionHeader('Ders Kategorisi', Icons.category_rounded),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8), // Daha kompakt spacing
               _buildCategorySelector(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16), // Daha kompakt spacing
               
               // Subject Field
               _buildSectionHeader('Ders Konusu', Icons.book_rounded),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8), // Daha kompakt spacing
               Autocomplete<String>(
                 optionsBuilder: (TextEditingValue textEditingValue) {
                   if (textEditingValue.text.isEmpty || _selectedCategory == null) {
@@ -284,7 +313,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _submitReservation,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3B82F6),
+                    backgroundColor: AppTheme.primaryBlue, // Renk standardizasyonu
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -382,18 +411,18 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                 Text(
                   widget.teacher.displayName,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 16, // Daha kompakt font
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF1E293B),
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2), // Daha kompakt spacing
                 Text(
                   widget.teacher.specialization ?? 'Genel Eğitim',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 12, // Daha kompakt font
                     color: Colors.grey[600],
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -466,7 +495,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
         Text(
           title,
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 14, // Daha kompakt font
             fontWeight: FontWeight.w600,
             color: Color(0xFF1E293B),
           ),
@@ -557,113 +586,250 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: _selectDate,
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _selectedDateTime != null 
-                          ? const Color(0xFF3B82F6).withValues(alpha: 0.1)
-                          : Colors.grey[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: _selectedDateTime != null 
-                            ? const Color(0xFF3B82F6)
-                            : Colors.grey[300]!,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today_rounded,
-                          color: _selectedDateTime != null 
-                              ? const Color(0xFF3B82F6)
-                              : Colors.grey[400],
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _selectedDateTime != null
-                                ? DateFormat('dd MMMM yyyy', 'tr').format(_selectedDateTime!)
-                                : 'Tarih seçin',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: _selectedDateTime != null 
-                                  ? const Color(0xFF3B82F6)
-                                  : Colors.grey[600],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+          // Date Selector
+          InkWell(
+            onTap: _selectDate,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _selectedDate != null 
+                    ? const Color(0xFF3B82F6).withValues(alpha: 0.1)
+                    : Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _selectedDate != null 
+                      ? const Color(0xFF3B82F6)
+                      : Colors.grey[300]!,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: InkWell(
-                  onTap: _selectedDateTime != null ? _selectTime : null,
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _selectedDateTime != null 
-                          ? const Color(0xFF3B82F6).withValues(alpha: 0.1)
-                          : Colors.grey[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: _selectedDateTime != null 
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today_rounded,
+                    color: _selectedDate != null 
+                        ? const Color(0xFF3B82F6)
+                        : Colors.grey[400],
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _selectedDate != null
+                          ? DateFormat('dd MMMM yyyy EEEE', 'tr').format(_selectedDate!)
+                          : 'Tarih seçin',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: _selectedDate != null 
                             ? const Color(0xFF3B82F6)
-                            : Colors.grey[300]!,
+                            : Colors.grey[600],
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.access_time_rounded,
-                          color: _selectedDateTime != null 
-                              ? const Color(0xFF3B82F6)
-                              : Colors.grey[400],
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _selectedDateTime != null
-                                ? DateFormat('HH:mm').format(_selectedDateTime!)
-                                : 'Saat seçin',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: _selectedDateTime != null 
-                                  ? const Color(0xFF3B82F6)
-                                  : Colors.grey[600],
-                            ),
-                          ),
-                        ),
-                      ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Available Slots Section
+          if (_selectedDate != null) ...[
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            
+            // Loading indicator
+            if (_loadingSlots)
+              Center(
+                child: Column(
+                  children: [
+                    const CircularProgressIndicator(strokeWidth: 2),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Uygun saatler yükleniyor...',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            // Available slots chips
+            if (!_loadingSlots && _availableSlots.isNotEmpty) ...[
+              Row(
+                children: [
+                  Icon(
+                    Icons.schedule_rounded,
+                    color: const Color(0xFF10B981),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Uygun Saatler (${_availableSlots.length} adet)',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E293B),
                     ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _availableSlots.map((slot) {
+                  final timeRange = slot['formatted_time'] ?? 
+                                    '${slot['start_time']} - ${slot['end_time']}';
+                  final isSelected = _selectedSlot == timeRange;
+                  
+                  return InkWell(
+                    onTap: () {
+                      setState(() {
+                        _selectedSlot = timeRange;
+                        
+                        // Parse start time and create DateTime
+                        final startTimeParts = (slot['start_time'] as String).split(':');
+                        _selectedDateTime = DateTime(
+                          _selectedDate!.year,
+                          _selectedDate!.month,
+                          _selectedDate!.day,
+                          int.parse(startTimeParts[0]),
+                          int.parse(startTimeParts[1]),
+                        );
+                      });
+                      HapticFeedback.selectionClick();
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected 
+                            ? const Color(0xFF10B981)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected 
+                              ? const Color(0xFF10B981)
+                              : Colors.grey[300]!,
+                          width: isSelected ? 2 : 1,
+                        ),
+                        boxShadow: isSelected ? [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ] : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isSelected ? Icons.check_circle : Icons.access_time,
+                            color: isSelected ? Colors.white : const Color(0xFF64748B),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            timeRange,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                              color: isSelected ? Colors.white : const Color(0xFF1E293B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+              if (_selectedSlot != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFF10B981).withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        color: Color(0xFF10B981),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Seçilen saat: $_selectedSlot',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF10B981),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+            
+            // No slots available message
+            if (!_loadingSlots && _selectedDate != null && _availableSlots.isEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.orange[200]!,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.orange[700],
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Bu tarihte uygun saat bulunmamaktadır.\nLütfen başka bir tarih seçin.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.orange[900],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-          if (_selectedDateTime == null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                'Önce tarih seçmelisiniz',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.red[600],
+            
+            // Helper text
+            if (_selectedDate != null && !_loadingSlots)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  'İpucu: Ders süresini değiştirirseniz uygun saatler otomatik güncellenir',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
-            ),
+          ],
         ],
       ),
     );
@@ -694,12 +860,19 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
             children: _durationOptions.map((duration) {
               final isSelected = _selectedDuration == duration;
               return InkWell(
-                onTap: () {
+                onTap: () async {
                   setState(() {
                     _selectedDuration = duration;
                     _durationController.text = duration.toString();
+                    _selectedSlot = null; // Reset selected slot
+                    _selectedDateTime = null; // Reset selected time
                   });
                   HapticFeedback.lightImpact();
+                  
+                  // Reload available slots with new duration
+                  if (_selectedDate != null) {
+                    await _loadAvailableSlots(_selectedDate!);
+                  }
                 },
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
@@ -801,43 +974,104 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   Future<void> _selectDate() async {
     final now = DateTime.now();
     final firstDate = now;
-    final lastDate = now.add(const Duration(days: 30)); // Max 30 days ahead
+    final lastDate = now.add(const Duration(days: 90)); // Max 90 days ahead
 
     final selectedDate = await showDatePicker(
       context: context,
-      initialDate: _selectedDateTime ?? now.add(const Duration(days: 1)),
+      initialDate: _selectedDate ?? now.add(const Duration(days: 1)),
       firstDate: firstDate,
       lastDate: lastDate,
       locale: const Locale('tr', 'TR'),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppTheme.primaryBlue, // Renk standardizasyonu
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: AppTheme.grey900, // Renk standardizasyonu
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (selectedDate != null) {
       setState(() {
-        _selectedDateTime = selectedDate;
+        _selectedDate = selectedDate;
+        _selectedDateTime = null; // Reset selected time
+        _selectedSlot = null; // Reset selected slot
       });
+      
+      // Load available slots for this date
+      await _loadAvailableSlots(selectedDate);
     }
   }
 
-  Future<void> _selectTime() async {
-    if (_selectedDateTime == null) return;
+  Future<void> _loadAvailableSlots(DateTime date) async {
+    setState(() {
+      _loadingSlots = true;
+      _availableSlots.clear();
+      _selectedSlot = null;
+    });
 
-    final selectedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-
-    if (selectedTime != null) {
+    try {
+      final dateStr = DateFormat('yyyy-MM-dd').format(date);
+      final response = await _apiService.getAvailableSlots(
+        widget.teacher.userId, 
+        dateStr,
+        durationMinutes: _selectedDuration,
+      );
+      
       setState(() {
-        _selectedDateTime = DateTime(
-          _selectedDateTime!.year,
-          _selectedDateTime!.month,
-          _selectedDateTime!.day,
-          selectedTime.hour,
-          selectedTime.minute,
+        _availableSlots = List<Map<String, dynamic>>.from(response['data'] ?? []);
+      });
+      
+      if (_availableSlots.isEmpty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    response['message'] ?? 'Bu tarihte uygun saat bulunmamaktadır',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.orange[700],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Uygun saatler yüklenirken hata: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _loadingSlots = false;
       });
     }
   }
+
 
   Future<void> _submitReservation() async {
     if (!_formKey.currentState!.validate()) return;
@@ -847,8 +1081,13 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
       return;
     }
     
-    if (_selectedDateTime == null) {
-      _showErrorSnackBar('Lütfen tarih ve saat seçin');
+    if (_selectedDate == null) {
+      _showErrorSnackBar('Lütfen bir tarih seçin');
+      return;
+    }
+    
+    if (_selectedDateTime == null || _selectedSlot == null) {
+      _showErrorSnackBar('Lütfen uygun saatlerden birini seçin');
       return;
     }
     
@@ -879,7 +1118,8 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('Rezervasyon oluşturulurken hata oluştu: $e');
+        String errorMessage = _getUserFriendlyErrorMessage(e.toString());
+        _showErrorSnackBar(errorMessage);
       }
     } finally {
       if (mounted) {
@@ -941,7 +1181,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                   Navigator.of(context).pop(true); // Bu sayfayı kapat ve success döndür
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
+                  backgroundColor: AppTheme.accentGreen, // Renk standardizasyonu
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -961,6 +1201,28 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
         ),
       ),
     );
+  }
+
+  String _getUserFriendlyErrorMessage(String error) {
+    if (error.contains('OUTSIDE_AVAILABLE_HOURS')) {
+      return 'Seçilen saat öğretmenin müsait olduğu saatler dışında. Lütfen farklı bir saat seçin.';
+    } else if (error.contains('NO_AVAILABILITY')) {
+      return 'Öğretmen bu gün müsait değil. Lütfen farklı bir tarih seçin.';
+    } else if (error.contains('TEACHER_UNAVAILABLE')) {
+      return 'Öğretmen bu tarihte müsait değil. Lütfen farklı bir tarih seçin.';
+    } else if (error.contains('RESERVATION_CONFLICT')) {
+      return 'Bu saatte öğretmen başka bir derse sahip. Lütfen farklı bir saat seçin.';
+    } else if (error.contains('TOO_CLOSE')) {
+      return 'Rezervasyon en az 2 saat önceden yapılmalıdır.';
+    } else if (error.contains('DAILY_LIMIT_EXCEEDED')) {
+      return 'Günlük maksimum rezervasyon limitine ulaştınız. Lütfen yarın tekrar deneyin.';
+    } else if (error.contains('TEACHER_NOT_FOUND')) {
+      return 'Öğretmen bulunamadı. Lütfen sayfayı yenileyin.';
+    } else if (error.contains('TEACHER_PROFILE_NOT_FOUND')) {
+      return 'Öğretmen profili bulunamadı. Lütfen sayfayı yenileyin.';
+    } else {
+      return 'Rezervasyon oluşturulurken hata oluştu. Lütfen tekrar deneyin.';
+    }
   }
 
   void _showErrorSnackBar(String message) {

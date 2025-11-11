@@ -73,29 +73,49 @@
             <h1 class="title">⏰ Rezervasyon Hatırlatması</h1>
         </div>
 
-        <p>Merhaba <strong>{{ $student->name }}</strong>,</p>
-        
-        <p>Yarın gerçekleşecek rezervasyonunuzu hatırlatmak istiyoruz:</p>
+        @php
+            $recipientName = $recipient->name ?? ($student->name ?? 'Değerli kullanıcımız');
+            $lessonDate = $reservation->proposed_datetime ?? ($reservation->date ?? null);
+            $formattedDate = $lessonDate instanceof \Carbon\Carbon
+                ? $lessonDate->timezone(config('app.timezone'))->format('d.m.Y H:i')
+                : ($reservation->start_time ?? 'belirtilmedi');
+        @endphp
+
+        <p>Merhaba <strong>{{ $recipientName }}</strong>,</p>
+
+        @if(($recipientRole ?? 'student') === 'teacher')
+            <p>Öğrenciniz ile planlanan ders için hatırlatma yapmak istiyoruz.</p>
+        @else
+            <p>Yaklaşan dersiniz için hatırlatma yapmak istiyoruz.</p>
+        @endif
 
         <div class="reminder-box">
             <h3>📅 Rezervasyon Detayları</h3>
-            <p><strong>Öğretmen:</strong> {{ $teacher->name }}</p>
-            <p><strong>Tarih:</strong> {{ $reservation->date->format('d.m.Y') }}</p>
-            <p><strong>Saat:</strong> {{ $reservation->start_time }} - {{ $reservation->end_time }}</p>
-            <p><strong>Ders Türü:</strong> {{ $reservation->lesson_type }}</p>
-            @if($reservation->notes)
-            <p><strong>Notlar:</strong> {{ $reservation->notes }}</p>
+            @if($teacher)
+                <p><strong>Öğretmen:</strong> {{ $teacher->name }}</p>
+            @endif
+            @if($student && ($recipientRole ?? 'student') === 'teacher')
+                <p><strong>Öğrenci:</strong> {{ $student->name }}</p>
+            @endif
+            <p><strong>Tarih ve Saat:</strong> {{ $formattedDate }}</p>
+            @if(!empty($reservation->lesson_type))
+                <p><strong>Ders Türü:</strong> {{ $reservation->lesson_type }}</p>
+            @endif
+            @if(!empty($reservation->notes))
+                <p><strong>Notlar:</strong> {{ $reservation->notes }}</p>
             @endif
         </div>
 
-        <div class="teacher-info">
-            <h3>👨‍🏫 Öğretmen Bilgileri</h3>
-            <p><strong>İsim:</strong> {{ $teacher->name }}</p>
-            <p><strong>E-posta:</strong> {{ $teacher->email }}</p>
-            @if($reservation->teacher->bio)
-            <p><strong>Hakkında:</strong> {{ $reservation->teacher->bio }}</p>
-            @endif
-        </div>
+        @if($teacher && ($recipientRole ?? 'student') !== 'teacher')
+            <div class="teacher-info">
+                <h3>👨‍🏫 Öğretmen Bilgileri</h3>
+                <p><strong>İsim:</strong> {{ $teacher->name }}</p>
+                <p><strong>E-posta:</strong> {{ $teacher->email }}</p>
+                @if(!empty(optional($teacher)->bio))
+                <p><strong>Hakkında:</strong> {{ $teacher->bio }}</p>
+                @endif
+            </div>
+        @endif
 
         <p><strong>Önemli Notlar:</strong></p>
         <ul>

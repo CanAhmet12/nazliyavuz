@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import '../../main.dart';
 import '../../models/user.dart';
+import '../../services/api_service.dart';
 import '../reservations/teacher_reservations_screen.dart';
 import '../profile/teacher_profile_screen.dart';
 import '../notifications/notification_screen.dart';
@@ -11,6 +12,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/custom_widgets.dart';
 import '../chat/chat_list_screen.dart';
 import '../students/teacher_students_screen.dart';
+import '../teachers/weekly_availability_screen.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -19,38 +21,94 @@ class TeacherHomeScreen extends StatefulWidget {
   State<TeacherHomeScreen> createState() => _TeacherHomeScreenState();
 }
 
-class _TeacherHomeScreenState extends State<TeacherHomeScreen>
-    with TickerProviderStateMixin {
+class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   int _currentIndex = 0;
-  late AnimationController _fabAnimationController;
-  late Animation<double> _fabAnimation;
+  
+  Map<String, dynamic> _statistics = {};
+  bool _isLoadingStats = true;
+  List<dynamic> _todaysReservations = [];
+  bool _isLoadingReservations = false;
 
   @override
   void initState() {
     super.initState();
-    _fabAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 200), // Reduced duration
-      vsync: this,
-    );
-    _fabAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fabAnimationController,
-      curve: Curves.easeOut, // Simplified curve
-    ));
     
-    // Start animation after build for better performance
+    // Start data loading after build for better performance
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _fabAnimationController.forward();
+        _loadStatistics();
+        _loadTodaysReservations();
       }
     });
+  }
+  
+  Future<void> _loadStatistics() async {
+    try {
+      final apiService = ApiService();
+      final stats = await apiService.get('/user/statistics');
+      
+      if (mounted) {
+        setState(() {
+          _statistics = stats['data'] ?? {};
+          _isLoadingStats = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingStats = false;
+        });
+      }
+      print('❌ Error loading statistics: $e');
+    }
+  }
+  
+  Future<void> _loadTodaysReservations() async {
+    if (_isLoadingReservations) return;
+    
+    setState(() {
+      _isLoadingReservations = true;
+    });
+
+    try {
+      final apiService = ApiService();
+      final now = DateTime.now();
+      final todayStart = DateTime(now.year, now.month, now.day);
+      final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      
+      // Get all reservations
+      final reservations = await apiService.getReservations(
+        status: 'accepted,pending',
+      );
+      
+      // Filter reservations for today and convert to JSON
+      final todays = reservations
+          .where((res) {
+            final proposedDate = res.proposedDatetime;
+            return proposedDate.isAfter(todayStart) && proposedDate.isBefore(todayEnd);
+          })
+          .take(3)
+          .map((res) => res.toJson())
+          .toList();
+      
+      if (mounted) {
+        setState(() {
+          _todaysReservations = todays;
+          _isLoadingReservations = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingReservations = false;
+        });
+      }
+      print('❌ Error loading today\'s reservations: $e');
+    }
   }
 
   @override
   void dispose() {
-    _fabAnimationController.dispose();
     super.dispose();
   }
 
@@ -87,29 +145,12 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
               const RepaintBoundary(child: TeacherProfileScreen()),
             ],
           ),
-          bottomNavigationBar: _buildTeacherBottomNavigationWithFAB(),
-          // FAB moved to bottom navigation bar
+          bottomNavigationBar: _buildTeacherBottomNavigationBar(),
+          floatingActionButton: _buildTeacherFloatingActionButton(),
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         );
       },
       ),
-    );
-  }
-
-  Widget _buildTeacherBottomNavigationWithFAB() {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        _buildTeacherBottomNavigationBar(),
-        // FAB positioned above the bottom navigation bar, centered over assignments menu
-        Positioned(
-          top: -30, // Moved higher above the navigation bar
-          left: 0,
-          right: 0,
-          child: Center(
-            child: _buildTeacherFloatingActionButton(),
-          ),
-        ),
-      ],
     );
   }
 
@@ -203,43 +244,38 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
   }
 
   Widget _buildTeacherFloatingActionButton() {
-    return AnimatedBuilder(
-      animation: _fabAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _fabAnimation.value,
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.premiumGold.withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+    return RepaintBoundary(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 24), // Yukarı kaldırmak için margin eklendi
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.premiumGold.withOpacity(0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
             ),
-            child: FloatingActionButton(
-              heroTag: "teacher_fab",
-              onPressed: () {
-                HapticFeedback.mediumImpact();
-                _showTeacherQuickActions(context);
-              },
-              backgroundColor: AppTheme.premiumGold,
-              foregroundColor: AppTheme.grey900,
-              elevation: 0, // Custom shadow instead
-              mini: true,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                Icons.add_rounded,
-                size: 18,
-              ),
-            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          heroTag: "teacher_fab",
+          onPressed: () {
+            HapticFeedback.mediumImpact();
+            _showTeacherQuickActions(context);
+          },
+          backgroundColor: AppTheme.premiumGold,
+          foregroundColor: AppTheme.grey900,
+          elevation: 0, // Custom shadow instead
+          mini: true,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-        );
-      },
+          child: const Icon(
+            Icons.add_rounded,
+            size: 18,
+          ),
+        ),
+      ),
     );
   }
 
@@ -479,7 +515,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const TeacherReservationsScreen(),
+                            builder: (context) => const WeeklyAvailabilityScreen(),
                           ),
                         );
                       },
@@ -941,6 +977,27 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
             const SizedBox(width: 12),
             Expanded(
               child: _buildTeacherQuickActionCard(
+                icon: Icons.calendar_month_rounded,
+                title: 'Müsaitlik',
+                subtitle: 'Takvimimi düzenle',
+                color: const Color(0xFF10B981),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const WeeklyAvailabilityScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTeacherQuickActionCard(
                 icon: Icons.analytics_rounded,
                 title: 'Raporlar',
                 subtitle: 'Performans analizi',
@@ -950,6 +1007,23 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Performans raporları yakında eklenecek'),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTeacherQuickActionCard(
+                icon: Icons.people_rounded,
+                title: 'Öğrencilerim',
+                subtitle: 'Öğrenci listesi',
+                color: const Color(0xFFEC4899),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TeacherStudentsScreen(),
                     ),
                   );
                 },
@@ -1043,11 +1117,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
               SizedBox(
                 width: MediaQuery.of(context).size.width * 0.28,
                 child: _buildModernStatCard(
-                  'Bugünkü Dersler',
-                  '3',
+                  'Aktif Dersler',
+                  _isLoadingStats ? '...' : '${_statistics['upcoming_lessons'] ?? 0}',
                   Icons.today_rounded,
                   const Color(0xFF10B981),
-                  'Saat 14:00',
+                  'Yakında',
                 ),
               ),
               const SizedBox(width: 12),
@@ -1055,21 +1129,21 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
                 width: MediaQuery.of(context).size.width * 0.28,
                 child: _buildModernStatCard(
                   'Aktif Öğrenciler',
-                  '12',
+                  _isLoadingStats ? '...' : '${_statistics['total_students'] ?? 0}',
                   Icons.people_rounded,
                   const Color(0xFF3B82F6),
-                  'Bu ay',
+                  'Toplam',
                 ),
               ),
               const SizedBox(width: 12),
               SizedBox(
                 width: MediaQuery.of(context).size.width * 0.28,
                 child: _buildModernStatCard(
-                  'Toplam Ders',
-                  '45',
+                  'Tamamlanan',
+                  _isLoadingStats ? '...' : '${_statistics['completed_lessons'] ?? 0}',
                   Icons.school_rounded,
                   const Color(0xFF8B5CF6),
-                  'Bu ay',
+                  'Ders',
                 ),
               ),
             ],
@@ -1188,39 +1262,93 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
               ),
             ],
           ),
-          child: Column(
-            children: [
-              _buildModernActivityItem(
-                'Matematik Dersi',
-                'Ahmet Öğrenci',
-                '14:00 - 15:00',
-                Icons.calculate_rounded,
-                const Color(0xFF3B82F6),
-                'Yaklaşıyor',
-                const Color(0xFFF59E0B),
-              ),
-              const SizedBox(height: 12),
-              _buildModernActivityItem(
-                'İngilizce Konuşma',
-                'Ayşe Öğrenci',
-                '16:00 - 17:00',
-                Icons.chat_rounded,
-                const Color(0xFF10B981),
-                'Planlandı',
-                const Color(0xFF3B82F6),
-              ),
-              const SizedBox(height: 12),
-              _buildModernActivityItem(
-                'Fizik Dersi',
-                'Mehmet Öğrenci',
-                '18:00 - 19:00',
-                Icons.science_rounded,
-                const Color(0xFF8B5CF6),
-                'Planlandı',
-                const Color(0xFF3B82F6),
-              ),
-            ],
-          ),
+          child: _isLoadingReservations
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              : _todaysReservations.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 48,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Bugün ders yok',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Bugün için planlanmış ders bulunmuyor',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[500],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        ...(_todaysReservations.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final reservation = entry.value;
+                          final subject = reservation['subject'] ?? 'Genel';
+                          final studentName = reservation['student_name'] ?? 'Öğrenci';
+                          final datetime = DateTime.parse(reservation['proposed_datetime']);
+                          final duration = reservation['duration_minutes'] ?? 60;
+                          final status = reservation['status'] ?? 'pending';
+                          
+                          final endTime = datetime.add(Duration(minutes: duration));
+                          final timeStr = '${datetime.hour.toString().padLeft(2, '0')}:${datetime.minute.toString().padLeft(2, '0')} - ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
+                          
+                          // Determine colors and status based on reservation
+                          Color iconColor;
+                          Color statusColor;
+                          String statusText;
+                          IconData icon;
+                          
+                          if (status == 'accepted') {
+                            icon = Icons.check_circle_rounded;
+                            iconColor = const Color(0xFF10B981);
+                            statusColor = const Color(0xFF10B981);
+                            statusText = 'Onaylandı';
+                          } else {
+                            icon = Icons.schedule_rounded;
+                            iconColor = const Color(0xFFF59E0B);
+                            statusColor = const Color(0xFFF59E0B);
+                            statusText = 'Bekliyor';
+                          }
+                          
+                          return Column(
+                            children: [
+                              _buildModernActivityItem(
+                                subject,
+                                studentName,
+                                timeStr,
+                                icon,
+                                iconColor,
+                                statusText,
+                                statusColor,
+                              ),
+                              if (index < _todaysReservations.length - 1) const SizedBox(height: 12),
+                            ],
+                          );
+                        }).toList()),
+                      ],
+                    ),
         ),
       ],
     );

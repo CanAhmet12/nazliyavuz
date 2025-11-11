@@ -3,6 +3,10 @@ import 'package:flutter/services.dart';
 import '../../models/reservation.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
+import 'edit_reservation_dialog.dart';
+import 'reschedule_request_dialog.dart';
+import 'reschedule_handle_screen.dart';
+import 'rating_dialog.dart';
 
 class ReservationDetailScreen extends StatefulWidget {
   final Reservation reservation;
@@ -138,6 +142,118 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen>
     }
   }
 
+  // P1 NEW METHODS
+  void _showEditDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => EditReservationDialog(
+        reservation: widget.reservation,
+        onReservationUpdated: () {
+          setState(() {});
+        },
+      ),
+    );
+
+    if (result == true && mounted) {
+      Navigator.pop(context, true); // Refresh parent
+    }
+  }
+
+  void _showRescheduleRequestDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => RescheduleRequestDialog(
+        reservation: widget.reservation,
+        onRequestSubmitted: () {
+          setState(() {});
+        },
+      ),
+    );
+
+    if (result == true && mounted) {
+      Navigator.pop(context, true); // Refresh parent
+    }
+  }
+
+  void _navigateToRescheduleHandle() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RescheduleHandleScreen(
+          reservation: widget.reservation,
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      Navigator.pop(context, true); // Refresh parent
+    }
+  }
+
+  Future<void> _completeReservation() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Dersi Tamamla'),
+        content: const Text('Bu dersi tamamlanmış olarak işaretlemek istediğinizden emin misiniz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('İptal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+            ),
+            child: const Text('Tamamla'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _apiService.completeReservation(widget.reservation.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Ders tamamlandı'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, true); // Refresh parent
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Hata: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showRatingDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => RatingDialog(
+        reservation: widget.reservation,
+        onRatingSubmitted: () {
+          setState(() {});
+        },
+      ),
+    );
+
+    if (result == true && mounted) {
+      Navigator.pop(context, true); // Refresh parent
+    }
+  }
+
   void _showStatusUpdateDialog() {
     showDialog(
       context: context,
@@ -254,115 +370,318 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen>
           ),
         ),
       ),
+      bottomNavigationBar: _buildActionButtons(),
     );
   }
 
-  Widget _buildAppBar() {
-    return SliverAppBar(
-      expandedHeight: 140,
-      pinned: true,
-      elevation: 0,
-      backgroundColor: const Color(0xFFF8FAFC),
-      foregroundColor: AppTheme.grey900,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppTheme.primaryBlue,
-                AppTheme.accentOrange,
-                AppTheme.accentGreen,
-              ],
-              stops: const [0.0, 0.5, 1.0],
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.calendar_today_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          widget.reservation.subject,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            fontSize: 16,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        Text(
-                          _getStatusText(widget.reservation.status),
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: IconButton(
-                      onPressed: _showStatusUpdateDialog,
-                      icon: const Icon(
-                        Icons.edit_outlined,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
+  Widget? _buildActionButtons() {
+    final isStudent = widget.reservation.student != null; // Simplified check
+    final isTeacher = !isStudent; // Simplified logic
+    
+    final List<Widget> buttons = [];
+
+    // Student Actions
+    if (isStudent) {
+      // Edit (Pending only)
+      if (widget.reservation.canBeEdited) {
+        buttons.add(
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _showEditDialog,
+              icon: const Icon(Icons.edit, size: 20),
+              label: const Text('Düzenle'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue, // Renk standardizasyonu
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
           ),
+        );
+      }
+
+      // Reschedule (Accepted only)
+      if (widget.reservation.canBeRescheduled) {
+        buttons.add(
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _showRescheduleRequestDialog,
+              icon: const Icon(Icons.schedule, size: 20),
+              label: const Text('Yeniden Planla'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Rate (Completed, not rated)
+      if (widget.reservation.canBeRated) {
+        buttons.add(
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _showRatingDialog,
+              icon: const Icon(Icons.star, size: 20),
+              label: const Text('Değerlendir'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    // Teacher Actions
+    if (isTeacher) {
+      // Complete (Accepted, past)
+      if (widget.reservation.canBeCompleted) {
+        buttons.add(
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _completeReservation,
+              icon: const Icon(Icons.check_circle, size: 20),
+              label: const Text('Tamamla'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Handle Reschedule Request
+      if (widget.reservation.teacherNotes != null && 
+          widget.reservation.teacherNotes!.contains('reschedule_request')) {
+        buttons.add(
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _navigateToRescheduleHandle,
+              icon: const Icon(Icons.calendar_today, size: 20),
+              label: const Text('Talep İncele'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    if (buttons.isEmpty) return null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: buttons.asMap().entries.map((entry) {
+            final index = entry.key;
+            final button = entry.value;
+            return [
+              button,
+              if (index < buttons.length - 1) const SizedBox(width: 12),
+            ];
+          }).expand((x) => x).toList(),
         ),
       ),
     );
   }
 
+  Widget _buildAppBar() {
+    return SliverAppBar(
+      expandedHeight: 180,
+      pinned: true,
+      elevation: 0,
+      backgroundColor: Colors.white,
+      foregroundColor: const Color(0xFF111827),
+      flexibleSpace: LayoutBuilder(
+        builder: (context, constraints) {
+          return FlexibleSpaceBar(
+            collapseMode: CollapseMode.parallax,
+            background: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  bottom: BorderSide(
+                    color: Color(0xFFE5E7EB),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              widget.reservation.subject,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF111827),
+                                fontSize: 24,
+                                letterSpacing: -0.5,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                            ),
+                          ),
+                          const Icon(
+                            Icons.star_border,
+                            color: Color(0xFF6B7280),
+                            size: 24,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(widget.reservation.status),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_circle_outline,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _getStatusText(widget.reservation.status),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Reservation info chips
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildInfoChip(
+                            Icons.schedule_outlined,
+                            _formatDateTime(widget.reservation.proposedDatetime),
+                          ),
+                          _buildInfoChip(
+                            Icons.person_outline,
+                            widget.reservation.teacher?.user?.name ?? 'Eğitimci',
+                          ),
+                          _buildInfoChip(
+                            Icons.access_time_outlined,
+                            '${widget.reservation.durationMinutes ?? 60} dk',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: const Color(0xFF6B7280),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(
+              color: Color(0xFF6B7280),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final reservationDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    
+    String dateText;
+    if (reservationDate == today) {
+      dateText = 'Bugün';
+    } else if (reservationDate == tomorrow) {
+      dateText = 'Yarın';
+    } else {
+      dateText = '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}';
+    }
+    
+    final timeText = '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    
+    return '$dateText $timeText';
+  }
+
   Widget _buildContent() {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8), // Daha kompakt padding
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Reservation Info Card
             _buildReservationInfoCard(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12), // Daha kompakt spacing
             
             // Participants Info
             _buildParticipantsInfo(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12), // Daha kompakt spacing
             
             // Status Card
             _buildStatusCard(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12), // Daha kompakt spacing
             
             // Notes Section
             _buildNotesSection(),
@@ -374,7 +693,7 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen>
 
   Widget _buildReservationInfoCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12), // Daha kompakt padding
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -392,7 +711,7 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen>
           Text(
             'Randevu Bilgileri',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14, // Daha kompakt font
               fontWeight: FontWeight.w600,
               color: AppTheme.grey900,
             ),
@@ -618,7 +937,7 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen>
         Text(
           '$label: ',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 12, // Daha kompakt font
             fontWeight: FontWeight.w500,
             color: AppTheme.grey700,
           ),
@@ -627,7 +946,7 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen>
           child: Text(
             value,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 12, // Daha kompakt font
               color: AppTheme.grey600,
             ),
           ),
@@ -666,7 +985,4 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen>
     );
   }
 
-  String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-  }
 }

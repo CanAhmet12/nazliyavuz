@@ -1,42 +1,49 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "project_id": "nazliyavuz-platform",
-    "storage_bucket": "nazliyavuz-platform.appspot.com"
+    "project_number": "883554735075",
+    "project_id": "nazliyavuz-544a0",
+    "storage_bucket": "nazliyavuz-544a0.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:abcdefghijklmnop",
+        "mobilesdk_app_id": "1:883554735075:android:bfa297568cd399c88646d6",
         "android_client_info": {
-          "package_name": "com.nazliyavuz.platform"
+          "package_name": "com.nazliyavuz.terenceeducation"
         }
       },
       "oauth_client": [
         {
-          "client_id": "123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com",
+          "client_id": "883554735075-icbek173sq4glld6abnln14ldntph0fg.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.nazliyavuz.platform",
-            "certificate_hash": "abcdefghijklmnopqrstuvwxyz1234567890abcdef"
+            "package_name": "com.nazliyavuz.terenceeducation",
+            "certificate_hash": "3328f1f7075c1d0b5202fc2aea908522cd409a64"
           }
         },
         {
-          "client_id": "123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com",
+          "client_id": "883554735075-nu9c7jo8ltt929abhj8gl1a4kota7spl.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          "current_key": "AIzaSyB8V1GSkQ6dcUUOCLjekA86WXSWR7dh7oo"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com",
+              "client_id": "883554735075-nu9c7jo8ltt929abhj8gl1a4kota7spl.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "883554735075-mk5k78ut64p13l82sbqlvgghfsh6aedo.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.nazliyavuz.terenceeducation"
+              }
             }
           ]
         }

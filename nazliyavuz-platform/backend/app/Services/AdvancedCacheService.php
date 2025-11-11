@@ -2,15 +2,19 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
-use App\Models\User;
+use App\Models\Message;
 use App\Models\Reservation;
 use App\Models\Teacher;
-use App\Models\Message;
-use App\Models\Chat;
+use App\Models\User;
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\DatabaseStore;
+use Illuminate\Cache\RedisStore;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Str;
+use ReflectionClass;
 
 /**
  * Advanced Cache Service with Intelligent Invalidation
@@ -36,35 +40,34 @@ class AdvancedCacheService
     /**
      * Cache user data with relationships
      */
-    public function cacheUser(int $userId, int $duration = self::MEDIUM_TERM): array
+    public function cacheUser(int $userId, int $duration = self::MEDIUM_TERM): ?array
     {
         $key = self::USER_PREFIX . $userId;
-        
+
         return Cache::remember($key, $duration, function () use ($userId, $duration) {
-            $user = User::with(['teacher', 'student'])
-                ->select('id', 'name', 'email', 'role', 'profile_photo_url', 'is_active', 'email_verified_at')
+            $user = User::with(['teacher'])
                 ->find($userId);
-                
+
             if (!$user) {
                 return null;
             }
 
             $userData = $user->toArray();
-            
-            // Add role-specific data
+
             if ($user->role === 'teacher' && $user->teacher) {
                 $userData['teacher_data'] = [
-                    'rating' => $user->teacher->rating,
-                    'rating_count' => $user->teacher->rating_count,
-                    'price_per_hour' => $user->teacher->price_per_hour,
-                    'online_available' => $user->teacher->online_available,
-                    'is_approved' => $user->teacher->is_approved,
-                    'specialties' => $user->teacher->specialties,
-                    'experience_years' => $user->teacher->experience_years,
+                    'rating' => (float) ($user->teacher->rating_avg ?? 0),
+                    'rating_avg' => (float) ($user->teacher->rating_avg ?? 0),
+                    'rating_count' => (int) ($user->teacher->rating_count ?? 0),
+                    'price_per_hour' => (float) ($user->teacher->price_hour ?? 0),
+                    'online_available' => (bool) ($user->teacher->online_available ?? false),
+                    'is_approved' => (bool) ($user->teacher->is_approved ?? false),
+                    'experience_years' => (int) ($user->teacher->experience_years ?? 0),
                 ];
             }
 
             Log::debug('User cached', ['user_id' => $userId, 'duration' => $duration]);
+
             return $userData;
         });
     }
@@ -72,21 +75,23 @@ class AdvancedCacheService
     /**
      * Cache teacher data with statistics
      */
-    public function cacheTeacher(int $teacherId, int $duration = self::MEDIUM_TERM): array
+    public function cacheTeacher(int $teacherId, int $duration = self::MEDIUM_TERM): ?array
     {
         $key = self::TEACHER_PREFIX . $teacherId;
-        
+
         return Cache::remember($key, $duration, function () use ($teacherId, $duration) {
             $teacher = Teacher::with(['user', 'categories'])
                 ->find($teacherId);
-                
+
             if (!$teacher) {
                 return null;
             }
 
             $teacherData = $teacher->toArray();
-            
-            // Add statistics
+
+            $teacherData['rating'] = (float) ($teacherData['rating_avg'] ?? 0);
+            $teacherData['price_per_hour'] = (float) ($teacherData['price_hour'] ?? 0);
+
             $teacherData['statistics'] = [
                 'total_students' => $this->getTeacherStudentCount($teacherId),
                 'total_lessons' => $this->getTeacherLessonCount($teacherId),
@@ -95,6 +100,7 @@ class AdvancedCacheService
             ];
 
             Log::debug('Teacher cached', ['teacher_id' => $teacherId, 'duration' => $duration]);
+
             return $teacherData;
         });
     }
@@ -109,9 +115,9 @@ class AdvancedCacheService
         
         return Cache::remember($key, $duration, function () use ($type, $userId, $filters) {
             $query = Reservation::with([
-                'teacher.user:id,name,email,profile_photo_url',
+                'teacher:id,name,email,profile_photo_url',
                 'student:id,name,email,profile_photo_url',
-                'category:id,name,slug'
+                'category:id,name,slug',
             ]);
 
             // Apply role-based filtering
@@ -209,16 +215,16 @@ class AdvancedCacheService
                 ->where('is_approved', true)
                 ->when(isset($filters['category']), function ($q) use ($filters) {
                     $q->whereHas('categories', function ($cat) use ($filters) {
-                        $cat->where('id', $filters['category']);
+                        $cat->where('categories.id', $filters['category']);
                     });
                 })
                 ->when(isset($filters['min_price']), function ($q) use ($filters) {
-                    $q->where('price_per_hour', '>=', $filters['min_price']);
+                    $q->where('price_hour', '>=', $filters['min_price']);
                 })
                 ->when(isset($filters['max_price']), function ($q) use ($filters) {
-                    $q->where('price_per_hour', '<=', $filters['max_price']);
+                    $q->where('price_hour', '<=', $filters['max_price']);
                 })
-                ->orderBy('rating', 'desc')
+                ->orderBy('rating_avg', 'desc')
                 ->limit(20)
                 ->get();
 
@@ -232,14 +238,62 @@ class AdvancedCacheService
      */
     public function invalidateByPattern(string $pattern): void
     {
-        try {
-            $keys = Redis::keys($pattern);
-            if (!empty($keys)) {
-                Redis::del($keys);
-                Log::info('Cache invalidated by pattern', ['pattern' => $pattern, 'keys_count' => count($keys)]);
+        $store = Cache::getStore();
+
+        // Redis driver supports efficient pattern deletion
+        if ($store instanceof RedisStore) {
+            try {
+                $prefix = $store->getPrefix();
+                $keys = Redis::keys($prefix . $pattern);
+
+                if (!empty($keys)) {
+                    Redis::del($keys);
+                    Log::debug('Cache invalidated by pattern', [
+                        'pattern' => $pattern,
+                        'keys_count' => count($keys),
+                    ]);
+                }
+
+                return;
+            } catch (\Exception $e) {
+                Log::error('Cache invalidation failed', ['pattern' => $pattern, 'error' => $e->getMessage()]);
             }
-        } catch (\Exception $e) {
-            Log::error('Cache invalidation failed', ['pattern' => $pattern, 'error' => $e->getMessage()]);
+        }
+
+        if ($store instanceof DatabaseStore) {
+            try {
+                $prefix = $store->getPrefix();
+                $table = $store->getTable();
+                $connection = $store->getConnection();
+                $sqlPattern = str_replace('*', '%', $pattern);
+
+                $keys = $connection->table($table)
+                    ->where('key', 'like', $prefix . $sqlPattern)
+                    ->pluck('key');
+
+                if ($keys->isNotEmpty()) {
+                    $connection->table($table)
+                        ->whereIn('key', $keys->all())
+                        ->delete();
+
+                    Log::debug('Cache invalidated by pattern (database store)', [
+                        'pattern' => $pattern,
+                        'keys_count' => $keys->count(),
+                    ]);
+                }
+
+                return;
+            } catch (\Throwable $throwable) {
+                Log::error('Database cache invalidation failed', [
+                    'pattern' => $pattern,
+                    'error' => $throwable->getMessage(),
+                ]);
+            }
+        }
+
+        // Fallback for array/file stores during tests
+        if ($store instanceof ArrayStore) {
+            $this->invalidateArrayStoreKeys($store, $pattern);
         }
     }
 
@@ -261,7 +315,7 @@ class AdvancedCacheService
             $this->invalidateByPattern($pattern);
         }
 
-        Log::info('User cache invalidated', ['user_id' => $userId]);
+        Log::debug('User cache invalidated', ['user_id' => $userId]);
     }
 
     /**
@@ -273,12 +327,12 @@ class AdvancedCacheService
         $popularTeachers = Teacher::with(['user', 'categories'])
             ->where('is_approved', true)
             ->where('online_available', true)
-            ->orderBy('rating', 'desc')
+            ->orderBy('rating_avg', 'desc')
             ->limit(50)
             ->get();
 
         foreach ($popularTeachers as $teacher) {
-            $this->cacheTeacher($teacher->id, self::LONG_TERM);
+            $this->cacheTeacher((int) $teacher->getKey(), self::LONG_TERM);
         }
 
         // Warm up categories
@@ -307,7 +361,7 @@ class AdvancedCacheService
 
     private function getTeacherEarnings(int $teacherId): float
     {
-        return DB::table('payments')
+        return (float) DB::table('payments')
             ->where('teacher_id', $teacherId)
             ->where('status', 'completed')
             ->sum('amount');
@@ -392,5 +446,56 @@ class AdvancedCacheService
                 ->where('status', 'graded')
                 ->avg('grade'),
         ];
+    }
+
+    /**
+     * Invalidate array store keys using reflection (testing fallback).
+     */
+    private function invalidateArrayStoreKeys(ArrayStore $store, string $pattern): void
+    {
+        try {
+            $reflection = new ReflectionClass($store);
+            if (!$reflection->hasProperty('storage')) {
+                return;
+            }
+
+            $property = $reflection->getProperty('storage');
+            $property->setAccessible(true);
+
+            $prefix = '';
+            if ($reflection->hasProperty('prefix')) {
+                $prefixProperty = $reflection->getProperty('prefix');
+                $prefixProperty->setAccessible(true);
+                $prefix = (string) $prefixProperty->getValue($store);
+            }
+
+            $storage = $property->getValue($store);
+            Log::info('Array store invalidate attempt', [
+                'pattern' => $pattern,
+                'prefix' => $prefix,
+                'keys' => array_keys($storage),
+            ]);
+            $removed = 0;
+
+            foreach (array_keys($storage) as $key) {
+                $plainKey = $prefix ? Str::after($key, $prefix) : $key;
+                if (Str::is($pattern, $plainKey)) {
+                    unset($storage[$key]);
+                    $removed++;
+                }
+            }
+
+            $property->setValue($store, $storage);
+
+            Log::info('Cache invalidated by pattern (array store)', [
+                'pattern' => $pattern,
+                'removed' => $removed,
+            ]);
+        } catch (\Throwable $throwable) {
+            Log::warning('Array store cache invalidation failed', [
+                'pattern' => $pattern,
+                'error' => $throwable->getMessage(),
+            ]);
+        }
     }
 }

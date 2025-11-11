@@ -29,11 +29,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController.text = widget.userProfile['name'] ?? '';
-    _emailController.text = widget.userProfile['email'] ?? '';
-    _phoneController.text = widget.userProfile['phone'] ?? '';
-    _bioController.text = widget.userProfile['bio'] ?? '';
-    _locationController.text = widget.userProfile['location'] ?? '';
+    _nameController.text = widget.userProfile['name']?.toString() ?? '';
+    _emailController.text = widget.userProfile['email']?.toString() ?? '';
+    _phoneController.text = widget.userProfile['phone']?.toString() ?? '';
+    _bioController.text = widget.userProfile['bio']?.toString() ?? '';
+    _locationController.text = widget.userProfile['location']?.toString() ?? '';
   }
 
   @override
@@ -153,8 +153,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 label: 'Ad Soyad',
                 icon: Icons.person_rounded,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
+                  if (value == null || value.trim().isEmpty) {
                     return 'Ad soyad gerekli';
+                  }
+                  if (value.trim().length < 2) {
+                    return 'Ad soyad en az 2 karakter olmalı';
                   }
                   return null;
                 },
@@ -169,10 +172,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 keyboardType: TextInputType.emailAddress,
                 enabled: false, // Email değiştirilemez
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
+                  if (value == null || value.trim().isEmpty) {
                     return 'E-posta gerekli';
                   }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
                     return 'Geçerli bir e-posta adresi girin';
                   }
                   return null;
@@ -189,6 +192,17 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
                 ],
+                validator: (value) {
+                  if (value != null && value.trim().isNotEmpty) {
+                    if (value.trim().length < 10) {
+                      return 'Telefon numarası en az 10 haneli olmalı';
+                    }
+                    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
+                      return 'Sadece rakam girin';
+                    }
+                  }
+                  return null;
+                },
               ),
               
               const SizedBox(height: 20),
@@ -199,8 +213,32 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 icon: Icons.info_rounded,
                 maxLines: 3,
                 maxLength: 200,
+                validator: (value) {
+                  if (value != null && value.trim().isNotEmpty) {
+                    if (value.trim().length < 10) {
+                      return 'Hakkımda en az 10 karakter olmalı';
+                    }
+                  }
+                  return null;
+                },
               ),
               
+              const SizedBox(height: 20),
+              
+              _buildModernTextField(
+                controller: _locationController,
+                label: 'Konum',
+                icon: Icons.location_on_rounded,
+                maxLines: 1,
+                validator: (value) {
+                  if (value != null && value.trim().isNotEmpty) {
+                    if (value.trim().length < 3) {
+                      return 'Konum en az 3 karakter olmalı';
+                    }
+                  }
+                  return null;
+                },
+              ),
               
               const SizedBox(height: 32),
               
@@ -361,6 +399,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         'name': _nameController.text.trim(),
         'phone': _phoneController.text.trim(),
         'bio': _bioController.text.trim(),
+        'location': _locationController.text.trim(),
       };
 
       await _apiService.updateUserProfile(profileData);
@@ -387,6 +426,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Profil güncellenirken bir hata oluştu';
+        
+        if (e.toString().contains('network') || e.toString().contains('connection')) {
+          errorMessage = 'İnternet bağlantınızı kontrol edin';
+        } else if (e.toString().contains('validation')) {
+          errorMessage = 'Lütfen tüm alanları doğru şekilde doldurun';
+        } else if (e.toString().contains('unauthorized')) {
+          errorMessage = 'Oturum süreniz dolmuş, lütfen tekrar giriş yapın';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -395,7 +444,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Hata: $e',
+                    errorMessage,
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
@@ -406,6 +455,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
+            duration: const Duration(seconds: 4),
           ),
         );
       }

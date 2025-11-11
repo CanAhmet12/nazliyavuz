@@ -7,7 +7,7 @@ import '../../models/rating.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../reservations/create_reservation_screen.dart';
-import '../chat/chat_screen.dart';
+import '../chat/student_chat_screen.dart';
 
 class TeacherDetailScreen extends StatefulWidget {
   final Teacher teacher;
@@ -1423,16 +1423,39 @@ class _TeacherDetailScreenState extends State<TeacherDetailScreen>
   }
 
   void _navigateToChat() {
+    // Teacher user bilgilerini kontrol et
+    if (widget.teacher.user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Eğitimci bilgileri eksik'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Teacher ID'yi kontrol et
+    final teacherId = widget.teacher.id ?? widget.teacher.user?.id;
+    if (teacherId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Eğitimci ID bulunamadı'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChatScreen(
-          otherUser: User(
-            id: widget.teacher.id ?? 0,
-            name: widget.teacher.user?.name ?? 'Eğitimci',
-            email: widget.teacher.user?.email ?? '',
+        builder: (context) => StudentChatScreen(
+          teacher: User(
+            id: teacherId,
+            name: widget.teacher.user!.name,
+            email: widget.teacher.user!.email,
             role: 'teacher',
-            profilePhotoUrl: widget.teacher.user?.profilePhotoUrl,
+            profilePhotoUrl: widget.teacher.user!.profilePhotoUrl,
           ),
         ),
       ),

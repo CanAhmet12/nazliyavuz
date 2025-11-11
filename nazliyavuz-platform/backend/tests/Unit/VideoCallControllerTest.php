@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Models\VideoCall;
 use App\Models\VideoCallParticipant;
 use App\Services\NotificationService;
-use App\Services\AdvancedCacheService;
+use App\Services\CacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Mockery;
@@ -31,11 +31,11 @@ class VideoCallControllerTest extends TestCase
 
         // Mock services
         $this->notificationService = Mockery::mock(NotificationService::class);
-        $this->cacheService = Mockery::mock(AdvancedCacheService::class);
+        $this->cacheService = Mockery::mock(CacheService::class);
 
         // Bind mocks to container
         $this->app->instance(NotificationService::class, $this->notificationService);
-        $this->app->instance(AdvancedCacheService::class, $this->cacheService);
+        $this->app->instance(CacheService::class, $this->cacheService);
     }
 
     protected function tearDown(): void

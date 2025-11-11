@@ -56,16 +56,44 @@ class SocialAuthController extends Controller
         ]);
 
         try {
-            $googleUser = $this->getGoogleUserInfo($request->access_token);
+            Log::info('Google authentication started', [
+                'access_token_length' => strlen($request->access_token),
+                'has_id_token' => !empty($request->id_token),
+                'ip' => $request->ip()
+            ]);
+
+            // Try ID token first if available
+            $googleUser = null;
+            if (!empty($request->id_token)) {
+                $googleUser = $this->getGoogleUserFromIdToken($request->id_token);
+                Log::info('Tried ID token method', ['success' => $googleUser !== null]);
+            }
+            
+            // Fallback to access token
+            if (!$googleUser) {
+                $googleUser = $this->getGoogleUserInfo($request->access_token);
+                Log::info('Tried access token method', ['success' => $googleUser !== null]);
+            }
             
             if (!$googleUser) {
+                Log::error('Google user info retrieval failed', [
+                    'access_token_length' => strlen($request->access_token),
+                    'ip' => $request->ip()
+                ]);
+                
                 return response()->json([
                     'error' => [
                         'code' => 'INVALID_TOKEN',
-                        'message' => 'Geçersiz Google token'
+                        'message' => 'Google token geçersiz veya süresi dolmuş. Lütfen tekrar deneyin.'
                     ]
                 ], 400);
             }
+
+            Log::info('Google user info retrieved successfully', [
+                'user_id' => $googleUser['id'],
+                'email' => $googleUser['email'],
+                'name' => $googleUser['name']
+            ]);
 
             $user = $this->findOrCreateUser($googleUser, 'google');
             $token = JWTAuth::fromUser($user);
@@ -81,12 +109,15 @@ class SocialAuthController extends Controller
                 'message' => 'Google ile giriş başarılı',
                 'user' => $user,
                 'token' => $token,
-                'is_new_user' => $user->wasRecentlyCreated
+                'is_new_user' => $user->wasRecentlyCreated,
+                'requires_email_verification' => $user->email_verified_at === null,
+                'requires_role_selection' => $user->wasRecentlyCreated // New users need to select role
             ]);
 
         } catch (\Exception $e) {
             Log::error('Google login failed', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'ip' => $request->ip()
             ]);
 
@@ -250,30 +281,338 @@ class SocialAuthController extends Controller
     }
 
     /**
+     * Get Google user info from ID token (JWT)
+     */
+    private function getGoogleUserFromIdToken(string $idToken): ?array
+    {
+        try {
+            Log::info('Decoding Google ID token', [
+                'token_length' => strlen($idToken),
+                'token_start' => substr($idToken, 0, 50) . '...'
+            ]);
+
+            // Decode JWT without verification (for development)
+            $parts = explode('.', $idToken);
+            if (count($parts) !== 3) {
+                Log::error('Invalid JWT format');
+                return null;
+            }
+
+            $payload = json_decode(base64_decode(str_pad(strtr($parts[1], '-_', '+/'), strlen($parts[1]) % 4, '=', STR_PAD_RIGHT)), true);
+            
+            if (!$payload) {
+                Log::error('Failed to decode JWT payload');
+                return null;
+            }
+
+            Log::info('ID token payload decoded', [
+                'keys' => array_keys($payload),
+                'sub' => $payload['sub'] ?? 'missing',
+                'email' => $payload['email'] ?? 'missing',
+                'name' => $payload['name'] ?? 'missing'
+            ]);
+
+            if (!isset($payload['sub']) || !isset($payload['email'])) {
+                Log::error('ID token missing required fields', ['payload' => $payload]);
+                return null;
+            }
+
+            $userInfo = [
+                'id' => $payload['sub'],
+                'name' => $payload['name'] ?? 'Google User',
+                'email' => $payload['email'],
+                'avatar' => $payload['picture'] ?? null,
+                'verified' => $payload['email_verified'] ?? false,
+            ];
+
+            Log::info('Google user info extracted from ID token', [
+                'id' => $userInfo['id'],
+                'email' => $userInfo['email'],
+                'name' => $userInfo['name']
+            ]);
+
+            return $userInfo;
+
+        } catch (\Exception $e) {
+            Log::error('ID token decode error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return null;
+        }
+    }
+
+    /**
      * Get Google user info from access token
      */
     private function getGoogleUserInfo(string $accessToken): ?array
     {
         try {
+            Log::info('Google API request started', [
+                'token_length' => strlen($accessToken),
+                'token_prefix' => substr($accessToken, 0, 20) . '...'
+            ]);
+
+            // Try Google People API first (most current)
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken
+            ])->get('https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses,photos');
+            
+            Log::info('Google People API response', [
+                'status' => $response->status(),
+                'successful' => $response->successful(),
+                'body' => $response->body()
+            ]);
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                Log::info('Google People API successful response', [
+                    'data_keys' => array_keys($data),
+                    'full_data' => $data
+                ]);
+                
+                // Extract user info from People API format
+                if (isset($data['emailAddresses']) && isset($data['names'])) {
+                    $email = $data['emailAddresses'][0]['value'] ?? null;
+                    $name = $data['names'][0]['displayName'] ?? 'Google User';
+                    $photo = $data['photos'][0]['url'] ?? null;
+                    $resourceName = $data['resourceName'] ?? null;
+                    $id = str_replace('people/', '', $resourceName ?? '');
+                    
+                    if ($email && $id) {
+                        $userInfo = [
+                            'id' => $id,
+                            'name' => $name,
+                            'email' => $email,
+                            'avatar' => $photo,
+                            'verified' => true,
+                        ];
+                        
+                        Log::info('Google People API user info extracted', [
+                            'id' => $userInfo['id'],
+                            'email' => $userInfo['email'],
+                            'name' => $userInfo['name']
+                        ]);
+                        
+                        return $userInfo;
+                    }
+                }
+            }
+            
+            // Fallback to OAuth2 v2 API
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $accessToken
             ])->get('https://www.googleapis.com/oauth2/v2/userinfo');
 
+            Log::info('Google API response', [
+                'status' => $response->status(),
+                'successful' => $response->successful(),
+                'body' => $response->body()
+            ]);
+
             if ($response->successful()) {
                 $data = $response->json();
-                return [
+                
+                Log::info('Google API v2 successful response', [
+                    'data_keys' => array_keys($data),
+                    'has_id' => isset($data['id']),
+                    'has_email' => isset($data['email']),
+                    'full_data' => $data
+                ]);
+                
+                // Validate required fields
+                if (!isset($data['id']) || !isset($data['email'])) {
+                    Log::error('Google API response missing required fields', ['data' => $data]);
+                    return null;
+                }
+
+                $userInfo = [
                     'id' => $data['id'],
-                    'name' => $data['name'],
+                    'name' => $data['name'] ?? 'Google User',
                     'email' => $data['email'],
                     'avatar' => $data['picture'] ?? null,
                     'verified' => $data['verified_email'] ?? false,
                 ];
+
+                Log::info('Google user info extracted', [
+                    'id' => $userInfo['id'],
+                    'email' => $userInfo['email'],
+                    'name' => $userInfo['name']
+                ]);
+
+                return $userInfo;
+            } else {
+                Log::error('Google API v2 failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'headers' => $response->headers()
+                ]);
+                
+                // If v2 fails, try v1 endpoint
+                Log::info('Trying Google API v1 endpoint');
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $accessToken
+                ])->get('https://www.googleapis.com/oauth2/v1/userinfo');
+
+                Log::info('Google API v1 response', [
+                    'status' => $response->status(),
+                    'successful' => $response->successful(),
+                    'body' => $response->body()
+                ]);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    
+                    if (!isset($data['id']) || !isset($data['email'])) {
+                        Log::error('Google API v1 response missing required fields', ['data' => $data]);
+                        return null;
+                    }
+
+                    $userInfo = [
+                        'id' => $data['id'],
+                        'name' => $data['name'] ?? 'Google User',
+                        'email' => $data['email'],
+                        'avatar' => $data['picture'] ?? null,
+                        'verified' => $data['verified_email'] ?? false,
+                    ];
+
+                    Log::info('Google user info extracted from v1', [
+                        'id' => $userInfo['id'],
+                        'email' => $userInfo['email'],
+                        'name' => $userInfo['name']
+                    ]);
+
+                    return $userInfo;
+                }
             }
         } catch (\Exception $e) {
-            Log::error('Google API error', ['error' => $e->getMessage()]);
+            Log::error('Google API error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
 
+        Log::error('Google API failed to get user info');
         return null;
+    }
+
+    /**
+     * Test Google API endpoint
+     */
+    public function testGoogleApi(Request $request): JsonResponse
+    {
+        $request->validate([
+            'access_token' => 'required|string',
+        ]);
+
+        $accessToken = $request->access_token;
+        
+        Log::info('Testing Google API with token', [
+            'token_length' => strlen($accessToken),
+            'token_start' => substr($accessToken, 0, 20) . '...'
+        ]);
+
+        // Test all endpoints
+        $results = [];
+        
+        // Test People API
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken
+            ])->get('https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses,photos');
+            
+            $results['people_api'] = [
+                'status' => $response->status(),
+                'successful' => $response->successful(),
+                'body' => $response->body(),
+                'json' => $response->json()
+            ];
+        } catch (\Exception $e) {
+            $results['people_api'] = ['error' => $e->getMessage()];
+        }
+
+        // Test OAuth2 v2
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken
+            ])->get('https://www.googleapis.com/oauth2/v2/userinfo');
+            
+            $results['oauth2_v2'] = [
+                'status' => $response->status(),
+                'successful' => $response->successful(),
+                'body' => $response->body(),
+                'json' => $response->json()
+            ];
+        } catch (\Exception $e) {
+            $results['oauth2_v2'] = ['error' => $e->getMessage()];
+        }
+
+        return response()->json([
+            'message' => 'Google API test completed',
+            'results' => $results
+        ]);
+    }
+
+    /**
+     * Set user role after social registration
+     */
+    public function setUserRole(Request $request): JsonResponse
+    {
+        $request->validate([
+            'role' => 'required|in:student,teacher',
+        ]);
+
+        try {
+            $user = auth()->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'UNAUTHORIZED',
+                        'message' => 'Kullanıcı girişi gerekli'
+                    ]
+                ], 401);
+            }
+
+            // Only allow role change for new users or users without verified email
+            if ($user->email_verified_at !== null && $user->created_at->diffInMinutes(now()) > 30) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'ROLE_CHANGE_NOT_ALLOWED',
+                        'message' => 'Rol değişikliği artık yapılamaz'
+                    ]
+                ], 400);
+            }
+
+            $user->update(['role' => $request->role]);
+
+            Log::info('User role updated', [
+                'user_id' => $user->id,
+                'new_role' => $request->role,
+                'email' => $user->email
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Rol başarıyla güncellendi',
+                'user' => $user->fresh(),
+                'next_step' => $request->role === 'teacher' ? 'complete_teacher_profile' : 'verify_email'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Role update failed', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id()
+            ]);
+
+            return response()->json([
+                'error' => [
+                    'code' => 'ROLE_UPDATE_FAILED',
+                    'message' => 'Rol güncellenirken hata oluştu'
+                ]
+            ], 500);
+        }
     }
 
     /**
@@ -346,10 +685,17 @@ class SocialAuthController extends Controller
                 'name' => $socialUser['name'],
                 'email' => $socialUser['email'],
                 'password' => Hash::make(Str::random(32)),
-                'role' => 'student',
-                'email_verified_at' => $socialUser['verified'] ? now() : null,
+                'role' => 'student', // Default role, can be changed later
+                'email_verified_at' => null, // Require email verification even for social users
                 'profile_photo_url' => $socialUser['avatar'],
-                'verified_at' => now(), // Auto-verify social users
+                'verified_at' => null, // Don't auto-verify, require email verification
+            ]);
+            
+            Log::info('New social user created', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'provider' => $provider,
+                'requires_verification' => true
             ]);
         }
 

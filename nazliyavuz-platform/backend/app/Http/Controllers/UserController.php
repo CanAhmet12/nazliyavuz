@@ -9,6 +9,7 @@ use App\Models\Lesson;
 use App\Models\Rating;
 use App\Models\AuditLog;
 use App\Services\CacheService;
+use App\Services\UserActivityService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -20,9 +21,11 @@ use Illuminate\Support\Facades\Log;
 class UserController extends Controller
 {
     protected CacheService $cacheService;
+    protected UserActivityService $userActivityService;
 
-    public function __construct()
+    public function __construct(UserActivityService $userActivityService)
     {
+        $this->userActivityService = $userActivityService;
         // Cache service temporarily disabled for deployment
     }
 
@@ -525,6 +528,80 @@ class UserController extends Controller
                 'error' => [
                     'code' => 'GET_PREFERENCES_ERROR',
                     'message' => 'Bildirim tercihleri alınırken bir hata oluştu'
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Update user activity
+     */
+    public function updateActivity(): JsonResponse
+    {
+        try {
+            $userId = Auth::id();
+            $this->userActivityService->updateUserActivity($userId);
+
+            return response()->json([
+                'message' => 'User activity updated successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to update user activity', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'error' => [
+                    'code' => 'UPDATE_ACTIVITY_ERROR',
+                    'message' => 'Failed to update user activity'
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Update user online status
+     */
+    public function updateOnlineStatus(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'is_online' => 'required|boolean'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'VALIDATION_ERROR',
+                        'message' => 'Invalid request data',
+                        'details' => $validator->errors()
+                    ]
+                ], 400);
+            }
+
+            $userId = Auth::id();
+            $isOnline = $request->boolean('is_online');
+            
+            $this->userActivityService->updateOnlineStatus($userId, $isOnline);
+
+            return response()->json([
+                'message' => 'User online status updated successfully',
+                'is_online' => $isOnline
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to update user online status', [
+                'user_id' => Auth::id(),
+                'is_online' => $request->boolean('is_online'),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'error' => [
+                    'code' => 'UPDATE_ONLINE_STATUS_ERROR',
+                    'message' => 'Failed to update user online status'
                 ]
             ], 500);
         }

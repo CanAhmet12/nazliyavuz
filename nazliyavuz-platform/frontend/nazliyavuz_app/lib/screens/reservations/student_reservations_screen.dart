@@ -243,16 +243,12 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
           ),
         ),
       ),
-      floatingActionButton: ScaleTransition(
-        scale: _scaleAnimation,
-        child: _buildStudentFloatingActionButton(),
-      ),
     );
   }
 
   Widget _buildStudentHeroAppBar() {
     return SliverAppBar(
-      expandedHeight: 120,
+      expandedHeight: 180,
       floating: false,
       pinned: true,
       elevation: 0,
@@ -264,140 +260,105 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppTheme.primaryBlue,
-                AppTheme.accentPurple,
+                AppTheme.accentGreen,
+                AppTheme.accentGreen.withOpacity(0.9),
               ],
             ),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryBlue.withOpacity(0.3),
+                color: AppTheme.accentGreen.withOpacity(0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
             ],
           ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Row(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
+            child: Row(
+              children: [
+                // Rezervasyonlarım Icon
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.calendar_today_rounded,
+                    color: AppTheme.accentGreen,
+                    size: 20,
+                  ),
+                ),
+                
+                const SizedBox(width: 12),
+                
+                // Title and Subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.white.withOpacity(0.25),
-                              Colors.white.withOpacity(0.15),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.4),
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.calendar_today_rounded,
+                      const Text(
+                        'Rezervasyonlarım',
+                        style: TextStyle(
                           color: Colors.white,
-                          size: 24,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Ders Rezervasyonlarım',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                letterSpacing: 0.2,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black26,
-                                    blurRadius: 2,
-                                    offset: Offset(0, 1),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                '${_reservations.length} ders rezervasyonu',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.white.withOpacity(0.25),
-                              Colors.white.withOpacity(0.15),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.4),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
-                          onPressed: _refreshData,
+                      Text(
+                        'Ders rezervasyonlarınız ve durumları',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                
+                // Add New Reservation Button
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(
+                      Icons.add_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const EnhancedTeachersScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -407,7 +368,7 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
 
   Widget _buildStudentStatisticsSection() {
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8), // Daha kompakt margin
       child: LayoutBuilder(
         builder: (context, constraints) {
           // Küçük ekranlarda vertical layout kullan
@@ -461,43 +422,51 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
             );
           }
           
-          // Büyük ekranlarda horizontal layout
-          return Row(
+          // 2x2 grid düzeni
+          return Column(
             children: [
-              Expanded(
-                child: _buildStudentStatCard(
-                  'Toplam Ders',
-                  '${_reservations.length}',
-                  Icons.school_rounded,
-                  AppTheme.primaryBlue,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStudentStatCard(
+                      'Toplam Rezervasyon',
+                      '${_reservations.length}',
+                      Icons.calendar_today_rounded,
+                      AppTheme.accentGreen,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStudentStatCard(
+                      'Bekleyen',
+                      '${_reservations.where((r) => r.status == 'pending').length}',
+                      Icons.schedule_rounded,
+                      AppTheme.accentOrange,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStudentStatCard(
-                  'Bekleyen',
-                  '${_reservations.where((r) => r.status == 'pending').length}',
-                  Icons.schedule_rounded,
-                  Colors.orange,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStudentStatCard(
-                  'Onaylı',
-                  '${_reservations.where((r) => r.status == 'accepted').length}',
-                  Icons.check_circle_rounded,
-                  Colors.green,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStudentStatCard(
-                  'Tamamlandı',
-                  '${_reservations.where((r) => r.status == 'completed').length}',
-                  Icons.done_all_rounded,
-                  Colors.purple,
-                ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStudentStatCard(
+                      'Onaylı',
+                      '${_reservations.where((r) => r.status == 'accepted').length}',
+                      Icons.check_circle_rounded,
+                      AppTheme.primaryBlue,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStudentStatCard(
+                      'Tamamlandı',
+                      '${_reservations.where((r) => r.status == 'completed').length}',
+                      Icons.done_all_rounded,
+                      AppTheme.accentPurple,
+                    ),
+                  ),
+                ],
               ),
             ],
           );
@@ -508,8 +477,8 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
 
   Widget _buildStudentStatCard(String title, String value, IconData icon, Color color) {
     return Container(
-      height: 120, // Sabit yükseklik ekle
-      padding: const EdgeInsets.all(18),
+      height: 110, // Daha büyük yükseklik
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -535,23 +504,20 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
         mainAxisAlignment: MainAxisAlignment.center, // İçeriği ortala
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: color.withOpacity(0.2),
-                width: 1,
-              ),
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 18),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
               color: color,
               letterSpacing: 0.5,
             ),
@@ -561,7 +527,7 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
             title,
             style: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               color: AppTheme.grey600,
               letterSpacing: 0.2,
             ),
@@ -574,10 +540,10 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
 
   Widget _buildStudentTabBarSection() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 4), // Daha kompakt margin
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 4), // Daha kompakt padding
         child: Row(
           children: [
             _buildStudentFilterChip('Tümü', ''),
@@ -623,12 +589,12 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8), // Daha kompakt padding
       itemCount: filteredReservations.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index < filteredReservations.length) {
           return Container(
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: const EdgeInsets.only(bottom: 8), // Daha kompakt margin
             child: _buildStudentReservationCard(filteredReservations[index]),
           );
         } else if (_isLoadingMore) {
@@ -646,246 +612,193 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
     final status = reservation.status;
     final teacher = reservation.teacher;
     final category = reservation.category;
+    final statusColor = _getStudentStatusColor(status);
+    final statusText = _getStudentStatusText(status);
     
     return GestureDetector(
       onTap: () => _showStudentReservationDetails(reservation),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
+      child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: _getStudentStatusColor(status).withOpacity(0.2),
-            width: 1,
+            color: statusColor.withOpacity(0.2),
+            width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: _getStudentStatusColor(status).withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-              spreadRadius: 0,
+              color: statusColor.withOpacity(0.1),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: _getStudentStatusColor(status).withOpacity(0.3),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Sol taraf - Avatar ve durum
+              Column(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: statusColor.withOpacity(0.3),
+                        width: 2,
                       ),
-                    ],
-                  ),
-                  child: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: _getStudentStatusColor(status).withOpacity(0.1),
-                    backgroundImage: teacher?.user?.profilePhotoUrl != null
-                        ? NetworkImage(teacher!.user!.profilePhotoUrl!)
-                        : null,
-                    child: teacher?.user?.profilePhotoUrl == null
-                        ? Text(
-                            (teacher?.user?.name.substring(0, 1).toUpperCase()) ?? '?',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: _getStudentStatusColor(status),
+                    ),
+                    child: teacher?.user?.profilePhotoUrl != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              teacher!.user!.profilePhotoUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Center(
+                                  child: Text(
+                                    teacher!.user!.name.substring(0, 1).toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: statusColor,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           )
-                        : null,
+                        : Center(
+                            child: Text(
+                              (teacher?.user?.name.substring(0, 1).toUpperCase()) ?? '?',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: statusColor,
+                              ),
+                            ),
+                          ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        teacher?.user?.name ?? 'Bilinmeyen Eğitimci',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.grey800,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      statusText,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
                       ),
-                      if (category != null)
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(width: 16),
+              
+              // Orta kısım - Rezervasyon bilgileri
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      teacher?.user?.name ?? 'Bilinmeyen Eğitimci',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        category?.name ?? 'Genel',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.accentGreen,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_rounded,
+                          size: 14,
+                          color: AppTheme.grey600,
+                        ),
+                        const SizedBox(width: 6),
                         Text(
-                          category.name,
+                          _formatDate(reservation.proposedDatetime),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: AppTheme.grey600,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: _getStudentStatusColor(status).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: _getStudentStatusColor(status).withOpacity(0.3),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _getStudentStatusColor(status).withOpacity(0.2),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    _getStudentStatusText(status),
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: _getStudentStatusColor(status),
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              reservation.subject,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.grey800,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.grey600.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: AppTheme.grey600.withOpacity(0.15),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.schedule_rounded,
-                        size: 14,
-                        color: AppTheme.grey600,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${reservation.proposedDatetime.day}/${reservation.proposedDatetime.month} ${reservation.proposedDatetime.hour}:${reservation.proposedDatetime.minute.toString().padLeft(2, '0')}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.grey600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFF10B981), // Daha belirgin yeşil
-                        const Color(0xFF059669),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF10B981).withOpacity(0.3),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.attach_money_rounded,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '₺${reservation.price.toInt()}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 14,
+                          color: AppTheme.grey600,
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _formatTime(reservation.proposedDatetime),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.grey600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStudentFloatingActionButton() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: FloatingActionButton.extended(
-        onPressed: () {
-          HapticFeedback.mediumImpact();
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const EnhancedTeachersScreen(),
-            ),
-          );
-        },
-        backgroundColor: AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
-        elevation: 8,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12), // Daha küçük border radius
-        ),
-        icon: const Icon(Icons.add_rounded, size: 18), // Daha küçük ikon
-        label: const Text(
-          'Yeni Ders Rezervasyonu',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 13, // Daha küçük font
+              ),
+              
+              // Sağ taraf - Ok işareti
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: statusColor,
+                ),
+              ),
+            ],
           ),
         ),
-        extendedPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Daha küçük padding
       ),
     );
   }
@@ -910,27 +823,34 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
   }
 
   Widget _buildStudentErrorState() {
+    // Check if error is authentication related
+    final isAuthError = _error?.contains('401') == true || 
+                       _error?.contains('Unauthenticated') == true ||
+                       _error?.contains('Unauthorized') == true;
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.error_outline,
+            isAuthError ? Icons.lock_outline : Icons.error_outline,
             size: 64,
-            color: Colors.red[400],
+            color: isAuthError ? Colors.orange[400] : Colors.red[400],
           ),
           const SizedBox(height: 16),
           Text(
-            'Bir hata oluştu',
+            isAuthError ? 'Oturum Süresi Doldu' : 'Bir hata oluştu',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: Colors.red[400],
+              color: isAuthError ? Colors.orange[400] : Colors.red[400],
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            _error ?? 'Bilinmeyen hata',
+            isAuthError 
+              ? 'Güvenlik nedeniyle oturumunuz sonlandırıldı.\nLütfen tekrar giriş yapın.'
+              : 'Rezervasyonlar yüklenirken bir sorun oluştu.\nLütfen tekrar deneyin.',
             style: const TextStyle(
               fontSize: 14,
               color: Colors.grey,
@@ -938,17 +858,43 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _refreshData,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isAuthError) ...[
+                ElevatedButton(
+                  onPressed: () {
+                    // Navigate to login screen
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/login',
+                      (route) => false,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange[400],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text('Giriş Yap'),
+                ),
+                const SizedBox(width: 16),
+              ],
+              ElevatedButton(
+                onPressed: _refreshData,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(isAuthError ? 'Tekrar Dene' : 'Tekrar Dene'),
               ),
-            ),
-            child: const Text('Tekrar Dene'),
+            ],
           ),
         ],
       ),
@@ -1010,22 +956,6 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
     );
   }
 
-  Color _getStudentStatusColor(String status) {
-    switch (status) {
-      case 'pending':
-        return Colors.orange;
-      case 'accepted':
-        return Colors.green;
-      case 'rejected':
-        return Colors.red;
-      case 'cancelled':
-        return Colors.grey;
-      case 'completed':
-        return AppTheme.primaryBlue;
-      default:
-        return Colors.grey;
-    }
-  }
 
   String _getStudentStatusText(String status) {
     switch (status) {
@@ -1158,5 +1088,30 @@ class _StudentReservationsScreenState extends State<StudentReservationsScreen>
         ],
       ),
     );
+  }
+
+  Color _getStudentStatusColor(String status) {
+    switch (status) {
+      case 'pending':
+        return AppTheme.accentOrange;
+      case 'accepted':
+        return AppTheme.primaryBlue;
+      case 'rejected':
+        return Colors.red[600] ?? Colors.red;
+      case 'cancelled':
+        return AppTheme.grey600;
+      case 'completed':
+        return AppTheme.accentGreen;
+      default:
+        return AppTheme.grey600;
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  String _formatTime(DateTime date) {
+    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }

@@ -43,6 +43,7 @@ class User extends Authenticatable implements JWTSubject
         'marketing_emails',
         'suspended_reason',
         'suspended_by',
+        'available_for_calls',
     ];
 
     /**
@@ -71,6 +72,7 @@ class User extends Authenticatable implements JWTSubject
             'approved_at' => 'datetime',
             'password' => 'hashed',
             'fcm_tokens' => 'array',
+            'available_for_calls' => 'boolean',
         ];
     }
 

@@ -107,6 +107,43 @@ class LessonController extends Controller
     }
 
     /**
+     * Get lesson details
+     */
+    public function show(int $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $lesson = Lesson::with(['student', 'teacher', 'reservation'])
+                ->findOrFail($id);
+
+            // Check if user has access to this lesson
+            if ($lesson->teacher_id !== $user->id && $lesson->student_id !== $user->id) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'FORBIDDEN',
+                        'message' => 'Bu derse erişim yetkiniz yok'
+                    ]
+                ], 403);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $lesson
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error getting lesson details: ' . $e->getMessage());
+
+            return response()->json([
+                'error' => [
+                    'code' => 'LESSON_NOT_FOUND',
+                    'message' => 'Ders bulunamadı'
+                ]
+            ], 404);
+        }
+    }
+
+    /**
      * Update lesson notes
      */
     public function updateNotes(Request $request): JsonResponse
@@ -242,42 +279,6 @@ class LessonController extends Controller
         }
     }
 
-    /**
-     * Get lesson details
-     */
-    public function show(int $id): JsonResponse
-    {
-        try {
-            $user = Auth::user();
-            $lesson = Lesson::with(['student', 'teacher', 'reservation'])
-                ->findOrFail($id);
-
-            // Check if user is either the teacher or student of this lesson
-            if ($lesson->teacher_id !== $user->id && $lesson->student_id !== $user->id) {
-                return response()->json([
-                    'error' => [
-                        'code' => 'FORBIDDEN',
-                        'message' => 'Bu ders detaylarını görme yetkiniz yok'
-                    ]
-                ], 403);
-            }
-
-            return response()->json([
-                'success' => true,
-                'lesson' => $lesson
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Error getting lesson details: ' . $e->getMessage());
-
-            return response()->json([
-                'error' => [
-                    'code' => 'LESSON_NOT_FOUND',
-                    'message' => 'Ders bulunamadı'
-                ]
-            ], 404);
-        }
-    }
 
     /**
      * Start lesson

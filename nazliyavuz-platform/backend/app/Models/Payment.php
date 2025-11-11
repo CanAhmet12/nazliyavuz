@@ -44,6 +44,14 @@ class Payment extends Model
     }
 
     /**
+     * Get refunds related to the payment
+     */
+    public function refunds()
+    {
+        return $this->hasMany(ReservationRefund::class);
+    }
+
+    /**
      * Get the user who made the payment
      */
     public function user()

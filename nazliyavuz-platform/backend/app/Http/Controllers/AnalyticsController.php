@@ -76,33 +76,82 @@ class AnalyticsController extends Controller
             $startDate = $request->query('start_date');
             $endDate = $request->query('end_date');
 
-            // Mock analytics data (in production, query from database)
+            // Get real analytics data from database
+            $query = DB::table('analytics_events');
+            
+            if ($userId) {
+                $query->where('user_id', $userId);
+            }
+            
+            if ($startDate) {
+                $query->where('created_at', '>=', $startDate);
+            }
+            
+            if ($endDate) {
+                $query->where('created_at', '<=', $endDate);
+            }
+            
+            $totalEvents = $query->count();
+            $uniqueUsers = $query->distinct('user_id')->count();
+            
+            $topEvents = DB::table('analytics_events')
+                ->select('event_name', DB::raw('count(*) as count'))
+                ->groupBy('event_name')
+                ->orderBy('count', 'desc')
+                ->limit(3)
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'event' => $item->event_name,
+                        'count' => $item->count
+                    ];
+                })
+                ->toArray();
+                
+            $dailyActiveUsers = DB::table('analytics_events')
+                ->whereDate('created_at', now())
+                ->distinct('user_id')
+                ->count();
+                
+            $weeklyActiveUsers = DB::table('analytics_events')
+                ->where('created_at', '>=', now()->subWeek())
+                ->distinct('user_id')
+                ->count();
+                
+            $monthlyActiveUsers = DB::table('analytics_events')
+                ->where('created_at', '>=', now()->subMonth())
+                ->distinct('user_id')
+                ->count();
+                
+            $platformBreakdown = DB::table('analytics_events')
+                ->select('platform', DB::raw('count(*) as count'))
+                ->whereNotNull('platform')
+                ->groupBy('platform')
+                ->get()
+                ->pluck('count', 'platform')
+                ->toArray();
+            
             $analyticsData = [
-                'total_events' => 1250,
-                'unique_users' => 85,
-                'top_events' => [
-                    ['event' => 'screen_view', 'count' => 450],
-                    ['event' => 'engagement', 'count' => 320],
-                    ['event' => 'performance', 'count' => 180],
-                ],
+                'total_events' => $totalEvents,
+                'unique_users' => $uniqueUsers,
+                'top_events' => $topEvents,
                 'user_activity' => [
-                    'daily_active_users' => 45,
-                    'weekly_active_users' => 78,
-                    'monthly_active_users' => 85,
+                    'daily_active_users' => $dailyActiveUsers,
+                    'weekly_active_users' => $weeklyActiveUsers,
+                    'monthly_active_users' => $monthlyActiveUsers,
                 ],
-                'platform_breakdown' => [
-                    'android' => 60,
-                    'ios' => 25,
-                    'web' => 15,
-                ],
+                'platform_breakdown' => $platformBreakdown,
             ];
 
             // Apply filters if provided
             if ($userId) {
                 $analyticsData['user_specific'] = [
                     'user_id' => $userId,
-                    'events_count' => 45,
-                    'last_activity' => now()->subHours(2)->toISOString(),
+                    'events_count' => $totalEvents,
+                    'last_activity' => DB::table('analytics_events')
+                        ->where('user_id', $userId)
+                        ->orderBy('created_at', 'desc')
+                        ->value('created_at'),
                 ];
             }
 
@@ -128,26 +177,55 @@ class AnalyticsController extends Controller
     public function getUserAnalyticsSummary(int $userId): JsonResponse
     {
         try {
-            // Mock user analytics summary
+            $user = User::findOrFail($userId);
+            
+            // Get real analytics data
+            $totalEvents = DB::table('analytics_events')
+                ->where('user_id', $userId)
+                ->count();
+                
+            $sessionsCount = DB::table('analytics_events')
+                ->where('user_id', $userId)
+                ->where('event_name', 'session_start')
+                ->count();
+                
+            $avgSessionDuration = DB::table('analytics_events')
+                ->where('user_id', $userId)
+                ->where('event_name', 'session_duration')
+                ->avg('parameters->duration');
+                
+            $mostUsedFeatures = DB::table('analytics_events')
+                ->where('user_id', $userId)
+                ->where('event_name', 'feature_used')
+                ->select('parameters->feature as feature', DB::raw('count(*) as count'))
+                ->groupBy('parameters->feature')
+                ->orderBy('count', 'desc')
+                ->limit(4)
+                ->get()
+                ->pluck('count', 'feature')
+                ->toArray();
+                
+            $lastActivity = DB::table('analytics_events')
+                ->where('user_id', $userId)
+                ->orderBy('created_at', 'desc')
+                ->value('created_at');
+                
+            $engagementScore = min(10, max(0, ($totalEvents / 100) * 10));
+            
             $summary = [
                 'user_id' => $userId,
-                'total_events' => 125,
-                'sessions_count' => 15,
-                'avg_session_duration' => '12m 30s',
-                'most_used_features' => [
-                    'assignments' => 45,
-                    'reservations' => 35,
-                    'chat' => 25,
-                    'profile' => 20,
-                ],
-                'last_activity' => now()->subHours(1)->toISOString(),
-                'engagement_score' => 8.5,
-                'preferred_platform' => 'android',
+                'total_events' => $totalEvents,
+                'sessions_count' => $sessionsCount,
+                'avg_session_duration' => $avgSessionDuration ? round($avgSessionDuration / 60, 1) . 'm' : '0m',
+                'most_used_features' => $mostUsedFeatures,
+                'last_activity' => $lastActivity ? Carbon::parse($lastActivity)->toISOString() : null,
+                'engagement_score' => round($engagementScore, 1),
+                'preferred_platform' => 'mobile', // Default
                 'time_spent_by_screen' => [
-                    'home' => '45m',
-                    'assignments' => '30m',
-                    'reservations' => '25m',
-                    'profile' => '10m',
+                    'home' => '0m',
+                    'assignments' => '0m',
+                    'reservations' => '0m',
+                    'profile' => '0m',
                 ],
             ];
 
@@ -263,5 +341,171 @@ class AnalyticsController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Get analytics dashboard data
+     */
+    public function getDashboard(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $period = $request->get('period', '30'); // days
+            
+            // Calculate date range
+            $endDate = now();
+            $startDate = now()->subDays($period);
+            
+            $analytics = [
+                'period' => $period,
+                'date_range' => [
+                    'start' => $startDate->toDateString(),
+                    'end' => $endDate->toDateString(),
+                ],
+                'user_stats' => $this->getUserStats($user, $startDate, $endDate),
+                'reservation_stats' => $this->getReservationStats($user, $startDate, $endDate),
+                'lesson_stats' => $this->getLessonStats($user, $startDate, $endDate),
+                'revenue_stats' => $this->getRevenueStats($user, $startDate, $endDate),
+                'engagement_stats' => $this->getEngagementStats($user, $startDate, $endDate),
+            ];
+            
+            return response()->json([
+                'success' => true,
+                'analytics' => $analytics
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Analytics dashboard error: ' . $e->getMessage());
+            
+            return response()->json([
+                'error' => [
+                    'code' => 'SERVER_ERROR',
+                    'message' => 'Analytics dashboard yüklenirken hata oluştu'
+                ]
+            ], 500);
+        }
+    }
+
+    private function getUserStats($user, $startDate, $endDate): array
+    {
+        if ($user->role === 'teacher') {
+            return [
+                'total_students' => DB::table('reservations')
+                    ->where('teacher_id', $user->id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->distinct('student_id')
+                    ->count(),
+                'new_students' => DB::table('reservations')
+                    ->where('teacher_id', $user->id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->whereNotExists(function ($query) use ($user, $startDate) {
+                        $query->select(DB::raw(1))
+                            ->from('reservations as r2')
+                            ->where('r2.teacher_id', $user->id)
+                            ->where('r2.student_id', DB::raw('reservations.student_id'))
+                            ->where('r2.created_at', '<', $startDate);
+                    })
+                    ->distinct('student_id')
+                    ->count(),
+            ];
+        } else {
+            return [
+                'total_teachers' => DB::table('reservations')
+                    ->where('student_id', $user->id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->distinct('teacher_id')
+                    ->count(),
+                'new_teachers' => DB::table('reservations')
+                    ->where('student_id', $user->id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->whereNotExists(function ($query) use ($user, $startDate) {
+                        $query->select(DB::raw(1))
+                            ->from('reservations as r2')
+                            ->where('r2.student_id', $user->id)
+                            ->where('r2.teacher_id', DB::raw('reservations.teacher_id'))
+                            ->where('r2.created_at', '<', $startDate);
+                    })
+                    ->distinct('teacher_id')
+                    ->count(),
+            ];
+        }
+    }
+
+    private function getReservationStats($user, $startDate, $endDate): array
+    {
+        $query = DB::table('reservations');
+        
+        if ($user->role === 'teacher') {
+            $query->where('teacher_id', $user->id);
+        } else {
+            $query->where('student_id', $user->id);
+        }
+        
+        $query->whereBetween('created_at', [$startDate, $endDate]);
+        
+        return [
+            'total_reservations' => $query->count(),
+            'completed_reservations' => (clone $query)->where('status', 'completed')->count(),
+            'pending_reservations' => (clone $query)->where('status', 'pending')->count(),
+            'cancelled_reservations' => (clone $query)->where('status', 'cancelled')->count(),
+        ];
+    }
+
+    private function getLessonStats($user, $startDate, $endDate): array
+    {
+        $query = DB::table('reservations')
+            ->where('status', 'completed')
+            ->whereBetween('created_at', [$startDate, $endDate]);
+        
+        if ($user->role === 'teacher') {
+            $query->where('teacher_id', $user->id);
+        } else {
+            $query->where('student_id', $user->id);
+        }
+        
+        return [
+            'total_lessons' => $query->count(),
+            'total_hours' => $query->sum('duration_minutes') / 60,
+            'average_duration' => $query->avg('duration_minutes'),
+        ];
+    }
+
+    private function getRevenueStats($user, $startDate, $endDate): array
+    {
+        if ($user->role !== 'teacher') {
+            return ['total_revenue' => 0, 'monthly_revenue' => 0];
+        }
+        
+        $query = DB::table('reservations')
+            ->where('teacher_id', $user->id)
+            ->where('status', 'completed')
+            ->whereBetween('created_at', [$startDate, $endDate]);
+        
+        return [
+            'total_revenue' => $query->sum('price'),
+            'monthly_revenue' => (clone $query)->whereMonth('created_at', now()->month)->sum('price'),
+            'average_price' => $query->avg('price'),
+        ];
+    }
+
+    private function getEngagementStats($user, $startDate, $endDate): array
+    {
+        return [
+            'messages_sent' => DB::table('messages')
+                ->where('sender_id', $user->id)
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->count(),
+            'assignments_created' => $user->role === 'teacher' ? 
+                DB::table('assignments')
+                    ->where('teacher_id', $user->id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count() : 0,
+            'assignments_submitted' => $user->role === 'student' ? 
+                DB::table('assignments')
+                    ->where('student_id', $user->id)
+                    ->where('status', 'submitted')
+                    ->whereBetween('updated_at', [$startDate, $endDate])
+                    ->count() : 0,
+        ];
     }
 }

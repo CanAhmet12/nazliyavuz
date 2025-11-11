@@ -45,5 +45,30 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- Permissions for Audio/Video Features -->
+	<key>NSCameraUsageDescription</key>
+	<string>Video görüşme yapmak için kamera erişimi gereklidir.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Sesli mesaj göndermek ve video görüşme yapmak için mikrofon erişimi gereklidir.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Fotoğraf ve video paylaşmak için galeri erişimi gereklidir.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Fotoğraf kaydetmek için galeri erişimi gereklidir.</string>
+	
+	<!-- Google Sign-In URL Scheme (will be configured with actual reversed client ID) -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.883554735075-mk5k78ut64p13l82sbqlvgghfsh6aedo</string>
+			</array>
+		</dict>
+	</array>
+	
+	<!-- For Apple Sign-In -->
+	<key>AppleSignInEnabled</key>
+	<true/>
 </dict>
 </plist>

@@ -51,7 +51,7 @@ class RealTimeChatService
             // Load sender relationship to avoid N+1 queries
             $message->load('sender');
             
-            $this->pusher->trigger($channel, 'new-message', [
+            $this->safeTrigger($channel, 'new-message', [
                 'message' => [
                     'id' => $message->id,
                     'sender_id' => $message->sender_id,
@@ -92,16 +92,31 @@ class RealTimeChatService
      */
     public function sendTypingIndicator(int $senderId, int $receiverId, bool $isTyping): void
     {
-        if (!$this->pusher) return;
-        
         $channel = $this->getConversationChannel($senderId, $receiverId);
         
-        $this->pusher->trigger($channel, 'typing', [
+        $this->safeTrigger($channel, 'typing', [
             'sender_id' => $senderId,
             'receiver_id' => $receiverId,
             'is_typing' => $isTyping,
             'timestamp' => now()->toISOString(),
         ]);
+    }
+
+    /**
+     * Safely trigger Pusher event
+     */
+    private function safeTrigger(string $channel, string $event, array $data): void
+    {
+        if (!$this->pusher) {
+            Log::info("Pusher not available, skipping event: {$event}");
+            return;
+        }
+
+        try {
+            $this->pusher->trigger($channel, $event, $data);
+        } catch (\Exception $e) {
+            Log::error("Pusher trigger failed: " . $e->getMessage());
+        }
     }
 
     /**
@@ -114,7 +129,7 @@ class RealTimeChatService
 
         $channel = $this->getConversationChannel($message->sender_id, $message->receiver_id);
         
-        $this->pusher->trigger($channel, 'message-read', [
+        $this->safeTrigger($channel, 'message-read', [
             'message_id' => $messageId,
             'reader_id' => $readerId,
             'read_at' => now()->toISOString(),
@@ -131,7 +146,7 @@ class RealTimeChatService
 
         $channel = $this->getConversationChannel($message->sender_id, $message->receiver_id);
         
-        $this->pusher->trigger($channel, 'message-reaction', [
+        $this->safeTrigger($channel, 'message-reaction', [
             'message_id' => $messageId,
             'user_id' => $userId,
             'reaction' => $reaction,
@@ -147,19 +162,19 @@ class RealTimeChatService
         $user = User::find($userId);
         if (!$user) return;
 
-        // Get all conversations for this user
-        $conversations = \App\Models\Conversation::where('user1_id', $userId)
+        // Get all chats for this user
+        $chats = \App\Models\Chat::where('user1_id', $userId)
             ->orWhere('user2_id', $userId)
             ->get();
 
-        foreach ($conversations as $conversation) {
-            $otherUserId = $conversation->user1_id === $userId 
-                ? $conversation->user2_id 
-                : $conversation->user1_id;
+        foreach ($chats as $chat) {
+            $otherUserId = $chat->user1_id === $userId 
+                ? $chat->user2_id 
+                : $chat->user1_id;
 
             $channel = $this->getConversationChannel($userId, $otherUserId);
             
-            $this->pusher->trigger($channel, 'user-status', [
+            $this->safeTrigger($channel, 'user-status', [
                 'user_id' => $userId,
                 'is_online' => $isOnline,
                 'timestamp' => now()->toISOString(),
@@ -174,7 +189,7 @@ class RealTimeChatService
     {
         $channel = $this->getConversationChannel($message->sender_id, $message->receiver_id);
         
-        $this->pusher->trigger($channel, 'voice-message', [
+        $this->safeTrigger($channel, 'voice-message', [
             'message' => [
                 'id' => $message->id,
                 'sender_id' => $message->sender_id,
@@ -184,6 +199,8 @@ class RealTimeChatService
                 'file_url' => $message->file_url,
                 'file_name' => $message->file_name,
                 'file_size' => $message->file_size,
+                'file_type' => $message->file_type,
+                'voice_duration' => $message->message_type === 'audio' ? $message->file_size : null,
                 'duration' => $message->file_size, // Duration in seconds for voice
                 'created_at' => $message->created_at->toISOString(),
                 'sender' => [
@@ -200,14 +217,33 @@ class RealTimeChatService
      */
     public function sendVideoCallInvitation(int $callerId, int $receiverId, string $callType = 'video'): void
     {
+        if (!$this->pusher) {
+            Log::info('Pusher not available, skipping video call invitation');
+            return;
+        }
+        
         $channel = $this->getConversationChannel($callerId, $receiverId);
         
-        $this->pusher->trigger($channel, 'video-call', [
+        $this->safeTrigger($channel, 'video-call', [
             'caller_id' => $callerId,
             'receiver_id' => $receiverId,
             'call_type' => $callType, // 'video' or 'audio'
             'call_id' => uniqid('call_'),
             'timestamp' => now()->toISOString(),
+        ]);
+        
+        // Also send to user-specific channel for notifications
+        $userChannel = "user-{$receiverId}";
+        $this->safeTrigger($userChannel, 'video-call-notification', [
+            'caller_id' => $callerId,
+            'call_type' => $callType,
+            'timestamp' => now()->toISOString(),
+        ]);
+        
+        Log::info('Video call invitation sent', [
+            'caller_id' => $callerId,
+            'receiver_id' => $receiverId,
+            'call_type' => $callType
         ]);
     }
 
@@ -218,7 +254,7 @@ class RealTimeChatService
     {
         $channel = $this->getConversationChannel($callerId, $receiverId);
         
-        $this->pusher->trigger($channel, 'video-call-response', [
+        $this->safeTrigger($channel, 'video-call-response', [
             'caller_id' => $callerId,
             'receiver_id' => $receiverId,
             'response' => $response, // 'accepted', 'rejected', 'busy'
@@ -234,7 +270,7 @@ class RealTimeChatService
     {
         $channel = $this->getConversationChannel($senderId, $receiverId);
         
-        $this->pusher->trigger($channel, 'message-deleted', [
+        $this->safeTrigger($channel, 'message-deleted', [
             'message_id' => $messageId,
             'deleted_at' => now()->toISOString(),
         ]);
@@ -245,12 +281,10 @@ class RealTimeChatService
      */
     public function sendSignalingMessage(int $receiverId, string $type, array $data, ?string $callId = null): void
     {
-        if (!$this->pusher) return;
-        
         $senderId = auth()->id();
         $channel = $this->getConversationChannel($senderId, $receiverId);
         
-        $this->pusher->trigger($channel, 'signaling', [
+        $this->safeTrigger($channel, 'signaling', [
             'sender_id' => $senderId,
             'receiver_id' => $receiverId,
             'type' => $type, // 'offer', 'answer', 'ice-candidate', 'hangup'
@@ -267,7 +301,7 @@ class RealTimeChatService
     {
         $channel = $this->getConversationChannel($user1Id, $user2Id);
         
-        $this->pusher->trigger($channel, 'conversation-updated', [
+        $this->safeTrigger($channel, 'conversation-updated', [
             'conversation' => $conversationData,
             'timestamp' => now()->toISOString(),
         ]);
@@ -291,7 +325,7 @@ class RealTimeChatService
     {
         // Simplified conversation list update
         // Just send a basic conversation update event
-        $this->pusher->trigger("user-{$user1Id}", 'conversation-updated', [
+        $this->safeTrigger("user-{$user1Id}", 'conversation-updated', [
             'conversation' => [
                 'other_user_id' => $user2Id,
                 'last_message' => $message->content,
@@ -299,7 +333,7 @@ class RealTimeChatService
             ],
         ]);
 
-        $this->pusher->trigger("user-{$user2Id}", 'conversation-updated', [
+        $this->safeTrigger("user-{$user2Id}", 'conversation-updated', [
             'conversation' => [
                 'other_user_id' => $user1Id,
                 'last_message' => $message->content,
@@ -328,7 +362,7 @@ class RealTimeChatService
      */
     public function sendSystemNotification(int $userId, string $title, string $message, array $data = []): void
     {
-        $this->pusher->trigger("user-{$userId}", 'system-notification', [
+        $this->safeTrigger("user-{$userId}", 'system-notification', [
             'title' => $title,
             'message' => $message,
             'data' => $data,

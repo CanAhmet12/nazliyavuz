@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'fcm' => [
+        'server_key' => env('FCM_SERVER_KEY'),
+        'sender_id' => env('FCM_SENDER_ID'),
+    ],
+
+    'sms' => [
+        'provider' => env('SMS_PROVIDER', 'mock'),
+        'twilio' => [
+            'account_sid' => env('SMS_TWILIO_ACCOUNT_SID'),
+            'auth_token' => env('SMS_TWILIO_AUTH_TOKEN'),
+            'from' => env('SMS_TWILIO_FROM'),
+        ],
+    ],
+
 ];

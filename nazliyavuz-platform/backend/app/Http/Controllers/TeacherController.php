@@ -7,10 +7,12 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use App\Models\Teacher;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\Reservation;
+use App\Models\Favorite;
 use App\Services\CacheService;
 
 class TeacherController extends Controller
@@ -345,11 +347,11 @@ class TeacherController extends Controller
                 ], 403);
             }
 
-            // Get students who have reservations with this teacher
+            // Get students who have reservations with this teacher (accepted or completed)
             $students = User::where('role', 'student')
                 ->whereHas('studentReservations', function ($q) use ($user) {
                     $q->where('teacher_id', $user->id)
-                      ->where('status', 'accepted');
+                      ->whereIn('status', ['accepted', 'completed']);
                 })
                 ->select('id', 'name', 'email', 'profile_photo_url')
                 ->get();
@@ -413,7 +415,7 @@ class TeacherController extends Controller
     /**
      * Get teacher statistics
      */
-    public function statistics(): JsonResponse
+public function getStatistics(): JsonResponse
     {
         try {
             $user = Auth::user();
@@ -444,11 +446,17 @@ class TeacherController extends Controller
             $totalStudents = User::where('role', 'student')
                 ->whereHas('studentReservations', function ($q) use ($user) {
                     $q->where('teacher_id', $user->id)
-                      ->where('status', 'accepted');
+                      ->whereIn('status', ['accepted', 'completed']);
                 })->count();
             $totalReservations = Reservation::where('teacher_id', $user->id)->count();
             $pendingReservations = Reservation::where('teacher_id', $user->id)
                 ->where('status', 'pending')->count();
+            
+            // Calculate total hours from completed lessons
+            $totalHours = \App\Models\Lesson::where('teacher_id', $user->id)
+                ->where('status', 'completed')
+                ->sum('duration_minutes');
+            $totalHours = round($totalHours / 60, 1); // Convert minutes to hours
 
             $statistics = [
                 'total_lessons' => $totalLessons,
@@ -456,6 +464,7 @@ class TeacherController extends Controller
                 'total_students' => $totalStudents,
                 'total_reservations' => $totalReservations,
                 'pending_reservations' => $pendingReservations,
+                'total_hours' => $totalHours,
                 'rating_avg' => $teacher->rating_avg,
                 'rating_count' => $teacher->rating_count,
                 'completion_rate' => $totalLessons > 0 ? round(($completedLessons / $totalLessons) * 100, 2) : 0,
@@ -734,6 +743,221 @@ class TeacherController extends Controller
                 'error' => [
                     'code' => 'TEACHER_LESSONS_ERROR',
                     'message' => 'Öğretmen dersleri yüklenirken bir hata oluştu'
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Get user's favorite teachers
+     */
+    public function favorites(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'UNAUTHORIZED',
+                        'message' => 'Yetkisiz erişim'
+                    ]
+                ], 401);
+            }
+
+            Log::info('Getting favorites for user', ['user_id' => $user->id]);
+
+            // Get favorite teachers for the user
+            $favorites = Favorite::with(['teacher.user', 'teacher.categories'])
+                ->where('user_id', $user->id)
+                ->get()
+                ->map(function ($favorite) {
+                    $teacher = $favorite->teacher;
+                    if (!$teacher) {
+                        return null;
+                    }
+                    
+                    return [
+                        'id' => $teacher->user_id,
+                        'userId' => $teacher->user_id,
+                        'name' => $teacher->user->name ?? '',
+                        'bio' => $teacher->bio ?? '',
+                        'profilePhotoUrl' => $teacher->user->profile_photo_url ?? null,
+                        'rating' => $teacher->rating ?? 0,
+                        'reviewCount' => $teacher->review_count ?? 0,
+                        'priceHour' => $teacher->price_hour ?? 0,
+                        'onlineAvailable' => $teacher->online_available ?? false,
+                        'categories' => $teacher->categories->map(function ($category) {
+                            return [
+                                'id' => $category->id,
+                                'name' => $category->name,
+                                'slug' => $category->slug,
+                            ];
+                        })->toArray(),
+                        'createdAt' => $teacher->created_at ? $teacher->created_at->toISOString() : null,
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->toArray();
+
+            Log::info('Favorites retrieved', [
+                'user_id' => $user->id,
+                'count' => count($favorites)
+            ]);
+
+            return response()->json($favorites);
+
+        } catch (\Exception $e) {
+            Log::error('Error getting favorites: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => [
+                    'code' => 'FAVORITES_ERROR',
+                    'message' => 'Favoriler yüklenirken bir hata oluştu'
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Add teacher to favorites
+     */
+    public function addToFavorites(int $teacher): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'UNAUTHORIZED',
+                        'message' => 'Yetkisiz erişim'
+                    ]
+                ], 401);
+            }
+
+            Log::info('Adding to favorites', [
+                'user_id' => $user->id,
+                'teacher_id' => $teacher
+            ]);
+
+            // Check if teacher exists
+            $teacherRecord = Teacher::where('user_id', $teacher)->first();
+            
+            if (!$teacherRecord) {
+                Log::warning('Teacher not found', ['teacher_id' => $teacher]);
+                return response()->json([
+                    'error' => [
+                        'code' => 'TEACHER_NOT_FOUND',
+                        'message' => 'Öğretmen bulunamadı'
+                    ]
+                ], 404);
+            }
+
+            // Check if already favorited
+            $existingFavorite = Favorite::where('user_id', $user->id)
+                ->where('teacher_id', $teacher)
+                ->first();
+
+            if ($existingFavorite) {
+                Log::info('Already favorited', [
+                    'user_id' => $user->id,
+                    'teacher_id' => $teacher
+                ]);
+                return response()->json([
+                    'message' => 'Bu öğretmen zaten favorilerinizde'
+                ], 200);
+            }
+
+            // Create new favorite
+            Favorite::create([
+                'user_id' => $user->id,
+                'teacher_id' => $teacher,
+            ]);
+
+            Log::info('Favorite added successfully', [
+                'user_id' => $user->id,
+                'teacher_id' => $teacher
+            ]);
+
+            return response()->json([
+                'message' => 'Öğretmen favorilere eklendi'
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Error adding to favorites: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => [
+                    'code' => 'FAVORITE_ADD_ERROR',
+                    'message' => 'Favorilere eklenirken bir hata oluştu'
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove teacher from favorites
+     */
+    public function removeFromFavorites(int $teacher): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'UNAUTHORIZED',
+                        'message' => 'Yetkisiz erişim'
+                    ]
+                ], 401);
+            }
+
+            Log::info('Removing from favorites', [
+                'user_id' => $user->id,
+                'teacher_id' => $teacher
+            ]);
+
+            // Find and delete favorite
+            $favorite = Favorite::where('user_id', $user->id)
+                ->where('teacher_id', $teacher)
+                ->first();
+
+            if (!$favorite) {
+                Log::info('Favorite not found', [
+                    'user_id' => $user->id,
+                    'teacher_id' => $teacher
+                ]);
+                return response()->json([
+                    'message' => 'Bu öğretmen favorilerinizde değil'
+                ], 404);
+            }
+
+            $favorite->delete();
+
+            Log::info('Favorite removed successfully', [
+                'user_id' => $user->id,
+                'teacher_id' => $teacher
+            ]);
+
+            return response()->json([
+                'message' => 'Öğretmen favorilerden çıkarıldı'
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error removing from favorites: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => [
+                    'code' => 'FAVORITE_REMOVE_ERROR',
+                    'message' => 'Favorilerden çıkarılırken bir hata oluştu'
                 ]
             ], 500);
         }

@@ -130,6 +130,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
         
         if (kDebugMode) {
           print('📊 [STUDENT_PROFILE] State updated with statistics');
+          print('📊 [STUDENT_PROFILE] Completed lessons: ${statistics['completed_lessons']}');
+          print('📊 [STUDENT_PROFILE] Active lessons: ${statistics['active_lessons']}');
+          print('📊 [STUDENT_PROFILE] Total hours: ${statistics['total_hours']}');
+          print('📊 [STUDENT_PROFILE] Success rate: ${statistics['success_rate']}');
         }
       }
     } catch (e) {
@@ -243,7 +247,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
+          backgroundColor: const Color(0xFFF5F7FA), // Anasayfa ile uyumlu arka plan
           body: FadeTransition(
             opacity: _fadeAnimation,
             child: SlideTransition(
@@ -499,7 +503,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
                     child: const Icon(
                       Icons.camera_alt_rounded,
                       color: Colors.white,
-                      size: 16,
+                      size: 16, // Anasayfa ile uyumlu icon boyutu
                     ),
                   ),
                 ),
@@ -510,8 +514,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
           Text(
             user.name,
             style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
+              fontSize: 20, // Anasayfa ile uyumlu font boyutu
+              fontWeight: FontWeight.w700, // Anasayfa ile uyumlu font weight
               color: AppTheme.grey900,
             ),
           ),
@@ -519,7 +523,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen>
           Text(
             user.email,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 14, // Anasayfa ile uyumlu font boyutu
               color: AppTheme.grey600,
             ),
           ),

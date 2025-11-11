@@ -37,6 +37,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register Assignment Observer for cache invalidation
+        \App\Models\Assignment::observe(\App\Observers\AssignmentObserver::class);
+        
+        // Register Reservation Observer for cache invalidation and auto-calculations
+        \App\Models\Reservation::observe(\App\Observers\ReservationObserver::class);
     }
 }

@@ -20,17 +20,80 @@ class Notification extends Equatable {
   });
 
   factory Notification.fromJson(Map<String, dynamic> json) {
-    return Notification(
-      id: json['id'],
-      userId: json['user_id'],
-      type: json['type'],
-      payload: Map<String, dynamic>.from(json['payload']),
-      readAt: json['read_at'] != null 
-          ? DateTime.parse(json['read_at']) 
-          : null,
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
-    );
+    try {
+      // Backend sends 'data' field but frontend expects 'payload'
+      // Also backend sends 'title' and 'message' directly
+      Map<String, dynamic> payload = {};
+      
+      if (json['payload'] != null) {
+        payload = Map<String, dynamic>.from(json['payload']);
+      } else if (json['data'] != null) {
+        payload = Map<String, dynamic>.from(json['data']);
+      }
+      
+      // If title and message are sent directly, add them to payload
+      if (json['title'] != null) {
+        payload['title'] = json['title'];
+      }
+      if (json['message'] != null) {
+        payload['message'] = json['message'];
+      }
+      
+      // Handle read_at field - can come from backend as null or actual datetime
+      DateTime? readAtValue;
+      if (json['read_at'] != null) {
+        try {
+          readAtValue = DateTime.parse(json['read_at']);
+        } catch (e) {
+          print('Error parsing read_at: $e');
+          readAtValue = null;
+        }
+      }
+      
+      // Handle created_at and updated_at
+      DateTime createdAtValue = DateTime.now();
+      if (json['created_at'] != null) {
+        try {
+          createdAtValue = DateTime.parse(json['created_at']);
+        } catch (e) {
+          print('Error parsing created_at: $e');
+          createdAtValue = DateTime.now();
+        }
+      }
+      
+      DateTime updatedAtValue = DateTime.now();
+      if (json['updated_at'] != null) {
+        try {
+          updatedAtValue = DateTime.parse(json['updated_at']);
+        } catch (e) {
+          print('Error parsing updated_at: $e');
+          updatedAtValue = DateTime.now();
+        }
+      }
+      
+      return Notification(
+        id: json['id'] ?? 0,
+        userId: json['user_id'] ?? 0,
+        type: json['type'] ?? 'unknown',
+        payload: payload,
+        readAt: readAtValue,
+        createdAt: createdAtValue,
+        updatedAt: updatedAtValue,
+      );
+    } catch (e) {
+      print('Error parsing notification JSON: $e');
+      print('JSON: $json');
+      // Return a default notification
+      return Notification(
+        id: 0,
+        userId: 0,
+        type: 'error',
+        payload: {'title': 'Hata', 'message': 'Bildirim yüklenemedi'},
+        readAt: null,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+    }
   }
 
   Map<String, dynamic> toJson() {

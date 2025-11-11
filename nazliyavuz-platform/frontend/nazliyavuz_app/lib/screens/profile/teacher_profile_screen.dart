@@ -12,6 +12,7 @@ import '../profile/password_change_screen.dart';
 import '../profile/notification_preferences_screen.dart';
 import '../profile/activity_history_screen.dart';
 import '../profile/account_settings_screen.dart';
+import '../teachers/weekly_availability_screen.dart';
 
 class TeacherProfileScreen extends StatefulWidget {
   const TeacherProfileScreen({super.key});
@@ -32,6 +33,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
   late Animation<double> _scaleAnimation;
   
   Map<String, dynamic> _teachingStatistics = {};
+  Map<String, dynamic> _userProfile = {};
   
   bool _isLoading = true;
   bool _isUpdatingPhoto = false;
@@ -89,6 +91,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
 
       await Future.wait([
         _loadTeachingStatistics(),
+        _loadUserProfile(),
       ]);
 
       if (mounted) {
@@ -111,11 +114,35 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
 
   Future<void> _loadTeachingStatistics() async {
     try {
-      final statistics = await _apiService.getReservationStatistics();
+      // Use teacher-specific statistics endpoint instead of reservation statistics
+      final statistics = await _apiService.getTeacherStatistics();
       
       if (mounted) {
         setState(() {
-          _teachingStatistics = statistics;
+          _teachingStatistics = {
+            'total_lessons': statistics['total_lessons'] ?? 0,
+            'active_students': statistics['total_students'] ?? 0,
+            'total_hours': statistics['total_hours'] ?? 0,
+            'rating': statistics['rating_avg'] ?? 0,
+          };
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final profile = await _apiService.getUserProfile();
+      
+      if (mounted) {
+        setState(() {
+          _userProfile = profile['user'] ?? {};
           _isLoading = false;
         });
       }
@@ -199,7 +226,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
         final user = state.user;
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
+          backgroundColor: const Color(0xFFF5F7FA), // Anasayfa ile uyumlu arka plan
           body: FadeTransition(
             opacity: _fadeAnimation,
             child: SlideTransition(
@@ -463,7 +490,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
                     child: const Icon(
                       Icons.camera_alt_rounded,
                       color: Colors.white,
-                      size: 16,
+                      size: 16, // Anasayfa ile uyumlu icon boyutu
                     ),
                   ),
                 ),
@@ -474,8 +501,8 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
           Text(
             user.name,
             style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
+              fontSize: 20, // Anasayfa ile uyumlu font boyutu
+              fontWeight: FontWeight.w700, // Anasayfa ile uyumlu font weight
               color: AppTheme.grey900,
             ),
           ),
@@ -483,7 +510,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
           Text(
             user.email,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 14, // Anasayfa ile uyumlu font boyutu
               color: AppTheme.grey600,
             ),
           ),
@@ -504,7 +531,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
                 Icon(
                   Icons.school_rounded,
                   color: AppTheme.accentGreen,
-                  size: 16,
+                  size: 16, // Anasayfa ile uyumlu icon boyutu
                 ),
                 SizedBox(width: 8),
                 Text(
@@ -703,6 +730,11 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
   }
 
   Widget _buildTeacherCertifications() {
+    final teacherProfile = _userProfile['teacher_profile'];
+    final certifications = teacherProfile != null && teacherProfile['certifications'] != null
+        ? List<String>.from(teacherProfile['certifications'])
+        : <String>[];
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -729,30 +761,23 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
             ),
           ),
           const SizedBox(height: 16),
-          _buildCertificationItem(
-            'Matematik Eğitimciliği',
-            'Lisans',
-            '2020',
-            true,
-          ),
-          _buildCertificationItem(
-            'Pedagojik Formasyon',
-            'Sertifika',
-            '2021',
-            true,
-          ),
-          _buildCertificationItem(
-            'Online Eğitim Uzmanlığı',
-            'Sertifika',
-            '2022',
-            true,
-          ),
-          _buildCertificationItem(
-            'Özel Eğitim Uzmanlığı',
-            'Yüksek Lisans',
-            'Yakında',
-            false,
-          ),
+          if (certifications.isEmpty)
+            const Text(
+              'Henüz sertifika eklenmemiş',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.grey500,
+              ),
+            )
+          else
+            ...certifications.map((cert) {
+              return _buildCertificationItem(
+                cert,
+                'Sertifika',
+                DateTime.now().year.toString(),
+                true,
+              );
+            }).toList(),
         ],
       ),
     );
@@ -1013,13 +1038,40 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
             'Bildirim ayarlarınızı yönetin',
             Icons.notifications_rounded,
             AppTheme.accentPurple,
-            () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationPreferencesScreen(preferences: {}),
-                ),
-              );
+            () async {
+              try {
+                // Load current preferences first
+                final response = await _apiService.get('/user/notification-preferences');
+                final preferences = response['data'] ?? {};
+                
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NotificationPreferencesScreen(preferences: preferences),
+                  ),
+                );
+                
+                // If preferences were updated, refresh the profile
+                if (result != null) {
+                  setState(() {
+                    // Refresh the profile data
+                  });
+                }
+              } catch (e) {
+                // If loading preferences fails, still open the screen with empty preferences
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationPreferencesScreen(preferences: {}),
+                  ),
+                );
+                
+                if (result != null) {
+                  setState(() {
+                    // Refresh the profile data
+                  });
+                }
+              }
             },
           ),
         ],
@@ -1210,17 +1262,10 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen>
   }
 
   void _showAvailabilityDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Müsaitlik Takvimi'),
-        content: const Text('Müsaitlik takvimi özelliği yakında eklenecek.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Tamam'),
-          ),
-        ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const WeeklyAvailabilityScreen(),
       ),
     );
   }

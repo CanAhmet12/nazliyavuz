@@ -4,7 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../models/teacher.dart';
-import '../screens/chat/chat_screen.dart';
+import '../models/user.dart';
+import '../screens/chat/student_chat_screen.dart';
 import '../screens/reservations/create_reservation_screen.dart';
 import '../screens/teachers/teacher_detail_screen.dart';
 
@@ -249,7 +250,11 @@ class TeacherCard extends StatelessWidget {
                     color: isFavorite ? Colors.red : const Color(0xFF00BFA5),
                     size: 20,
                   ),
-                  onPressed: onFavoriteToggle,
+                  onPressed: onFavoriteToggle ?? () {
+                    if (kDebugMode) {
+                      print('Favorite toggle callback is null for teacher ${teacher.id}');
+                    }
+                  },
                 ),
               ),
             ),
@@ -587,16 +592,42 @@ class TeacherCard extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {
-                  if (teacher.user != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatScreen(
-                          otherUser: teacher.user!,
-                        ),
+                  if (teacher.user == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Eğitimci bilgileri eksik'),
+                        backgroundColor: Colors.red,
                       ),
                     );
+                    return;
                   }
+
+                  // Teacher ID'yi kontrol et
+                  final teacherId = teacher.id ?? teacher.user?.id;
+                  if (teacherId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Eğitimci ID bulunamadı'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StudentChatScreen(
+                        teacher: User(
+                          id: teacherId,
+                          name: teacher.user!.name,
+                          email: teacher.user!.email,
+                          role: 'teacher',
+                          profilePhotoUrl: teacher.user!.profilePhotoUrl,
+                        ),
+                      ),
+                    ),
+                  );
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -965,7 +996,11 @@ class TeacherGridCard extends StatelessWidget {
                     color: isFavorite ? Colors.red : const Color(0xFF00BFA5),
                     size: 16,
                   ),
-                  onPressed: onFavoriteToggle,
+                  onPressed: onFavoriteToggle ?? () {
+                    if (kDebugMode) {
+                      print('Favorite toggle callback is null for teacher ${teacher.id}');
+                    }
+                  },
                   padding: EdgeInsets.zero,
                 ),
               ),

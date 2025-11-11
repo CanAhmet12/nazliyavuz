@@ -126,7 +126,8 @@ class MailService
     {
         try {
             $student = $reservation->student;
-            $teacher = $reservation->teacher->user;
+            $teacherRelation = $reservation->teacher;
+            $teacher = $teacherRelation instanceof User ? $teacherRelation : ($teacherRelation->user ?? null);
             
             Mail::send('emails.reservation-confirmation', [
                 'reservation' => $reservation,
@@ -157,30 +158,52 @@ class MailService
      */
     public function sendReservationReminder(Reservation $reservation): bool
     {
+        $student = $reservation->student;
+
+        if (!$student instanceof User) {
+            return false;
+        }
+
+        return $this->sendReservationReminderTo($student, $reservation, 'student');
+    }
+
+    public function sendReservationReminderTo(User $recipient, Reservation $reservation, string $role = 'student'): bool
+    {
         try {
-            $student = $reservation->student;
-            $teacher = $reservation->teacher->user;
-            
+            $student = $reservation->student instanceof User ? $reservation->student : null;
+            $teacher = $reservation->teacher instanceof User ? $reservation->teacher : null;
+
             Mail::send('emails.reservation-reminder', [
                 'reservation' => $reservation,
                 'student' => $student,
                 'teacher' => $teacher,
+                'recipient' => $recipient,
+                'recipientRole' => $role,
                 'platformUrl' => config('app.frontend_url'),
-            ], function ($message) use ($student) {
-                $message->to($student->email, $student->name)
-                    ->subject('Rezervasyon Hatırlatması - Nazliyavuz Platform');
+            ], function ($message) use ($recipient, $role) {
+                $subject = $role === 'teacher'
+                    ? 'Ders Hatırlatması - Nazliyavuz Platform'
+                    : 'Rezervasyon Hatırlatması - Nazliyavuz Platform';
+
+                $message->to($recipient->email, $recipient->name)
+                    ->subject($subject);
             });
 
             Log::info('Reservation reminder sent', [
                 'reservation_id' => $reservation->id,
-                'student_email' => $student->email
+                'recipient_email' => $recipient->email,
+                'recipient_role' => $role,
             ]);
+
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to send reservation reminder', [
                 'reservation_id' => $reservation->id,
-                'error' => $e->getMessage()
+                'recipient_email' => $recipient->email ?? null,
+                'recipient_role' => $role,
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }

@@ -12,6 +12,10 @@ class Chat extends Model
     protected $fillable = [
         'user1_id',
         'user2_id',
+        'last_message_id',
+        'last_message_at',
+        'user1_deleted',
+        'user2_deleted',
         'updated_at',
     ];
 
@@ -36,16 +40,7 @@ class Chat extends Model
      */
     public function messages()
     {
-        return Message::where(function ($query) {
-            $query->where(function ($q) {
-                    $q->where('sender_id', $this->user1_id)
-                      ->where('receiver_id', $this->user2_id);
-                })
-                ->orWhere(function ($q) {
-                    $q->where('sender_id', $this->user2_id)
-                      ->where('receiver_id', $this->user1_id);
-                });
-        })->orderBy('created_at', 'asc');
+        return $this->hasMany(Message::class, 'chat_id')->orderBy('created_at', 'asc');
     }
 
     /**
@@ -53,16 +48,7 @@ class Chat extends Model
      */
     public function lastMessage()
     {
-        return Message::where(function ($query) {
-            $query->where(function ($q) {
-                    $q->where('sender_id', $this->user1_id)
-                      ->where('receiver_id', $this->user2_id);
-                })
-                ->orWhere(function ($q) {
-                    $q->where('sender_id', $this->user2_id)
-                      ->where('receiver_id', $this->user1_id);
-                });
-        })->latest()->first();
+        return $this->belongsTo(Message::class, 'last_message_id');
     }
 
     /**

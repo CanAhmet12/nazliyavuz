@@ -32,10 +32,21 @@ class _SearchScreenState extends State<SearchScreen>
   Set<int> _favoriteTeacherIds = {}; // Track favorite teachers
   bool _isLoading = false;
   bool _isGridView = false;
+  bool _showAdvancedFilters = false;
   List<Category> _selectedMainCategories = [];
   List<Category> _selectedSubCategories = [];
   String _sortBy = 'rating';
   String? _error;
+  
+  // Advanced filter variables
+  List<Category> _categories = [];
+  Set<int> _selectedCategories = {};
+  double _minPrice = 0;
+  double _maxPrice = 1000;
+  int _experienceYears = 0;
+  double _minRating = 0.0;
+  List<String> _selectedLanguages = [];
+  List<String> _selectedEducation = [];
 
   final List<Map<String, dynamic>> _sortOptions = [
     {'value': 'rating', 'label': 'En Yüksek Puan'},
@@ -356,6 +367,11 @@ class _SearchScreenState extends State<SearchScreen>
           
           // Quick Filters
           _buildQuickFilters(),
+          
+          const SizedBox(height: 12),
+          
+          // Advanced Filters Panel - Only show when toggled
+          if (_showAdvancedFilters) _buildAdvancedFiltersPanel(),
         ],
       ),
     );
@@ -477,7 +493,7 @@ class _SearchScreenState extends State<SearchScreen>
     return Container(
       height: 48,
       child: OutlinedButton.icon(
-        onPressed: _showAdvancedFilters,
+        onPressed: _toggleAdvancedFilters,
         icon: Icon(Icons.tune_rounded, size: 18, color: AppTheme.primaryBlue),
         label: Text(
           'Filtreler',
@@ -678,8 +694,311 @@ class _SearchScreenState extends State<SearchScreen>
     );
   }
 
-  void _showAdvancedFilters() {
-    _showCategoryFiltersDialog();
+  void _toggleAdvancedFilters() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.grey300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Icon(Icons.tune_rounded, color: AppTheme.primaryBlue, size: 24),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Gelişmiş Filtreler',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.grey900,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close_rounded, color: AppTheme.grey600),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Filter Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Kategori Filtreleri
+                      Text(
+                        'Kategoriler',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.grey900,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _categories.map((category) {
+                          final isSelected = _selectedCategories.contains(category.id);
+                          return FilterChip(
+                            label: Text(category.name),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setModalState(() {
+                                if (selected) {
+                                  _selectedCategories.add(category.id);
+                                } else {
+                                  _selectedCategories.remove(category.id);
+                                }
+                              });
+                            },
+                            selectedColor: AppTheme.primaryBlue.withOpacity(0.2),
+                            checkmarkColor: AppTheme.primaryBlue,
+                            labelStyle: TextStyle(
+                              color: isSelected ? AppTheme.primaryBlue : AppTheme.grey700,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Fiyat Aralığı
+                      Text(
+                        'Fiyat Aralığı',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.grey900,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: TextEditingController(text: _minPrice.toString()),
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Min Fiyat',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                _minPrice = double.tryParse(value) ?? 0;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: TextField(
+                              controller: TextEditingController(text: _maxPrice.toString()),
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Max Fiyat',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                _maxPrice = double.tryParse(value) ?? 1000;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Deneyim Yılı
+                      Text(
+                        'Deneyim Yılı',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.grey900,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Slider(
+                        value: _experienceYears.toDouble(),
+                        min: 0,
+                        max: 20,
+                        divisions: 20,
+                        label: '${_experienceYears} yıl',
+                        onChanged: (value) {
+                          setModalState(() {
+                            _experienceYears = value.round();
+                          });
+                        },
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Konum
+                      Text(
+                        'Konum',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.grey900,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Location filter removed as requested
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Apply Button
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _applyFilters();
+                      });
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Filtreleri Uygula',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _applyFilters() {
+    // Apply advanced filters to teacher list
+    _filteredTeachers = _teachers.where((teacher) {
+      // Category filter
+      if (_selectedCategories.isNotEmpty) {
+        bool hasSelectedCategory = false;
+        for (int categoryId in _selectedCategories) {
+          if (teacher.categories?.any((cat) => cat.id == categoryId) ?? false) {
+            hasSelectedCategory = true;
+            break;
+          }
+        }
+        if (!hasSelectedCategory) return false;
+      }
+      
+      // Price filter
+      final price = teacher.priceHour ?? 0;
+      if (price < _minPrice || price > _maxPrice) {
+        return false;
+      }
+      
+      // Experience filter
+      final experience = teacher.experienceYears ?? 0;
+      if (experience < _experienceYears) {
+        return false;
+      }
+      
+      // Rating filter
+      final rating = teacher.ratingAvg ?? 0;
+      if (rating < _minRating) {
+        return false;
+      }
+      
+      // Language filter
+      if (_selectedLanguages.isNotEmpty) {
+        final teacherLanguages = (teacher.languages ?? '').toString();
+        bool hasSelectedLanguage = false;
+        for (String language in _selectedLanguages) {
+          if (teacherLanguages.toLowerCase().contains(language.toLowerCase())) {
+            hasSelectedLanguage = true;
+            break;
+          }
+        }
+        if (!hasSelectedLanguage) return false;
+      }
+      
+      // Education filter
+      if (_selectedEducation.isNotEmpty) {
+        final teacherEducation = (teacher.education ?? '').toString();
+        bool hasSelectedEducation = false;
+        for (String education in _selectedEducation) {
+          if (teacherEducation.toLowerCase().contains(education.toLowerCase())) {
+            hasSelectedEducation = true;
+            break;
+          }
+        }
+        if (!hasSelectedEducation) return false;
+      }
+      
+      return true;
+    }).toList();
+    
+    // Apply sorting
+    _applySorting();
+  }
+
+  void _applySorting() {
+    switch (_sortBy) {
+      case 'rating':
+        _filteredTeachers.sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
+        break;
+      case 'price_low':
+        _filteredTeachers.sort((a, b) => (a.priceHour ?? 0).compareTo(b.priceHour ?? 0));
+        break;
+      case 'price_high':
+        _filteredTeachers.sort((a, b) => (b.priceHour ?? 0).compareTo(a.priceHour ?? 0));
+        break;
+      case 'recent':
+        _filteredTeachers.sort((a, b) => (b.createdAt ?? DateTime(1970)).compareTo(a.createdAt ?? DateTime(1970)));
+        break;
+      case 'popular':
+        _filteredTeachers.sort((a, b) => (b.totalStudents ?? 0).compareTo(a.totalStudents ?? 0));
+        break;
+    }
   }
 
   void _showCategoryFiltersDialog() {
@@ -1097,6 +1416,404 @@ class _SearchScreenState extends State<SearchScreen>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAdvancedFiltersPanel() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFE5E7EB),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Gelişmiş Filtreler',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF111827),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedMainCategories.clear();
+                    _selectedSubCategories.clear();
+                    _selectedCategories.clear();
+                    _selectedLanguages.clear();
+                    _selectedEducation.clear();
+                    _minPrice = 0;
+                    _maxPrice = 1000;
+                    _experienceYears = 0;
+                    _minRating = 0.0;
+                    _sortBy = 'rating';
+                  });
+                  _applyFilters();
+                },
+                child: const Text(
+                  'Temizle',
+                  style: TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Price Range Filter
+          _buildPriceRangeFilter(),
+          const SizedBox(height: 16),
+          
+          // Language Filter
+          _buildLanguageFilter(),
+          const SizedBox(height: 16),
+          
+          // Education Filter
+          _buildEducationFilter(),
+          const SizedBox(height: 16),
+          
+          // Experience Filter
+          _buildExperienceFilter(),
+          const SizedBox(height: 16),
+          
+          // Rating Filter
+          _buildRatingFilter(),
+          const SizedBox(height: 16),
+          
+          // Availability Filter
+          _buildAvailabilityFilter(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceRangeFilter() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Fiyat Aralığı',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                decoration: const InputDecoration(
+                  hintText: 'Min Fiyat',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  setState(() {
+                    _minPrice = double.tryParse(value) ?? 0;
+                  });
+                  _applyFilters();
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                decoration: const InputDecoration(
+                  hintText: 'Max Fiyat',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  setState(() {
+                    _maxPrice = double.tryParse(value) ?? 1000;
+                  });
+                  _applyFilters();
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Slider(
+                value: _minPrice,
+                min: 0,
+                max: 1000,
+                divisions: 100,
+                label: '₺${_minPrice.toInt()}',
+                onChanged: (value) {
+                  setState(() {
+                    _minPrice = value;
+                  });
+                  _applyFilters();
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Slider(
+                value: _maxPrice,
+                min: 0,
+                max: 1000,
+                divisions: 100,
+                label: '₺${_maxPrice.toInt()}',
+                onChanged: (value) {
+                  setState(() {
+                    _maxPrice = value;
+                  });
+                  _applyFilters();
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLanguageFilter() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Dil',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: [
+            'Türkçe',
+            'İngilizce',
+            'Almanca',
+            'Fransızca',
+            'İspanyolca',
+          ].map((language) => _buildFilterChip(
+            language,
+            _selectedLanguages.contains(language),
+            () {
+              setState(() {
+                if (_selectedLanguages.contains(language)) {
+                  _selectedLanguages.remove(language);
+                } else {
+                  _selectedLanguages.add(language);
+                }
+              });
+              _applyFilters();
+            },
+          )).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEducationFilter() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Eğitim Seviyesi',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: [
+            'Lisans',
+            'Yüksek Lisans',
+            'Doktora',
+            'Sertifika',
+          ].map((education) => _buildFilterChip(
+            education,
+            _selectedEducation.contains(education),
+            () {
+              setState(() {
+                if (_selectedEducation.contains(education)) {
+                  _selectedEducation.remove(education);
+                } else {
+                  _selectedEducation.add(education);
+                }
+              });
+              _applyFilters();
+            },
+          )).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExperienceFilter() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Deneyim Yılı',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Slider(
+                value: _experienceYears.toDouble(),
+                min: 0,
+                max: 20,
+                divisions: 20,
+                label: '${_experienceYears} yıl',
+                onChanged: (value) {
+                  setState(() {
+                    _experienceYears = value.round();
+                  });
+                  _applyFilters();
+                },
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${_experienceYears} yıl',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primaryBlue,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRatingFilter() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Minimum Puan',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Slider(
+                value: _minRating,
+                min: 0,
+                max: 5,
+                divisions: 10,
+                label: '${_minRating.toStringAsFixed(1)} ⭐',
+                onChanged: (value) {
+                  setState(() {
+                    _minRating = value;
+                  });
+                  _applyFilters();
+                },
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${_minRating.toStringAsFixed(1)} ⭐',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.orange,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAvailabilityFilter() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Müsaitlik',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: CheckboxListTile(
+                title: const Text(
+                  'Şimdi Müsait',
+                  style: TextStyle(fontSize: 14),
+                ),
+                value: false, // You can track this state
+                onChanged: (value) {
+                  // Handle availability change
+                },
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            Expanded(
+              child: CheckboxListTile(
+                title: const Text(
+                  'Online Ders',
+                  style: TextStyle(fontSize: 14),
+                ),
+                value: false, // You can track this state
+                onChanged: (value) {
+                  // Handle online lesson preference
+                },
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

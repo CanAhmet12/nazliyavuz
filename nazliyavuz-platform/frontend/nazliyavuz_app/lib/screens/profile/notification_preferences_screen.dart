@@ -25,10 +25,40 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
   @override
   void initState() {
     super.initState();
-    _emailNotifications = widget.preferences['email_notifications'] ?? true;
-    _pushNotifications = widget.preferences['push_notifications'] ?? true;
-    _lessonReminders = widget.preferences['lesson_reminders'] ?? true;
-    _marketingEmails = widget.preferences['marketing_emails'] ?? false;
+    _loadCurrentPreferences();
+  }
+
+  Future<void> _loadCurrentPreferences() async {
+    try {
+      final response = await _apiService.get('/user/notification-preferences');
+      if (response['data'] != null) {
+        setState(() {
+          // Backend'den gelen int değerleri (0/1) bool'a çevir
+          _emailNotifications = _convertToBool(response['data']['email_notifications']);
+          _pushNotifications = _convertToBool(response['data']['push_notifications']);
+          _lessonReminders = _convertToBool(response['data']['lesson_reminders']);
+          _marketingEmails = _convertToBool(response['data']['marketing_emails']);
+        });
+      }
+    } catch (e) {
+      print('Error loading preferences: $e');
+      // Fallback to widget preferences
+      setState(() {
+        _emailNotifications = _convertToBool(widget.preferences['email_notifications']) || true;
+        _pushNotifications = _convertToBool(widget.preferences['push_notifications']) || true;
+        _lessonReminders = _convertToBool(widget.preferences['lesson_reminders']) || true;
+        _marketingEmails = _convertToBool(widget.preferences['marketing_emails']) || false;
+      });
+    }
+  }
+
+  // Int (0/1) değerlerini bool'a çeviren helper metod
+  bool _convertToBool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) return value == '1' || value.toLowerCase() == 'true';
+    return false;
   }
 
   @override
@@ -69,13 +99,21 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
                 title: const Text('Ders Hatırlatmaları'),
                 subtitle: const Text('Yaklaşan dersler için hatırlatma'),
                 value: _lessonReminders,
-                onChanged: null, // Tıklanamaz yap
+                onChanged: (value) {
+                  setState(() {
+                    _lessonReminders = value;
+                  });
+                },
               ),
               SwitchListTile(
                 title: const Text('Pazarlama E-postaları'),
                 subtitle: const Text('Promosyon ve kampanya e-postaları'),
                 value: _marketingEmails,
-                onChanged: null, // Tıklanamaz yap
+                onChanged: (value) {
+                  setState(() {
+                    _marketingEmails = value;
+                  });
+                },
               ),
             ],
           ),
@@ -87,7 +125,11 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
                 title: const Text('Push Bildirimleri'),
                 subtitle: const Text('Mobil cihaz bildirimleri'),
                 value: _pushNotifications,
-                onChanged: null, // Tıklanamaz yap
+                onChanged: (value) {
+                  setState(() {
+                    _pushNotifications = value;
+                  });
+                },
               ),
             ],
           ),
@@ -130,7 +172,7 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
     });
 
     try {
-      // API call to save preferences
+      // API call to save preferences - bool değerleri backend'e gönder
       await _apiService.updateNotificationPreferences({
         'email_notifications': _emailNotifications,
         'push_notifications': _pushNotifications,
@@ -139,12 +181,25 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
       });
 
       if (mounted) {
+        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bildirim tercihleri kaydedildi!'),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text('Bildirim tercihleri başarıyla kaydedildi!'),
+              ],
+            ),
             backgroundColor: AppTheme.accentGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         );
+        
+        // Return to previous screen with updated preferences
         Navigator.pop(context, {
           'email_notifications': _emailNotifications,
           'push_notifications': _pushNotifications,
@@ -156,8 +211,18 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hata: ${e.toString().replaceAll('Exception: ', '')}'),
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Hata: ${e.toString().replaceAll('Exception: ', '')}'),
+              ],
+            ),
             backgroundColor: AppTheme.accentRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         );
       }

@@ -15,6 +15,7 @@ class SendPushNotification implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public string $queue = 'notifications';
     protected User $user;
     protected string $title;
     protected string $body;

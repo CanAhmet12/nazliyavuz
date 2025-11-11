@@ -219,6 +219,7 @@ class VideoCallIntegrationTest extends TestCase
             'caller_id' => $this->student->id,
             'call_type' => 'audio',
             'status' => 'rejected',
+            'duration_seconds' => 0,
         ]);
 
         // Get statistics

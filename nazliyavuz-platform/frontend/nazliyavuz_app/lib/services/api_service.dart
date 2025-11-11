@@ -11,11 +11,13 @@ import '../models/rating.dart';
 import '../models/category.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
+import '../models/message_thread.dart';
+import '../models/message_translation.dart';
 import '../models/assignment.dart';
 import '../models/lesson.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://10.91.204.19:8080/api/v1';  // Local Backend
+  static const String baseUrl = 'http://34.14.61.40/api/v1';  // Production VM
   late Dio _dio;
   String? _token;
 
@@ -26,6 +28,13 @@ class ApiService {
   
   // Performance optimization
   Timer? _cacheCleanupTimer;
+  final Map<String, DateTime> _cacheTimestamps = {};
+  
+  // Activity tracking for sliding session
+  DateTime? _lastActivity;
+  Timer? _activityTimer;
+  static const Duration _activityCheckInterval = Duration(minutes: 10); // Check every 10 minutes
+  static const Duration _tokenRefreshThreshold = Duration(minutes: 30); // Refresh if less than 30 min left
 
   ApiService() {
     if (kDebugMode) {
@@ -65,6 +74,12 @@ class ApiService {
           print('📥 [API_RESPONSE] Status: ${response.statusCode}');
           print('📥 [API_RESPONSE] Data: ${response.data}');
         }
+        
+        // Record activity for successful API calls
+        if (response.statusCode != null && response.statusCode! >= 200 && response.statusCode! < 300) {
+          recordActivity();
+        }
+        
         handler.next(response);
       },
       onError: (error, handler) async {
@@ -73,14 +88,70 @@ class ApiService {
         }
         
         if (error.response?.statusCode == 401) {
-          if (kDebugMode) {
-            print('🔓 [API_ERROR] Unauthorized - clearing token');
+          // Don't retry refresh for login/profile check requests
+          final skipRefreshPaths = [
+            '/auth/refresh', 
+            '/user', 
+            '/auth/me'
+          ];
+          
+          if (skipRefreshPaths.contains(error.requestOptions.path)) {
+            if (kDebugMode) {
+              print('🔓 [API_ERROR] 401 on ${error.requestOptions.path} - skipping refresh, clearing token');
+            }
+            await _clearToken();
+            _currentUser = null;
+            if (onUnauthorized != null) {
+              onUnauthorized!();
+            }
+            handler.next(error);
+            return;
           }
-          await _clearToken();
-          // Notify AuthBloc about unauthorized access
-          _currentUser = null;
-          if (onUnauthorized != null) {
-            onUnauthorized!();
+          
+          if (kDebugMode) {
+            print('🔓 [API_ERROR] Unauthorized - attempting token refresh...');
+          }
+          
+          // Try to refresh token first
+          try {
+            await refreshToken();
+            if (kDebugMode) {
+              print('✅ [API_ERROR] Token refreshed successfully, retrying request...');
+            }
+            // Retry the original request
+            final response = await _dio.fetch(error.requestOptions);
+            handler.resolve(response);
+            return;
+          } catch (refreshError) {
+            if (kDebugMode) {
+              print('❌ [API_ERROR] Token refresh failed');
+              print('❌ [API_ERROR] Refresh error: $refreshError');
+            }
+            
+            // Only clear token if it's a real authentication failure
+            // Don't clear token for network errors or temporary issues
+            if (refreshError.toString().contains('401') || 
+                refreshError.toString().contains('Unauthorized') ||
+                refreshError.toString().contains('Token bulunamadı') ||
+                refreshError.toString().contains('Oturum süreniz dolmuş')) {
+              if (kDebugMode) {
+                print('🔓 [API_ERROR] Real auth failure detected, clearing token');
+              }
+              await _clearToken();
+              _currentUser = null;
+              // Notify AuthBloc about unauthorized access
+              if (onUnauthorized != null) {
+                onUnauthorized!();
+              }
+            } else {
+              if (kDebugMode) {
+                print('🔄 [API_ERROR] Network/temporary error, keeping token');
+              }
+            }
+            
+            // Don't retry the original request, let it fail
+            handler.next(error);
+            return;
           }
         }
         handler.next(error);
@@ -88,7 +159,6 @@ class ApiService {
     ));
 
     _initializeAuth();
-    _startCacheCleanup();
   }
 
   Future<void> _initializeAuth() async {
@@ -96,44 +166,93 @@ class ApiService {
     if (kDebugMode) {
       print('🔑 [API_SERVICE] Auth initialization complete. Token: ${_token != null ? "EXISTS" : "NULL"}');
     }
+    
+    // Start activity tracking for sliding session
+    _startActivityTracking();
   }
 
-  void _startCacheCleanup() {
-    _cacheCleanupTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
-      _cleanupCache();
+  // Activity tracking methods for sliding session
+  void _startActivityTracking() {
+    _lastActivity = DateTime.now();
+    _activityTimer?.cancel();
+    _activityTimer = Timer.periodic(_activityCheckInterval, (timer) {
+      _checkAndRefreshTokenIfNeeded();
     });
+    
+    if (kDebugMode) {
+      print('🔄 [ACTIVITY_TRACKING] Started activity tracking');
+    }
   }
 
-  void _cleanupCache() {
+  void _stopActivityTracking() {
+    _activityTimer?.cancel();
+    _activityTimer = null;
+    _lastActivity = null;
+    
     if (kDebugMode) {
-      print('🧹 [CACHE_CLEANUP] Cleaning up expired cache entries...');
+      print('⏹️ [ACTIVITY_TRACKING] Stopped activity tracking');
     }
+  }
+
+  void recordActivity() {
+    _lastActivity = DateTime.now();
+    if (kDebugMode) {
+      print('📱 [ACTIVITY_TRACKING] Activity recorded at ${_lastActivity}');
+    }
+  }
+
+  Future<void> _checkAndRefreshTokenIfNeeded() async {
+    if (_token == null || _lastActivity == null) return;
     
-    final now = DateTime.now();
-    final keysToRemove = <String>[];
-    
-    _cache.forEach((key, value) {
-      if (value is Map<String, dynamic> && value.containsKey('expires_at')) {
-        final expiresAt = DateTime.parse(value['expires_at']);
-        if (now.isAfter(expiresAt)) {
-          keysToRemove.add(key);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final tokenExpiry = prefs.getString('token_expiry');
+      
+      if (tokenExpiry != null) {
+        final expiryDate = DateTime.parse(tokenExpiry);
+        final now = DateTime.now();
+        final timeUntilExpiry = expiryDate.difference(now);
+        
+        // If token will expire within the threshold, refresh it
+        if (timeUntilExpiry < _tokenRefreshThreshold) {
+          if (kDebugMode) {
+            print('🔄 [ACTIVITY_TRACKING] Token expires in ${timeUntilExpiry.inMinutes} minutes, refreshing...');
+          }
+          
+          try {
+            await refreshToken();
+            if (kDebugMode) {
+              print('✅ [ACTIVITY_TRACKING] Token refreshed due to activity');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('❌ [ACTIVITY_TRACKING] Failed to refresh token: $e');
+            }
+          }
         }
       }
-    });
-    
-    for (final key in keysToRemove) {
-      _cache.remove(key);
-    }
-    
-    if (kDebugMode && keysToRemove.isNotEmpty) {
-      print('🧹 [CACHE_CLEANUP] Removed ${keysToRemove.length} expired cache entries');
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [ACTIVITY_TRACKING] Error checking token: $e');
+      }
     }
   }
+
+  
+
 
   void dispose() {
     _cacheCleanupTimer?.cancel();
+    _activityTimer?.cancel();
     _cache.clear();
+    _cacheTimestamps.clear();
+    _lastActivity = null;
+    
+    if (kDebugMode) {
+      print('🧹 [API_SERVICE] ApiService disposed');
+    }
   }
+
 
   Future<void> _loadToken() async {
     if (kDebugMode) {
@@ -141,6 +260,41 @@ class ApiService {
     }
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('auth_token');
+    
+    // Check if token is expired or will expire soon
+    if (_token != null) {
+      final tokenExpiry = prefs.getString('token_expiry');
+      if (tokenExpiry != null) {
+        final expiryDate = DateTime.parse(tokenExpiry);
+        final now = DateTime.now();
+        
+        // Check if token is already expired
+        if (now.isAfter(expiryDate)) {
+          if (kDebugMode) {
+            print('🔑 [API_SERVICE] Token expired, clearing...');
+          }
+          await _clearToken();
+        } 
+        // Check if token will expire in the next 5 minutes
+        else if (expiryDate.difference(now).inMinutes < 5) {
+          if (kDebugMode) {
+            print('⚠️ [API_SERVICE] Token will expire soon (${expiryDate.difference(now).inMinutes} minutes)');
+          }
+          // Try to refresh token proactively
+          try {
+            await refreshToken();
+            if (kDebugMode) {
+              print('✅ [API_SERVICE] Token refreshed proactively');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('❌ [API_SERVICE] Proactive refresh failed: $e');
+            }
+          }
+        }
+      }
+    }
+    
     if (kDebugMode) {
       print('🔑 [API_SERVICE] Token loaded: ${_token != null ? "EXISTS" : "NULL"}');
     }
@@ -148,20 +302,32 @@ class ApiService {
 
   bool get isAuthenticated => _token != null;
   
+  // Public method to force token loading
+  Future<void> loadTokenFromStorage() async {
+    await _loadToken();
+  }
+  
   User? _currentUser;
   User? get currentUser => _currentUser;
   
   int get currentUserId => _currentUser?.id ?? 0;
 
-  Future<void> _saveToken(String token) async {
+  Future<void> _saveToken(String token, {int? expiresInSeconds}) async {
     if (kDebugMode) {
       print('💾 [API_SERVICE] Saving token to SharedPreferences...');
     }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
+    
+    // Backend'den gelen gerçek süreyi kullan, yoksa 1 saat fallback (backend JWT TTL is 60 minutes)
+    final expiryDate = expiresInSeconds != null 
+      ? DateTime.now().add(Duration(seconds: expiresInSeconds))
+      : DateTime.now().add(const Duration(minutes: 60));
+    await prefs.setString('token_expiry', expiryDate.toIso8601String());
+    
     _token = token;
     if (kDebugMode) {
-      print('💾 [API_SERVICE] Token saved successfully');
+      print('💾 [API_SERVICE] Token saved successfully with expiry: ${expiryDate.toIso8601String()}');
     }
   }
 
@@ -171,7 +337,9 @@ class ApiService {
     }
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
+    await prefs.remove('token_expiry');
     _token = null;
+    _currentUser = null;
     if (kDebugMode) {
       print('🗑️ [API_SERVICE] Token cleared successfully');
     }
@@ -249,6 +417,8 @@ class ApiService {
   }) async {
     if (kDebugMode) {
       print('🔐 [GOOGLE_LOGIN] Starting Google login...');
+      print('🔐 [GOOGLE_LOGIN] Access token length: ${accessToken.length}');
+      print('🔐 [GOOGLE_LOGIN] ID token length: ${idToken?.length ?? 0}');
     }
     
     try {
@@ -256,6 +426,10 @@ class ApiService {
         'access_token': accessToken,
         if (idToken != null) 'id_token': idToken,
       };
+      
+      if (kDebugMode) {
+        print('🔐 [GOOGLE_LOGIN] Request data: ${requestData.keys.join(', ')}');
+      }
       
       final response = await _dio.post('/auth/social/google', data: requestData);
       
@@ -273,6 +447,37 @@ class ApiService {
     } catch (e) {
       if (kDebugMode) {
         print('❌ [GOOGLE_LOGIN] Google login failed: $e');
+        if (e is DioException) {
+          print('❌ [GOOGLE_LOGIN] DioException details:');
+          print('❌ [GOOGLE_LOGIN] Status code: ${e.response?.statusCode}');
+          print('❌ [GOOGLE_LOGIN] Response data: ${e.response?.data}');
+          print('❌ [GOOGLE_LOGIN] Request data: ${e.requestOptions.data}');
+        }
+      }
+      rethrow;
+    }
+  }
+
+  // Set user role after social authentication
+  Future<Map<String, dynamic>> setUserRole(String role) async {
+    if (kDebugMode) {
+      print('🎭 [SET_ROLE] Setting user role: $role');
+    }
+    
+    try {
+      final response = await _dio.post('/auth/set-role', data: {
+        'role': role,
+      });
+      
+      if (kDebugMode) {
+        print('✅ [SET_ROLE] Role set successfully');
+        print('✅ [SET_ROLE] Response: ${response.data}');
+      }
+      
+      return response.data;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [SET_ROLE] Role setting failed: $e');
       }
       rethrow;
     }
@@ -518,9 +723,9 @@ class ApiService {
 
       final token = response.data['token']['access_token'];
       final expiresIn = response.data['token']['expires_in']; // Backend'den gelen saniye cinsinden süre
-      await _saveToken(token);
+      await _saveToken(token, expiresInSeconds: expiresIn);
       
-      // Token süresini kaydet (opsiyonel - gelecekte kullanılabilir)
+      // Token süresini kaydet
       if (kDebugMode) {
         print('🔐 [LOGIN] Token expires in: ${expiresIn} seconds');
       }
@@ -550,13 +755,67 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> refreshToken() async {
+    if (kDebugMode) {
+      print('🔄 [REFRESH_TOKEN] Attempting to refresh token...');
+    }
+    
+    // First, try to load token from SharedPreferences
+    await _loadToken();
+    
+    // Check if we have a valid token to refresh
+    if (_token == null) {
+      if (kDebugMode) {
+        print('❌ [REFRESH_TOKEN] No token to refresh - user needs to login');
+      }
+      throw Exception('Token bulunamadı. Lütfen tekrar giriş yapın.');
+    }
+    
     try {
-      final response = await _dio.post('/auth/refresh');
+      // Create a new Dio instance without interceptors for refresh request
+      final refreshDio = Dio(BaseOptions(
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+      ));
+      
+      final response = await refreshDio.post('/auth/refresh');
       final token = response.data['token']['access_token'];
-      await _saveToken(token);
+      final expiresIn = response.data['token']['expires_in'];
+      await _saveToken(token, expiresInSeconds: expiresIn);
+      
+      if (kDebugMode) {
+        print('✅ [REFRESH_TOKEN] Token refreshed successfully');
+      }
+      
       return response.data;
     } on DioException catch (e) {
-      throw Exception(handleError(e));
+      if (kDebugMode) {
+        print('❌ [REFRESH_TOKEN] Token refresh failed: ${e.message}');
+        print('❌ [REFRESH_TOKEN] Status Code: ${e.response?.statusCode}');
+        print('❌ [REFRESH_TOKEN] Response: ${e.response?.data}');
+      }
+      
+      // Only clear token if it's a real 401/403 error
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+        if (kDebugMode) {
+          print('🔓 [REFRESH_TOKEN] Real auth failure (${e.response?.statusCode}), clearing token');
+        }
+        await _clearToken();
+        if (onUnauthorized != null) {
+          onUnauthorized!();
+        }
+        throw Exception('Token yenileme başarısız. Lütfen tekrar giriş yapın.');
+      } else {
+        if (kDebugMode) {
+          print('🔄 [REFRESH_TOKEN] Network error, keeping token: ${e.message}');
+        }
+        throw Exception('Ağ hatası: ${e.message}');
+      }
     }
   }
 
@@ -726,6 +985,54 @@ class ApiService {
     }
   }
 
+  // User Activity endpoints
+  Future<void> updateUserActivity() async {
+    try {
+      await _dio.post('/user/activity');
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<void> updateUserOnlineStatus(bool isOnline) async {
+    try {
+      await _dio.post('/user/online-status', data: {
+        'is_online': isOnline,
+      });
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  // Video Call History endpoints
+  Future<Map<String, dynamic>> getCallHistory({
+    int page = 1,
+    int limit = 20,
+    String? callType,
+    String? status,
+  }) async {
+    try {
+      final response = await _dio.get('/video-call/history', queryParameters: {
+        'page': page,
+        'limit': limit,
+        if (callType != null) 'call_type': callType,
+        if (status != null) 'status': status,
+      });
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<Map<String, dynamic>> getCallStatistics() async {
+    try {
+      final response = await _dio.get('/video-call/statistics');
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
   // Category endpoints
   Future<List<Category>> getCategories() async {
     try {
@@ -842,6 +1149,14 @@ class ApiService {
     }
     
     try {
+      // Check if token exists before sending
+      if (_token == null) {
+        if (kDebugMode) {
+          print('❌ [SEND_MESSAGE] No token available');
+        }
+        throw Exception('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
+      }
+
       final response = await _dio.post('/chats/messages', data: {
         'chat_id': chatId,
         'content': content,
@@ -857,7 +1172,18 @@ class ApiService {
       if (kDebugMode) {
         print('❌ [SEND_MESSAGE] Failed to send message');
         print('❌ [SEND_MESSAGE] Error: ${e.response?.data}');
+        print('❌ [SEND_MESSAGE] Status Code: ${e.response?.statusCode}');
       }
+      
+      // Handle 401 specifically for message sending - don't clear token here
+      // Let the interceptor handle it properly
+      if (e.response?.statusCode == 401) {
+        if (kDebugMode) {
+          print('🔓 [SEND_MESSAGE] 401 Unauthorized - token may be expired');
+        }
+        throw Exception('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
+      }
+      
       throw Exception(handleError(e));
     } catch (e) {
       if (kDebugMode) {
@@ -893,6 +1219,81 @@ class ApiService {
       throw Exception('Mesajlar okundu olarak işaretlenirken bir hata oluştu: $e');
     }
   }
+
+
+  // Upload voice message
+  Future<Message> uploadVoiceMessage(int chatId, String audioPath, int duration) async {
+    if (kDebugMode) {
+      print('🎤 [UPLOAD_VOICE] Uploading voice message to chat: $chatId, duration: $duration');
+    }
+    
+    try {
+      FormData formData = FormData.fromMap({
+        'chat_id': chatId,
+        'duration': duration,
+        'audio_file': await MultipartFile.fromFile(
+          audioPath,
+          filename: 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a',
+        ),
+      });
+
+      final response = await _dio.post('/chat/voice-message', data: formData);
+      
+      if (kDebugMode) {
+        print('✅ [UPLOAD_VOICE] Voice message uploaded successfully');
+      }
+      
+      return Message.fromJson(response.data['message']);
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('❌ [UPLOAD_VOICE] Error: ${e.message}');
+      }
+      throw Exception(handleError(e));
+    }
+  }
+
+  // Delete message
+  Future<void> deleteMessage(int messageId) async {
+    if (kDebugMode) {
+      print('🗑️ [DELETE_MESSAGE] Deleting message: $messageId');
+    }
+    
+    try {
+      await _dio.delete('/chat/messages/$messageId');
+      
+      if (kDebugMode) {
+        print('✅ [DELETE_MESSAGE] Message deleted successfully');
+      }
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('❌ [DELETE_MESSAGE] Error: ${e.message}');
+      }
+      throw Exception(handleError(e));
+    }
+  }
+
+  // Send message reaction
+  Future<void> sendMessageReaction(int messageId, String emoji) async {
+    if (kDebugMode) {
+      print('⭐ [MESSAGE_REACTION] Sending reaction to message: $messageId');
+    }
+    
+    try {
+      await _dio.post('/chat/messages/$messageId/reaction', data: {
+        'reaction': emoji,
+      });
+      
+      if (kDebugMode) {
+        print('✅ [MESSAGE_REACTION] Reaction sent successfully');
+      }
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('❌ [MESSAGE_REACTION] Error: ${e.message}');
+      }
+      throw Exception(handleError(e));
+    }
+  }
+
 
   // Search endpoints
   Future<Map<String, dynamic>> searchTeachers({
@@ -1169,6 +1570,141 @@ class ApiService {
       });
       return Reservation.fromJson(response.data);
     } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  // Complete reservation (teacher only)
+  Future<Map<String, dynamic>> completeReservation(int id) async {
+    try {
+      if (kDebugMode) {
+        print('✅ [API_SERVICE] completeReservation called for ID: $id');
+      }
+      
+      final response = await _dio.post('/reservations/$id/complete');
+      
+      if (kDebugMode) {
+        print('✅ [API_SERVICE] Complete Response: ${response.data}');
+      }
+      
+      return response.data;
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('❌ [API_SERVICE] Complete Reservation Error: ${e.message}');
+        print('❌ [API_SERVICE] Response: ${e.response?.data}');
+      }
+      throw Exception(handleError(e));
+    }
+  }
+
+  // Request reschedule (student only)
+  Future<Map<String, dynamic>> requestReschedule({
+    required int reservationId,
+    required DateTime newDatetime,
+    required String reason,
+  }) async {
+    try {
+      if (kDebugMode) {
+        print('🔄 [API_SERVICE] requestReschedule called for ID: $reservationId');
+        print('🔄 [API_SERVICE] New datetime: $newDatetime, Reason: $reason');
+      }
+      
+      final response = await _dio.post(
+        '/reservations/$reservationId/reschedule-request',
+        data: {
+          'new_datetime': newDatetime.toIso8601String(),
+          'reason': reason,
+        },
+      );
+      
+      if (kDebugMode) {
+        print('🔄 [API_SERVICE] Reschedule Request Response: ${response.data}');
+      }
+      
+      return response.data;
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('❌ [API_SERVICE] Reschedule Request Error: ${e.message}');
+        print('❌ [API_SERVICE] Response: ${e.response?.data}');
+      }
+      throw Exception(handleError(e));
+    }
+  }
+
+  // Handle reschedule request (teacher only)
+  Future<Map<String, dynamic>> handleRescheduleRequest({
+    required int reservationId,
+    required String action, // 'approve' or 'reject'
+    String? rejectionReason,
+  }) async {
+    try {
+      if (kDebugMode) {
+        print('🔄 [API_SERVICE] handleRescheduleRequest called for ID: $reservationId');
+        print('🔄 [API_SERVICE] Action: $action');
+      }
+      
+      final data = <String, dynamic>{
+        'action': action,
+      };
+      
+      if (rejectionReason != null) {
+        data['rejection_reason'] = rejectionReason;
+      }
+      
+      final response = await _dio.post(
+        '/reservations/$reservationId/reschedule-handle',
+        data: data,
+      );
+      
+      if (kDebugMode) {
+        print('🔄 [API_SERVICE] Handle Reschedule Response: ${response.data}');
+      }
+      
+      return response.data;
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('❌ [API_SERVICE] Handle Reschedule Error: ${e.message}');
+        print('❌ [API_SERVICE] Response: ${e.response?.data}');
+      }
+      throw Exception(handleError(e));
+    }
+  }
+
+  // Submit rating (student only)
+  Future<Map<String, dynamic>> submitRating({
+    required int reservationId,
+    required int rating,
+    String? review,
+  }) async {
+    try {
+      if (kDebugMode) {
+        print('⭐ [API_SERVICE] submitRating called for ID: $reservationId');
+        print('⭐ [API_SERVICE] Rating: $rating, Review: $review');
+      }
+      
+      final data = <String, dynamic>{
+        'rating': rating,
+      };
+      
+      if (review != null && review.isNotEmpty) {
+        data['review'] = review;
+      }
+      
+      final response = await _dio.post(
+        '/reservations/$reservationId/rating',
+        data: data,
+      );
+      
+      if (kDebugMode) {
+        print('⭐ [API_SERVICE] Submit Rating Response: ${response.data}');
+      }
+      
+      return response.data;
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('❌ [API_SERVICE] Submit Rating Error: ${e.message}');
+        print('❌ [API_SERVICE] Response: ${e.response?.data}');
+      }
       throw Exception(handleError(e));
     }
   }
@@ -1536,6 +2072,100 @@ class ApiService {
     }
   }
 
+  // Advanced message features
+  Future<void> pinMessage(int messageId) async {
+    try {
+      await _dio.post('/chat/messages/$messageId/pin');
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<void> unpinMessage(int messageId) async {
+    try {
+      await _dio.post('/chat/messages/$messageId/unpin');
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<Message> editMessage(int messageId, String newContent) async {
+    try {
+      final response = await _dio.put('/chat/messages/$messageId/edit', data: {
+        'content': newContent,
+      });
+      return Message.fromJson(response.data['message_data']);
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<Message> forwardMessage(int messageId, int targetChatId) async {
+    try {
+      final response = await _dio.post('/chat/messages/$messageId/forward', data: {
+        'chat_id': targetChatId,
+      });
+      return Message.fromJson(response.data['forwarded_message']);
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<Message> replyToMessage(int messageId, String content) async {
+    try {
+      final response = await _dio.post('/chat/messages/$messageId/reply', data: {
+        'content': content,
+      });
+      return Message.fromJson(response.data['reply_message']);
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<MessageThread> createThread(int messageId, {String? title}) async {
+    try {
+      final response = await _dio.post('/chat/messages/$messageId/thread', data: {
+        if (title != null) 'title': title,
+      });
+      return MessageThread.fromJson(response.data['thread']);
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<MessageThread> getThread(int threadId) async {
+    try {
+      final response = await _dio.get('/chat/threads/$threadId');
+      return MessageThread.fromJson(response.data['thread']);
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<MessageTranslation> translateMessage(int messageId, String targetLanguage) async {
+    try {
+      final response = await _dio.post('/chat/messages/$messageId/translate', data: {
+        'target_language': targetLanguage,
+      });
+      return MessageTranslation.fromJson(response.data['translation']);
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<List<Message>> getPinnedMessages(int chatId) async {
+    try {
+      final response = await _dio.get('/chat/pinned-messages', queryParameters: {
+        'chat_id': chatId,
+      });
+      return (response.data['pinned_messages'] as List)
+          .map((json) => Message.fromJson(json))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
 
   // Profile photo endpoints
   Future<String> updateProfilePhoto(XFile image) async {
@@ -1647,7 +2277,7 @@ class ApiService {
     try {
       final formData = FormData.fromMap({
         'file': await MultipartFile.fromFile(filePath, filename: fileName),
-        'receiver_id': receiverId,
+        'shared_with': [receiverId], // Backend expects array
         'description': description,
         'category': category,
         if (reservationId != null) 'reservation_id': reservationId,
@@ -1938,6 +2568,7 @@ class ApiService {
 
 
 
+
   Future<Map<String, dynamic>> gradeAssignment(
     int assignmentId,
     String grade,
@@ -1952,6 +2583,104 @@ class ApiService {
     } on DioException catch (e) {
       throw Exception(handleError(e));
     }
+  }
+
+  /// Update assignment (teacher only)
+  Future<Map<String, dynamic>> updateAssignment(
+    int assignmentId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await _dio.put('/assignments/$assignmentId', data: data);
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  /// Delete assignment (teacher only)
+  Future<Map<String, dynamic>> deleteAssignment(int assignmentId) async {
+    try {
+      final response = await _dio.delete('/assignments/$assignmentId');
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  /// Download assignment submission file
+  Future<void> downloadAssignmentSubmission(
+    int assignmentId,
+    String fileName,
+  ) async {
+    try {
+      final response = await _dio.get(
+        '/assignments/$assignmentId/download',
+        options: Options(
+          responseType: ResponseType.bytes,
+          followRedirects: false,
+        ),
+      );
+      
+      // File download handled by platform (web/mobile)
+      // Return bytes for further processing
+      if (kDebugMode) {
+        print('✅ File downloaded: $fileName (${response.data.length} bytes)');
+      }
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  /// Request resubmission (teacher only)
+  Future<Map<String, dynamic>> requestResubmission({
+    required int assignmentId,
+    required String feedback,
+    DateTime? newDueDate,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/assignments/$assignmentId/request-resubmission',
+        data: {
+          'feedback': feedback,
+          if (newDueDate != null) 'new_due_date': newDueDate.toIso8601String(),
+        },
+      );
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  /// Extend deadline (teacher only)
+  Future<Map<String, dynamic>> extendAssignmentDeadline({
+    required int assignmentId,
+    required DateTime newDueDate,
+    String? reason,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/assignments/$assignmentId/extend-deadline',
+        data: {
+          'new_due_date': newDueDate.toIso8601String(),
+          if (reason != null) 'reason': reason,
+        },
+      );
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  /// Get valid grade list
+  List<String> getValidGrades() {
+    return [
+      'A+', 'A', 'A-',
+      'B+', 'B', 'B-',
+      'C+', 'C', 'C-',
+      'D+', 'D', 'D-',
+      'F'
+    ];
   }
 
   // Lesson management endpoints
@@ -1994,6 +2723,52 @@ class ApiService {
     }
   }
 
+
+  Future<List<Map<String, dynamic>>> getSearchHistory() async {
+    try {
+      final response = await _dio.get('/search/history');
+      return List<Map<String, dynamic>>.from(response.data['searches'] ?? []);
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<void> saveSearchQuery(String query) async {
+    try {
+      await _dio.post('/search/history', data: {'query': query});
+    } on DioException catch (e) {
+      // Don't throw error for search history saving
+      if (kDebugMode) {
+        print('Failed to save search query: ${e.message}');
+      }
+    }
+  }
+
+  Future<void> clearSearchHistory() async {
+    try {
+      await _dio.delete('/search/history');
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<Map<String, dynamic>> getAnalytics({String period = '30'}) async {
+    try {
+      final response = await _dio.get('/analytics', queryParameters: {'period': period});
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  Future<int> getUnreadMessageCount() async {
+    try {
+      final response = await _dio.get('/chats/unread-count');
+      return response.data['count'] ?? 0;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
 
   Future<int> getUnreadNotificationCount() async {
     try {
@@ -2074,84 +2849,68 @@ class ApiService {
       print('🔍 [ERROR_HANDLER] Data: ${error.response?.data}');
     }
     
+    // Handle specific HTTP status codes with better messages
     if (error.response != null) {
-      final data = error.response!.data;
-      if (data is Map<String, dynamic>) {
-        // Format 1: {error: {message: "..."}}
-        if (data.containsKey('error') && data['error'] is Map<String, dynamic>) {
-          final errorData = data['error'] as Map<String, dynamic>;
-          if (errorData.containsKey('message')) {
-            final message = errorData['message'];
-            if (message is Map<String, dynamic>) {
-              // Validation error - format the message
-              final errors = <String>[];
-              message.forEach((key, value) {
-                if (value is List) {
-                  errors.addAll(value.map((e) => e.toString()));
-                } else {
-                  errors.add(value.toString());
+      switch (error.response!.statusCode) {
+        case 401:
+          return 'Oturum süresi doldu. Lütfen tekrar giriş yapın.';
+        case 403:
+          return 'Bu işlem için yetkiniz bulunmuyor.';
+        case 404:
+          return 'İstenen kaynak bulunamadı.';
+        case 422:
+          final data = error.response!.data;
+          if (data is Map<String, dynamic> && data.containsKey('message')) {
+            return data['message'].toString();
+          }
+          return 'Geçersiz veri gönderildi.';
+        case 500:
+          return 'Sunucu hatası. Lütfen daha sonra tekrar deneyin.';
+        default:
+          final data = error.response!.data;
+          if (data is Map<String, dynamic>) {
+            // Format 1: {error: {message: "..."}}
+            if (data.containsKey('error') && data['error'] is Map<String, dynamic>) {
+              final errorData = data['error'] as Map<String, dynamic>;
+              if (errorData.containsKey('message')) {
+                final message = errorData['message'];
+                if (message is Map<String, dynamic>) {
+                  // Validation error - format the message
+                  final errors = <String>[];
+                  message.forEach((key, value) {
+                    if (value is List) {
+                      errors.addAll(value.map((e) => e.toString()));
+                    } else {
+                      errors.add(value.toString());
+                    }
+                  });
+                  return errors.join(', ');
+                } else if (message is String) {
+                  return message;
                 }
-              });
-              return errors.join(', ');
-            } else if (message is String) {
-              return message;
+              }
+            }
+            // Format 2: {error: true, message: "..."} - Backend'den gelen format
+            else if (data.containsKey('error') && data.containsKey('message')) {
+              final message = data['message'];
+              if (message is String) {
+                return message;
+              }
             }
           }
-        }
-        // Format 2: {error: true, message: "..."} - Backend'den gelen format
-        else if (data.containsKey('error') && data.containsKey('message')) {
-          final message = data['message'];
-          if (message is String) {
-            return message;
-          }
-        }
-        return 'Bir hata oluştu';
+          return 'Bir hata oluştu. Lütfen tekrar deneyin.';
       }
-      
-      // Handle specific HTTP status codes with better messages
-      switch (error.response!.statusCode) {
-        case 400:
-          return 'Geçersiz istek. Lütfen bilgilerinizi kontrol edin';
-        case 401:
-          return 'E-posta adresi veya şifre hatalı';
-        case 403:
-          return 'Erişim reddedildi';
-        case 404:
-          return 'Bu e-posta adresi sistemde kayıtlı değil';
-        case 409:
-          return 'Bu e-posta adresi zaten kayıtlı';
-        case 422:
-          return 'Doğrulama hatası. Lütfen bilgilerinizi kontrol edin';
-        case 429:
-          return 'Çok fazla istek gönderildi. Lütfen birkaç dakika bekleyin';
-        case 500:
-          return 'Sunucu hatası. Lütfen daha sonra tekrar deneyin';
-        case 502:
-          return 'Geçici sunucu hatası';
-        case 503:
-          return 'Servis kullanılamıyor';
-        default:
-          return 'Sunucu hatası: ${error.response!.statusCode}';
-      }
-    } else if (error.type == DioExceptionType.connectionTimeout) {
-      return 'Bağlantı zaman aşımına uğradı. İnternet bağlantınızı kontrol edin';
-    } else if (error.type == DioExceptionType.receiveTimeout) {
-      return 'Sunucudan yanıt alınamadı. İnternet bağlantınızı kontrol edin';
-    } else if (error.type == DioExceptionType.sendTimeout) {
-      return 'Veri gönderilemedi. İnternet bağlantınızı kontrol edin';
-    } else if (error.type == DioExceptionType.connectionError) {
-      return 'İnternet bağlantınızı kontrol edin';
-    } else if (error.type == DioExceptionType.badResponse) {
-      return 'Sunucudan geçersiz yanıt alındı';
-    } else if (error.type == DioExceptionType.cancel) {
-      return 'İstek iptal edildi';
-    } else if (error.message?.contains('SocketException') == true || 
-               error.message?.contains('Network is unreachable') == true ||
-               error.message?.contains('No Internet') == true) {
-      return 'İnternet bağlantınızı kontrol edin';
-    } else {
-      return 'Ağ hatası. İnternet bağlantınızı kontrol edin';
     }
+    
+    // Handle network errors
+    if (error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout) {
+      return 'Bağlantı zaman aşımına uğradı. İnternet bağlantınızı kontrol edin.';
+    } else if (error.type == DioExceptionType.connectionError) {
+      return 'İnternet bağlantınızı kontrol edin.';
+    }
+    
+    return 'Bir hata oluştu. Lütfen tekrar deneyin.';
   }
 
   // Teacher Availability Methods
@@ -2164,12 +2923,15 @@ class ApiService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getAvailableSlots(int teacherId, String date) async {
+  Future<Map<String, dynamic>> getAvailableSlots(int teacherId, String date, {int? durationMinutes}) async {
     try {
-      final response = await _dio.get('/teachers/$teacherId/available-slots', queryParameters: {
+      final queryParams = {
         'date': date,
-      });
-      return List<Map<String, dynamic>>.from(response.data['data']);
+        if (durationMinutes != null) 'duration': durationMinutes.toString(),
+      };
+      
+      final response = await _dio.get('/teachers/$teacherId/available-slots', queryParameters: queryParams);
+      return response.data;
     } on DioException catch (e) {
       throw Exception(handleError(e));
     }
@@ -2204,6 +2966,88 @@ class ApiService {
   Future<Map<String, dynamic>> deleteTeacherAvailability(int id) async {
     try {
       final response = await _dio.delete('/teacher/availabilities/$id');
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  // Teacher Exceptions API Methods
+  
+  /// Get teacher exceptions (izin, tatil, özel günler)
+  Future<List<Map<String, dynamic>>> getTeacherExceptions({String? type, String? filter}) async {
+    try {
+      final queryParams = <String, String>{};
+      if (type != null) queryParams['type'] = type;
+      if (filter != null) queryParams['filter'] = filter;
+      
+      final response = await _dio.get('/teacher/exceptions', queryParameters: queryParams);
+      return List<Map<String, dynamic>>.from(response.data['data'] ?? []);
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  /// Add teacher exception
+  Future<Map<String, dynamic>> addTeacherException({
+    required String exceptionDate,
+    required String type,
+    String? startTime,
+    String? endTime,
+    String? reason,
+    String? notes,
+  }) async {
+    try {
+      final data = {
+        'exception_date': exceptionDate,
+        'type': type,
+        if (startTime != null) 'start_time': startTime,
+        if (endTime != null) 'end_time': endTime,
+        if (reason != null) 'reason': reason,
+        if (notes != null) 'notes': notes,
+      };
+      
+      final response = await _dio.post('/teacher/exceptions', data: data);
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  /// Update teacher exception
+  Future<Map<String, dynamic>> updateTeacherException(int id, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.put('/teacher/exceptions/$id', data: data);
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  /// Delete teacher exception
+  Future<Map<String, dynamic>> deleteTeacherException(int id) async {
+    try {
+      final response = await _dio.delete('/teacher/exceptions/$id');
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  /// Add bulk unavailable days (tatil dönemi)
+  Future<Map<String, dynamic>> addBulkUnavailableDays({
+    required String startDate,
+    required String endDate,
+    required String reason,
+    String? notes,
+  }) async {
+    try {
+      final response = await _dio.post('/teacher/exceptions/bulk-unavailable', data: {
+        'start_date': startDate,
+        'end_date': endDate,
+        'reason': reason,
+        if (notes != null) 'notes': notes,
+      });
       return response.data;
     } on DioException catch (e) {
       throw Exception(handleError(e));
@@ -2353,7 +3197,7 @@ class ApiService {
   Future<Map<String, dynamic>> getNotificationPreferences() async {
     try {
       final response = await _dio.get('/user/notification-preferences');
-      return response.data['data'];
+      return response.data;
     } on DioException catch (e) {
       throw Exception(handleError(e));
     }
@@ -2462,6 +3306,181 @@ class ApiService {
 
       final response = await _dio.post(endpoint, data: formData);
       return response.data;
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  // ===== CHAT ADVANCED METHODS =====
+
+  /// Send typing indicator
+  Future<void> sendTypingIndicator(int receiverId, bool isTyping) async {
+    if (kDebugMode) {
+      print('⌨️ [TYPING_INDICATOR] Sending typing indicator to user: $receiverId');
+    }
+    
+    try {
+      await post('/chat/typing', {
+        'receiver_id': receiverId,
+        'is_typing': isTyping,
+      });
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('❌ [TYPING_INDICATOR] Error: ${e.message}');
+      }
+      // Don't throw error for typing indicators
+    }
+  }
+
+  /// Get message reactions
+  Future<List<Map<String, dynamic>>> getMessageReactions(int messageId) async {
+    if (kDebugMode) {
+      print('⭐ [GET_REACTIONS] Getting reactions for message: $messageId');
+    }
+    
+    try {
+      final response = await _dio.get('/chat/messages/$messageId/reactions');
+      return List<Map<String, dynamic>>.from(response.data['reactions'] ?? []);
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('❌ [GET_REACTIONS] Error: ${e.response?.data}');
+      }
+      throw Exception(handleError(e));
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [GET_REACTIONS] Unexpected error: $e');
+      }
+      throw Exception('Reactions yüklenirken beklenmeyen bir hata oluştu');
+    }
+  }
+
+  /// Upload and send file message
+  Future<Message> uploadMessageFile(int chatId, XFile file, String type) async {
+    if (kDebugMode) {
+      print('📁 [UPLOAD_FILE] Uploading file to chat: $chatId');
+    }
+    
+    try {
+      final formData = FormData.fromMap({
+        'chat_id': chatId,
+        'type': type,
+        'file': await MultipartFile.fromFile(file.path, filename: file.name),
+      });
+      
+      final response = await _dio.post('/chat/upload-file', data: formData);
+      return Message.fromJson(response.data['message']);
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('❌ [UPLOAD_FILE] Error: ${e.response?.data}');
+      }
+      throw Exception(handleError(e));
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [UPLOAD_FILE] Unexpected error: $e');
+      }
+      throw Exception('Dosya yüklenirken beklenmeyen bir hata oluştu');
+    }
+  }
+
+  /// Send voice message
+  Future<Message> sendVoiceMessage(int chatId, XFile audioFile, int duration) async {
+    if (kDebugMode) {
+      print('🎤 [VOICE_MESSAGE] Sending voice message to chat: $chatId');
+    }
+    
+    try {
+      final formData = FormData.fromMap({
+        'chat_id': chatId,
+        'duration': duration,
+        'audio_file': await MultipartFile.fromFile(
+          audioFile.path,
+          filename: audioFile.name,
+        ),
+      });
+      
+      final response = await _dio.post('/chat/voice-message', data: formData);
+      return Message.fromJson(response.data['message']);
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  /// Send video call invitation
+  Future<void> sendVideoCallInvitation(int chatId, String callType) async {
+    if (kDebugMode) {
+      print('📹 [VIDEO_CALL] Sending video call invitation to chat: $chatId');
+    }
+    
+    try {
+      await post('/chat/video-call', {
+        'chat_id': chatId,
+        'call_type': callType,
+      });
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  /// Respond to video call
+  Future<void> respondToVideoCall(int chatId, String response) async {
+    if (kDebugMode) {
+      print('📹 [VIDEO_CALL_RESPONSE] Responding to video call in chat: $chatId');
+    }
+    
+    try {
+      await post('/chat/video-call-response', {
+        'chat_id': chatId,
+        'response': response,
+      });
+    } on DioException catch (e) {
+      throw Exception(handleError(e));
+    }
+  }
+
+  /// Search messages in chat
+  Future<List<Map<String, dynamic>>> searchMessages(int chatId, String query, {String? type, DateTime? dateFrom, DateTime? dateTo}) async {
+    if (kDebugMode) {
+      print('🔍 [SEARCH_MESSAGES] Searching messages in chat: $chatId');
+    }
+    
+    try {
+      final queryParams = <String, dynamic>{
+        'chat_id': chatId,
+        'query': query,
+      };
+      
+      if (type != null) queryParams['type'] = type;
+      if (dateFrom != null) queryParams['date_from'] = dateFrom.toIso8601String();
+      if (dateTo != null) queryParams['date_to'] = dateTo.toIso8601String();
+      
+      final response = await _dio.get('/chat/search-messages', queryParameters: queryParams);
+      return List<Map<String, dynamic>>.from(response.data['messages'] ?? []);
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('❌ [SEARCH_MESSAGES] Error: ${e.response?.data}');
+      }
+      throw Exception(handleError(e));
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [SEARCH_MESSAGES] Unexpected error: $e');
+      }
+      throw Exception('Mesaj arama sırasında beklenmeyen bir hata oluştu');
+    }
+  }
+
+  /// Get chat statistics
+  Future<Map<String, dynamic>> getChatStatistics(int chatId, {String period = '30d'}) async {
+    if (kDebugMode) {
+      print('📊 [CHAT_STATISTICS] Getting statistics for chat: $chatId');
+    }
+    
+    try {
+      final response = await _dio.get('/chat/statistics', queryParameters: {
+        'chat_id': chatId,
+        'period': period,
+      });
+      
+      return response.data['statistics'] ?? {};
     } on DioException catch (e) {
       throw Exception(handleError(e));
     }

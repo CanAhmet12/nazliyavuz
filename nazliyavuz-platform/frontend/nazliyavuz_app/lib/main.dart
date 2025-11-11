@@ -22,6 +22,7 @@ import 'services/flutter_performance_service.dart';
 import 'services/network_optimization_service.dart';
 import 'services/asset_optimization_service.dart';
 import 'services/state_optimization_service.dart';
+import 'services/user_activity_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,6 +73,15 @@ void main() async {
     }
   }
   
+  // Initialize user activity service
+  try {
+    await UserActivityService().initialize();
+  } catch (e) {
+    if (kDebugMode) {
+      print('⚠️ User activity service failed to initialize: $e');
+    }
+  }
+  
   // Initialize offline support
   // await OfflineSupportService.initialize(); // Service not available
   
@@ -80,6 +90,7 @@ void main() async {
   
   runApp(const NazliyavuzApp());
 }
+
 
 /// Top-level function to handle background messages
 @pragma('vm:entry-point')
@@ -127,8 +138,48 @@ class NazliyavuzApp extends StatelessWidget {
   }
 }
 
-class AppNavigator extends StatelessWidget {
+class AppNavigator extends StatefulWidget {
   const AppNavigator({super.key});
+
+  @override
+  State<AppNavigator> createState() => _AppNavigatorState();
+}
+
+class _AppNavigatorState extends State<AppNavigator> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    UserActivityService().dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    switch (state) {
+      case AppLifecycleState.resumed:
+        UserActivityService().setUserOnline();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        UserActivityService().setUserOffline();
+        break;
+      case AppLifecycleState.inactive:
+        // Don't change status for inactive state
+        break;
+      case AppLifecycleState.hidden:
+        UserActivityService().setUserOffline();
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -401,15 +452,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
     
     try {
+      // Load token from storage first
+      await _apiService.loadTokenFromStorage();
+      
       if (_apiService.isAuthenticated) {
         if (kDebugMode) {
           print('✅ [AUTH_BLOC] User is authenticated, fetching profile...');
         }
-        final user = await _apiService.getProfile();
-        if (kDebugMode) {
-          print('✅ [AUTH_BLOC] Profile fetched successfully: ${user.name}');
+        try {
+          final user = await _apiService.getProfile();
+          if (kDebugMode) {
+            print('✅ [AUTH_BLOC] Profile fetched successfully: ${user.name}');
+          }
+          add(AuthUserChanged(user));
+        } catch (e) {
+          if (kDebugMode) {
+            print('❌ [AUTH_BLOC] Error fetching profile: $e');
+            print('❌ [AUTH_BLOC] Clearing token and logging out...');
+          }
+          // If profile fetch fails (401, etc.), clear token and logout
+          await _apiService.logout();
+          add(const AuthLogoutRequested());
         }
-        add(AuthUserChanged(user));
       } else {
         if (kDebugMode) {
           print('❌ [AUTH_BLOC] User is not authenticated');
@@ -450,7 +514,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
     
+    // Clear all auth data
     await _apiService.logout();
+    
+    // Show user-friendly message
+    if (kDebugMode) {
+      print('🔓 [AUTH_BLOC] Redirecting to login screen');
+    }
+    
     emit(AuthUnauthenticated());
   }
 

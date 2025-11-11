@@ -31,6 +31,8 @@ return Application::configure(basePath: dirname(__DIR__))
                'advanced_rate_limit' => \App\Http\Middleware\AdvancedRateLimitMiddleware::class,
                'sql_injection_protection' => \App\Http\Middleware\SqlInjectionProtectionMiddleware::class,
                'xss_protection' => \App\Http\Middleware\XssProtectionMiddleware::class,
+               'admin.security' => \App\Http\Middleware\AdminSecurityMiddleware::class,
+               'update_user_activity' => \App\Http\Middleware\UpdateUserActivity::class,
            ]);
        })
     ->withExceptions(function (Exceptions $exceptions): void {

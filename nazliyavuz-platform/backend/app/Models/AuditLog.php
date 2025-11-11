@@ -12,6 +12,8 @@ class AuditLog extends Model
     protected $fillable = [
         'user_id',
         'action',
+        'description',
+        'severity',
         'target_type',
         'target_id',
         'meta',
@@ -56,6 +58,39 @@ class AuditLog extends Model
     public function scopeTargetType($query, $targetType)
     {
         return $query->where('target_type', $targetType);
+    }
+
+    public function scopeSeverity($query, $severity)
+    {
+        return $query->where('severity', $severity);
+    }
+
+    public function scopeBetweenDates($query, ?string $from = null, ?string $to = null)
+    {
+        if ($from) {
+            $query->where('created_at', '>=', $from);
+        }
+
+        if ($to) {
+            $query->where('created_at', '<=', $to);
+        }
+
+        return $query;
+    }
+
+    public function scopeSearch($query, ?string $term = null)
+    {
+        if (!$term) {
+            return $query;
+        }
+
+        $term = trim($term);
+
+        return $query->where(function ($inner) use ($term) {
+            $inner->where('action', 'like', "%{$term}%")
+                ->orWhere('description', 'like', "%{$term}%")
+                ->orWhere('meta', 'like', "%{$term}%");
+        });
     }
 
     /**
@@ -117,11 +152,15 @@ class AuditLog extends Model
         int $targetId,
         ?array $meta = null,
         ?string $ipAddress = null,
-        ?string $userAgent = null
+        ?string $userAgent = null,
+        ?string $description = null,
+        string $severity = 'info'
     ): self {
         return self::create([
             'user_id' => $userId,
             'action' => $action,
+            'description' => $description,
+            'severity' => $severity,
             'target_type' => $targetType,
             'target_id' => $targetId,
             'meta' => $meta,

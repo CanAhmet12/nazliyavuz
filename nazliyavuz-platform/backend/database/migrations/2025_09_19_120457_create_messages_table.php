@@ -16,17 +16,40 @@ return new class extends Migration
             $table->foreignId('chat_id')->nullable()->constrained('chats')->onDelete('cascade');
             $table->foreignId('sender_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('receiver_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('reservation_id')->nullable()->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('reservation_id')->nullable();
             $table->text('content');
             $table->enum('message_type', ['text', 'image', 'file', 'audio', 'video'])->default('text');
             $table->string('file_url')->nullable();
             $table->string('file_name')->nullable();
-            $table->string('file_size')->nullable();
+            $table->integer('file_size')->nullable();
             $table->string('file_type')->nullable();
             $table->boolean('is_read')->default(false);
             $table->timestamp('read_at')->nullable();
             $table->boolean('is_deleted')->default(false);
             $table->timestamp('deleted_at')->nullable();
+            
+            // Advanced features
+            $table->foreignId('parent_message_id')->nullable()->constrained('messages')->onDelete('cascade');
+            $table->unsignedBigInteger('thread_id')->nullable();
+            $table->json('mentions')->nullable();
+            $table->foreignId('reply_to_message_id')->nullable()->constrained('messages')->onDelete('cascade');
+            $table->foreignId('forwarded_from_message_id')->nullable()->constrained('messages')->onDelete('cascade');
+            $table->foreignId('forwarded_from_user_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->timestamp('forwarded_at')->nullable();
+            $table->boolean('is_pinned')->default(false);
+            $table->timestamp('pinned_at')->nullable();
+            $table->foreignId('pinned_by')->nullable()->constrained('users')->onDelete('cascade');
+            $table->text('original_content')->nullable();
+            $table->timestamp('edited_at')->nullable();
+            $table->integer('edit_count')->default(0);
+            $table->json('translations')->nullable();
+            $table->string('original_language')->nullable();
+            $table->boolean('is_encrypted')->default(false);
+            $table->string('encryption_key_id')->nullable();
+            $table->string('message_status')->default('sent'); // sent, delivered, read
+            $table->timestamp('delivered_at')->nullable();
+            $table->json('metadata')->nullable();
+            
             $table->timestamps();
             
             // Indexes for performance
@@ -40,7 +63,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user1_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('user2_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('reservation_id')->nullable()->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('reservation_id')->nullable();
             $table->timestamp('last_message_at')->nullable();
             $table->text('last_message')->nullable();
             $table->boolean('user1_deleted')->default(false);

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('receiver_id')->constrained('users')->onDelete('cascade');
             $table->enum('call_type', ['video', 'audio'])->default('video');
             $table->string('subject')->nullable();
-            $table->foreignId('reservation_id')->nullable()->constrained()->onDelete('set null');
+            $table->unsignedBigInteger('reservation_id')->nullable();
             $table->enum('status', ['initiated', 'active', 'ended', 'rejected', 'missed'])->default('initiated');
             $table->timestamp('started_at')->nullable();
             $table->timestamp('answered_at')->nullable();
@@ -82,14 +82,7 @@ return new class extends Migration
         // Add availability column to users table
         Schema::table('users', function (Blueprint $table) {
             if (!Schema::hasColumn('users', 'available_for_calls')) {
-                $table->boolean('available_for_calls')->default(true)->after('is_active');
-            }
-        });
-
-        // Add index for availability
-        Schema::table('users', function (Blueprint $table) {
-            if (!$this->indexExists('users', 'users_available_for_calls_index')) {
-                $table->index(['available_for_calls'], 'users_available_for_calls_index');
+                $table->boolean('available_for_calls')->default(true);
             }
         });
     }
@@ -104,26 +97,9 @@ return new class extends Migration
         Schema::dropIfExists('video_calls');
         
         Schema::table('users', function (Blueprint $table) {
-            $table->dropIndex('users_available_for_calls_index');
-            $table->dropColumn('available_for_calls');
-        });
-    }
-
-    /**
-     * Check if index exists
-     */
-    private function indexExists($table, $indexName): bool
-    {
-        try {
-            $indexes = DB::select("SHOW INDEX FROM {$table}");
-            foreach ($indexes as $index) {
-                if ($index->Key_name === $indexName) {
-                    return true;
-                }
+            if (Schema::hasColumn('users', 'available_for_calls')) {
+                $table->dropColumn('available_for_calls');
             }
-            return false;
-        } catch (Exception $e) {
-            return false;
-        }
+        });
     }
 };

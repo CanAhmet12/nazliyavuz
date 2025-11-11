@@ -44,27 +44,70 @@ class Assignment extends Equatable {
   });
 
   factory Assignment.fromJson(Map<String, dynamic> json) {
-    return Assignment(
-      id: json['id'],
-      title: json['title'],
-      description: json['description'] ?? '',
-      dueDate: DateTime.tryParse(json['due_date'].toString()) ?? DateTime.now(),
-      difficulty: json['difficulty'],
-      status: json['status'],
-      grade: json['grade'],
-      feedback: json['feedback'],
-      submissionNotes: json['submission_notes'],
-      submissionFileName: json['submission_file_name'],
-      submissionFilePath: json['submission_file_path'],
-      submittedAt: json['submitted_at'] != null ? DateTime.tryParse(json['submitted_at'].toString()) : null,
-      gradedAt: json['graded_at'] != null ? DateTime.tryParse(json['graded_at'].toString()) : null,
-      teacherName: json['teacher'] != null ? json['teacher']['name']?.toString() : json['teacher_name']?.toString(),
-      studentName: json['student'] != null ? json['student']['name']?.toString() : json['student_name']?.toString(),
-      studentId: json['student_id'],
-      teacherId: json['teacher_id'],
-      createdAt: DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now(),
-      updatedAt: DateTime.tryParse(json['updated_at'].toString()) ?? DateTime.now(),
-    );
+    try {
+      // Safe string extraction with null checks
+      String safeString(dynamic value, String defaultValue) {
+        if (value == null) return defaultValue;
+        final str = value.toString();
+        return str.isEmpty ? defaultValue : str;
+      }
+      
+      // Safe int extraction
+      int safeInt(dynamic value, int defaultValue) {
+        if (value == null) return defaultValue;
+        if (value is int) return value;
+        return int.tryParse(value.toString()) ?? defaultValue;
+      }
+      
+      // Safe DateTime extraction
+      DateTime safeDateTime(dynamic value, DateTime defaultValue) {
+        if (value == null) return defaultValue;
+        return DateTime.tryParse(value.toString()) ?? defaultValue;
+      }
+      
+      // Safe string extraction for nested objects
+      String? _safeString(dynamic value) {
+        if (value == null) return null;
+        final str = value.toString();
+        return str.isEmpty ? null : str;
+      }
+      
+      return Assignment(
+        id: safeInt(json['id'], 0),
+        title: safeString(json['title'], 'Başlık Yok'),
+        description: safeString(json['description'], 'Açıklama Yok'),
+        dueDate: safeDateTime(json['due_date'], DateTime.now().add(const Duration(days: 7))),
+        difficulty: safeString(json['difficulty'], 'medium'),
+        status: safeString(json['status'], 'pending'),
+        grade: _safeString(json['grade']),
+        feedback: _safeString(json['feedback']),
+        submissionNotes: _safeString(json['submission_notes']),
+        submissionFileName: _safeString(json['submission_file_name']),
+        submissionFilePath: _safeString(json['submission_file_path']),
+        submittedAt: json['submitted_at'] != null ? DateTime.tryParse(json['submitted_at'].toString()) : null,
+        gradedAt: json['graded_at'] != null ? DateTime.tryParse(json['graded_at'].toString()) : null,
+        teacherName: _safeString(json['teacher']?['name']) ?? _safeString(json['teacher_name']),
+        studentName: _safeString(json['student']?['name']) ?? _safeString(json['student_name']),
+        studentId: json['student_id'] != null ? safeInt(json['student_id'], 0) : null,
+        teacherId: json['teacher_id'] != null ? safeInt(json['teacher_id'], 0) : null,
+        createdAt: safeDateTime(json['created_at'], DateTime.now()),
+        updatedAt: safeDateTime(json['updated_at'], DateTime.now()),
+      );
+    } catch (e) {
+      print('Assignment.fromJson error: $e');
+      print('JSON: $json');
+      // Fallback assignment with safe defaults
+      return Assignment(
+        id: 0,
+        title: 'Hatalı Ödev',
+        description: 'Bu ödev yüklenirken hata oluştu',
+        dueDate: DateTime.now().add(const Duration(days: 7)),
+        difficulty: 'medium',
+        status: 'pending',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+    }
   }
 
   Map<String, dynamic> toJson() {

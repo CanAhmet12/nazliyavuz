@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import '../../main.dart';
 import '../home/home_screen.dart';
 import '../auth/forgot_password_screen.dart';
@@ -9,6 +10,8 @@ import 'register_screen.dart';
 import '../../theme/app_theme.dart';
 import '../../services/social_auth_service.dart';
 import '../../models/user.dart';
+import 'role_selection_screen.dart';
+import 'email_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -584,15 +587,15 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
             
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             
             Expanded(
               child: _buildSocialButton(
-                icon: Icons.facebook,
-                label: 'Facebook',
+                icon: Icons.apple,
+                label: 'Apple',
                 onPressed: () async {
                   HapticFeedback.lightImpact();
-                  await _handleFacebookLogin();
+                  await _handleAppleLogin();
                 },
               ),
             ),
@@ -639,7 +642,121 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _handleGoogleLogin() async {
     try {
+      if (kDebugMode) {
+        print('🔐 [LOGIN_SCREEN] Starting Google login...');
+      }
+      
       final result = await SocialAuthService.signInWithGoogle();
+      
+      if (result != null && mounted) {
+        final user = result['user'];
+        final isNewUser = result['is_new_user'] ?? false;
+        final requiresEmailVerification = result['requires_email_verification'] ?? false;
+        final requiresRoleSelection = result['requires_role_selection'] ?? false;
+        
+        if (kDebugMode) {
+          print('🔐 [LOGIN_SCREEN] Google login result:');
+          print('🔐 [LOGIN_SCREEN] Is new user: $isNewUser');
+          print('🔐 [LOGIN_SCREEN] Requires email verification: $requiresEmailVerification');
+          print('🔐 [LOGIN_SCREEN] Requires role selection: $requiresRoleSelection');
+        }
+        
+        if (user != null) {
+          // Check what the user needs to do next
+          if (requiresRoleSelection) {
+            // New user needs to select role first
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => RoleSelectionScreen(
+                  user: User.fromJson(user),
+                  token: result['token'],
+                ),
+              ),
+            );
+          } else if (requiresEmailVerification) {
+            // User needs to verify email
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => EmailVerificationScreen(
+                  email: user['email'],
+                  fromSocialAuth: true,
+                ),
+              ),
+            );
+          } else {
+            // User is fully authenticated, go to home
+            context.read<AuthBloc>().add(AuthUserChanged(User.fromJson(user)));
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('Google ile giriş başarılı!')),
+                  ],
+                ),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                margin: const EdgeInsets.all(16),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [LOGIN_SCREEN] Google login error: $e');
+        if (e is DioException) {
+          print('❌ [LOGIN_SCREEN] DioException details:');
+          print('❌ [LOGIN_SCREEN] Status code: ${e.response?.statusCode}');
+          print('❌ [LOGIN_SCREEN] Response data: ${e.response?.data}');
+        }
+      }
+      
+      String errorMessage = 'Google girişi başarısız';
+      
+      if (e is DioException && e.response?.data != null) {
+        final errorData = e.response!.data;
+        if (errorData is Map<String, dynamic>) {
+          if (errorData['error'] != null) {
+            final error = errorData['error'];
+            if (error is Map<String, dynamic>) {
+              errorMessage = error['message'] ?? errorMessage;
+            }
+          }
+        }
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text(errorMessage)),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleAppleLogin() async {
+    try {
+      final result = await SocialAuthService.signInWithApple();
       
       if (result != null && mounted) {
         final user = result['user'];
@@ -652,7 +769,7 @@ class _LoginScreenState extends State<LoginScreen>
                 children: [
                   const Icon(Icons.check_circle, color: Colors.white),
                   const SizedBox(width: 8),
-                  Expanded(child: Text('Google ile giriş başarılı!')),
+                  Expanded(child: Text('Apple ile giriş başarılı!')),
                 ],
               ),
               backgroundColor: Colors.green,
@@ -667,57 +784,31 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } catch (e) {
       if (kDebugMode) {
-        print('❌ [LOGIN_SCREEN] Google login error: $e');
+        print('❌ [LOGIN_SCREEN] Apple login error: $e');
       }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(child: Text('Google girişi başarısız: ${e.toString()}')),
-            ],
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Apple girişi başarısız: ${e.toString()}')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
           ),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+        );
       }
     }
   }
 
-  Future<void> _handleFacebookLogin() async {
-    try {
-      // Facebook login implementation
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.info_outline, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(child: Text('Facebook girişi yakında aktif olacak!')),
-            ],
-          ),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ [LOGIN_SCREEN] Facebook login error: $e');
-      }
-    }
-  }
 
   Widget _buildRegisterLink() {
     return Row(

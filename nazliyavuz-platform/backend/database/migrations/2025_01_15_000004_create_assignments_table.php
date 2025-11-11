@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('teacher_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('student_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('reservation_id')->nullable()->constrained()->onDelete('set null');
+            $table->unsignedBigInteger('reservation_id')->nullable();
             $table->string('title');
             $table->text('description')->nullable();
             $table->timestamp('due_date');

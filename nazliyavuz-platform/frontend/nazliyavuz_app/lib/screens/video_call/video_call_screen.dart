@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'dart:async';
 import '../../models/user.dart';
-import '../../services/real_time_chat_service.dart';
+import '../../services/webrtc_service.dart';
 import '../../theme/app_theme.dart';
 
 class VideoCallScreen extends StatefulWidget {
@@ -19,7 +21,11 @@ class VideoCallScreen extends StatefulWidget {
 }
 
 class _VideoCallScreenState extends State<VideoCallScreen> {
-  final _realTimeChatService = RealTimeChatService();
+  final _webrtcService = WebRTCService();
+  
+  // WebRTC renderers
+  final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
+  final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
   
   bool _isConnected = false;
   bool _isMuted = false;
@@ -30,38 +36,132 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   int _callDuration = 0;
   
   String _callId = '';
+  
+  StreamSubscription? _localStreamSubscription;
+  StreamSubscription? _remoteStreamSubscription;
+  StreamSubscription? _connectionStateSubscription;
 
   @override
   void initState() {
     super.initState();
-    _startCall();
+    _initializeRenderers();
   }
 
   @override
   void dispose() {
     _cleanupCall();
+    _localRenderer.dispose();
+    _remoteRenderer.dispose();
+    _localStreamSubscription?.cancel();
+    _remoteStreamSubscription?.cancel();
+    _connectionStateSubscription?.cancel();
     super.dispose();
   }
 
-  Future<void> _startCall() async {
-    _callId = 'call_${DateTime.now().millisecondsSinceEpoch}';
-    
-    // Send video call invitation
-    await _realTimeChatService.sendVideoCallInvitation(
-      widget.otherUser.id,
-      widget.callType,
-    );
-
-    // Simulate call connection
-    Future.delayed(const Duration(seconds: 2), () {
+  Future<void> _initializeRenderers() async {
+    try {
+      await _localRenderer.initialize();
+      await _remoteRenderer.initialize();
+      
+      await _startCall();
+    } catch (e) {
+      debugPrint('❌ [VIDEO_CALL] Renderer initialization error: $e');
       if (mounted) {
-        setState(() {
-          _isConnected = true;
-          _isCallActive = true;
-        });
-        _startCallTimer();
+        _showError('Video başlatılamadı: $e');
+        Navigator.pop(context);
       }
-    });
+    }
+  }
+
+  Future<void> _startCall() async {
+    try {
+      _callId = 'call_${DateTime.now().millisecondsSinceEpoch}';
+      
+      // Start WebRTC call
+      final success = await _webrtcService.startCall(
+        receiverId: widget.otherUser.id,
+        callType: widget.callType,
+        callId: _callId,
+      );
+
+      if (!success) {
+        _showError('Arama başlatılamadı');
+        if (mounted) Navigator.pop(context);
+        return;
+      }
+
+      // Set local stream immediately if available
+      if (_webrtcService.localStream != null) {
+        setState(() {
+          _localRenderer.srcObject = _webrtcService.localStream;
+          if (kDebugMode) {
+            print('✅ [VIDEO_CALL] Local stream set immediately');
+          }
+        });
+      }
+
+      // Listen to streams
+      _localStreamSubscription = _webrtcService.localStreamController.listen((stream) {
+        if (kDebugMode) {
+          print('🎥 [VIDEO_CALL] Local stream received: ${stream != null}');
+        }
+        if (stream != null && mounted) {
+          setState(() {
+            _localRenderer.srcObject = stream;
+            if (kDebugMode) {
+              print('✅ [VIDEO_CALL] Local renderer updated');
+            }
+          });
+        }
+      });
+
+      _remoteStreamSubscription = _webrtcService.remoteStreamController.listen((stream) {
+        if (stream != null && mounted) {
+          setState(() {
+            _isConnected = true;
+            _isCallActive = true;
+          });
+          _remoteRenderer.srcObject = stream;
+          _startCallTimer();
+        }
+      });
+
+      // Listen to connection state
+      _connectionStateSubscription = _webrtcService.connectionStateController.listen((state) {
+        if (kDebugMode) {
+          print('📞 [VIDEO_CALL] Connection state: $state');
+        }
+        
+        if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+          if (mounted) {
+            setState(() {
+              _isConnected = true;
+              _isCallActive = true;
+            });
+          }
+        } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected ||
+                   state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
+          if (mounted) {
+            _endCall();
+          }
+        }
+      });
+
+    } catch (e) {
+      debugPrint('❌ [VIDEO_CALL] Start call error: $e');
+      _showError('Arama başlatılamadı: $e');
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _startCallTimer() {
@@ -81,6 +181,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   }
 
   Future<void> _toggleMute() async {
+    await _webrtcService.toggleMicrophone();
     setState(() {
       _isMuted = !_isMuted;
     });
@@ -88,6 +189,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   Future<void> _toggleVideo() async {
     if (widget.callType == 'video') {
+      await _webrtcService.toggleCamera();
       setState(() {
         _isVideoEnabled = !_isVideoEnabled;
       });
@@ -95,29 +197,31 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   }
 
   Future<void> _switchCamera() async {
-    // Camera switch functionality would be implemented here
-    debugPrint('Switching camera...');
+    try {
+      await _webrtcService.switchCamera();
+      debugPrint('✅ Camera switched');
+    } catch (e) {
+      debugPrint('❌ Camera switch error: $e');
+    }
+  }
+
+  void _cleanupCall() {
+    _callTimer?.cancel();
+    _localStreamSubscription?.cancel();
+    _remoteStreamSubscription?.cancel();
+    _connectionStateSubscription?.cancel();
+    _webrtcService.cleanUp();
   }
 
   Future<void> _endCall() async {
     _callTimer?.cancel();
     
-    // Send end call signal
-    await _realTimeChatService.respondToVideoCall(
-      widget.otherUser.id,
-      _callId,
-      'ended',
-    );
-
-    await _cleanupCall();
+    // End WebRTC call
+    await _webrtcService.endCall();
     
     if (mounted) {
       Navigator.pop(context);
     }
-  }
-
-  Future<void> _cleanupCall() async {
-    _callTimer?.cancel();
   }
 
 
@@ -128,41 +232,56 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Remote video (full screen)
-            if (_isConnected)
+            // Background - Always show local video in full screen first
+            if (widget.callType == 'video' && _isVideoEnabled)
               Positioned.fill(
-                child: Container(
-                  color: Colors.grey[800],
-                  child: const Center(
-                    child: Icon(
-                      Icons.videocam,
-                      size: 100,
-                      color: Colors.white54,
-                    ),
-                  ),
+                child: RTCVideoView(
+                  _localRenderer,
+                  mirror: true,
+                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                 ),
               )
             else
+              Container(color: Colors.black),
+            
+            // Overlay waiting screen when not connected
+            if (!_isConnected)
               _buildWaitingScreen(),
+            
+            // Remote video (full screen) when connected
+            if (_isConnected && _webrtcService.remoteStream != null)
+              Positioned.fill(
+                child: RTCVideoView(
+                  _remoteRenderer,
+                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                ),
+              ),
 
-            // Local video (picture-in-picture)
-            if (widget.callType == 'video' && _isVideoEnabled)
+            // Local video (picture-in-picture) - Show when connected
+            if (_isConnected && widget.callType == 'video' && _isVideoEnabled)
               Positioned(
-                top: 40,
+                top: 60,
                 right: 20,
-                child: Container(
-                  width: 120,
-                  height: 160,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white, width: 2),
-                    color: Colors.grey[600],
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.person,
-                      size: 40,
-                      color: Colors.white,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    width: 140,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white, width: 3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: RTCVideoView(
+                      _localRenderer,
+                      mirror: true,
+                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                     ),
                   ),
                 ),
@@ -198,8 +317,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            AppTheme.primaryBlue,
-            AppTheme.primaryBlue.withOpacity(0.8),
+            Colors.black.withOpacity(0.7),
+            Colors.black.withOpacity(0.8),
           ],
         ),
       ),

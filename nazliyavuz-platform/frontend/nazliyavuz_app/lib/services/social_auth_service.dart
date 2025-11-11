@@ -1,6 +1,7 @@
 import 'package:google_sign_in/google_sign_in.dart';
-// import 'package:sign_in_with_apple/sign_in_with_apple.dart'; // Temporarily disabled
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
 import 'api_service.dart';
 
 class SocialAuthService {
@@ -64,12 +65,49 @@ class SocialAuthService {
     }
   }
 
-  /// Apple ile giriş yap (temporarily disabled)
+  /// Apple ile giriş yap
   static Future<Map<String, dynamic>?> signInWithApple() async {
     if (kDebugMode) {
-      print('❌ [SOCIAL_AUTH] Apple sign-in temporarily disabled');
+      print('🍎 [SOCIAL_AUTH] Starting Apple sign-in...');
     }
-    throw Exception('Apple Sign-In geçici olarak devre dışı');
+
+    try {
+      // Apple Sign-In sadece iOS ve macOS'da destekleniyor
+      if (!Platform.isIOS && !Platform.isMacOS) {
+        throw Exception('Apple Sign-In sadece iOS ve macOS\'ta desteklenir');
+      }
+
+      // Apple Sign-In işlemi
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      if (kDebugMode) {
+        print('✅ [SOCIAL_AUTH] Apple authentication successful');
+        print('✅ [SOCIAL_AUTH] User ID: ${credential.userIdentifier}');
+      }
+
+      // Backend'e gönder
+      final result = await _apiService.appleLogin(
+        identityToken: credential.identityToken!,
+        authorizationCode: credential.authorizationCode,
+      );
+
+      if (kDebugMode) {
+        print('✅ [SOCIAL_AUTH] Backend authentication successful');
+      }
+
+      return result;
+
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [SOCIAL_AUTH] Apple sign-in failed: $e');
+      }
+      rethrow;
+    }
   }
 
   /// Google hesabından çıkış yap
@@ -95,6 +133,73 @@ class SocialAuthService {
         print('❌ [SOCIAL_AUTH] Silent sign-in failed: $e');
       }
       return null;
+    }
+  }
+
+  /// Facebook ile giriş yap
+  static Future<Map<String, dynamic>?> signInWithFacebook() async {
+    if (kDebugMode) {
+      print('📘 [SOCIAL_AUTH] Facebook sign-in not yet implemented');
+    }
+    
+    // TODO: Facebook SDK integration
+    // Bu özellik için facebook_login paketi veya flutter_facebook_auth gerekli
+    throw Exception('Facebook Sign-In henüz implement edilmedi');
+  }
+
+  /// Sosyal hesap bağlama
+  static Future<Map<String, dynamic>> linkSocialAccount({
+    required String provider,
+    required String accessToken,
+  }) async {
+    if (kDebugMode) {
+      print('🔗 [SOCIAL_AUTH] Linking $provider account...');
+    }
+
+    try {
+      final result = await _apiService.linkSocialAccount(
+        provider: provider,
+        accessToken: accessToken,
+      );
+
+      if (kDebugMode) {
+        print('✅ [SOCIAL_AUTH] Account linked successfully');
+      }
+
+      return result;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [SOCIAL_AUTH] Account linking failed: $e');
+      }
+      rethrow;
+    }
+  }
+
+  /// Bağlı sosyal hesapları getir
+  static Future<List<Map<String, dynamic>>> getLinkedAccounts() async {
+    try {
+      return await _apiService.getLinkedAccounts();
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [SOCIAL_AUTH] Failed to get linked accounts: $e');
+      }
+      rethrow;
+    }
+  }
+
+  /// Sosyal hesap bağlantısını kes
+  static Future<void> unlinkSocialAccount(String provider) async {
+    try {
+      await _apiService.unlinkSocialAccount(provider);
+      
+      if (kDebugMode) {
+        print('✅ [SOCIAL_AUTH] Account unlinked: $provider');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [SOCIAL_AUTH] Failed to unlink account: $e');
+      }
+      rethrow;
     }
   }
 }

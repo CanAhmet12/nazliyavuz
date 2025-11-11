@@ -71,9 +71,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
         _error = null;
       });
 
-      print('🔍 [SETTINGS] Loading categories...');
       final data = await _apiService.getCategories();
-      print('✅ [SETTINGS] Categories received: $data');
       
       if (mounted) {
         setState(() {
@@ -82,7 +80,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
         });
       }
     } catch (e) {
-      print('❌ [SETTINGS] Error loading categories: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();
@@ -147,11 +144,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
       backgroundColor: AppTheme.grey50,
       body: SafeArea(
         child: _isLoading
-            ? const SkeletonLoading(
-                width: double.infinity,
-                height: double.infinity,
-                child: Center(child: CircularProgressIndicator()),
-              )
+            ? _buildModernLoadingState()
             : _error != null
                 ? _buildErrorState()
                 : _buildSettings(),
@@ -159,42 +152,160 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
     );
   }
 
+  Widget _buildModernLoadingState() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppTheme.primaryBlue.withOpacity(0.05),
+            Colors.white,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Animated loading container
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 1500),
+              tween: Tween(begin: 0.0, end: 1.0),
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: 0.8 + (0.2 * value),
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppTheme.primaryBlue.withOpacity(0.1),
+                          AppTheme.primaryBlue.withOpacity(0.05),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(40),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryBlue.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const CircularProgressIndicator(
+                      color: AppTheme.primaryBlue,
+                      strokeWidth: 3,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Ayarlar yükleniyor...',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppTheme.grey700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Lütfen bekleyin',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.grey500,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildErrorState() {
-    return Center(
+    return Container(
+      padding: const EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: AppTheme.error,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Veri yüklenirken hata oluştu',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          // Modern error icon
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppTheme.error.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(40),
+            ),
+            child: Icon(
+              Icons.settings_backup_restore_rounded,
+              size: 40,
               color: AppTheme.error,
-              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 24),
+          
+          // User-friendly error message
+          Text(
+            'Ayarlar Yüklenemedi',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.grey900,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            _error ?? 'Bilinmeyen hata',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            'Sistem ayarları yüklenirken bir sorun oluştu.\nLütfen tekrar deneyin.',
+            style: TextStyle(
+              fontSize: 14,
               color: AppTheme.grey600,
+              height: 1.5,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _loadCategories,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Tekrar Dene'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
+          const SizedBox(height: 32),
+          
+          // Action buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _loadCategories,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Tekrar Dene'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  // Navigate to dashboard
+                  Navigator.pop(context);
+                },
+                icon: const Icon(Icons.dashboard_rounded, size: 18),
+                label: const Text('Dashboard'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primaryBlue,
+                  side: BorderSide(color: AppTheme.primaryBlue),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
