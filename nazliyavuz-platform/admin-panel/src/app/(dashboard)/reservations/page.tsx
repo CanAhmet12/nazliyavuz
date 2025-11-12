@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type {
   AdminReservation,
+  AdminReservationsResponse,
   AdminUser,
   ReservationStatus,
   UpdateReservationStatusPayload,
@@ -45,6 +46,7 @@ import type {
   ReminderWorkflowPayload,
   ReminderWorkflowStepPayload,
 } from "@/lib/api/admin";
+import type { UseQueryResult } from "@tanstack/react-query";
 import {
   searchAdminUsers,
   updateReservationStatus,
@@ -139,7 +141,11 @@ export default function ReservationsPage() {
     undo: BulkReservationUndoItem[];
   } | null>(null);
 
-  const { data, isLoading, isFetching, refetch } = useAdminReservations(filters);
+  const reservationsQuery = useAdminReservations(filters) as UseQueryResult<
+    AdminReservationsResponse,
+    Error
+  >;
+  const { data, isLoading, isFetching, refetch } = reservationsQuery;
   const statusMutation = useMutationToast(updateReservationStatus, {
     successMessage: "Rezervasyon durumu güncellendi.",
     onSuccess: (response) => {
