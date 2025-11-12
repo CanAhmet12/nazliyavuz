@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { AuditLog, AuditLogsFilters } from "@/lib/api/audit";
+import type { AuditLog, AuditLogsFilters, AuditLogsResponse } from "@/lib/api/audit";
 import {
   CalendarRange,
   Copy,
@@ -59,16 +59,15 @@ export default function AuditLogsPage() {
     query: "",
   });
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  const { data, isLoading, isFetching, refetch } = useAuditLogs(filters);
+  const auditLogsQuery = useAuditLogs(filters);
+  const { isLoading, isFetching, refetch } = auditLogsQuery;
+  const auditData: AuditLogsResponse | undefined = auditLogsQuery.data;
 
-  const availableActions = useMemo(
-    () => data?.filters?.actions ?? [],
-    [data?.filters?.actions],
-  );
-  const availableTargetTypes = useMemo(
-    () => data?.filters?.target_types ?? [],
-    [data?.filters?.target_types],
-  );
+  const actions = auditData?.filters?.actions;
+  const targetTypes = auditData?.filters?.target_types;
+
+  const availableActions = useMemo(() => actions ?? [], [actions]);
+  const availableTargetTypes = useMemo(() => targetTypes ?? [], [targetTypes]);
 
   const quickActions = useMemo(() => availableActions.slice(0, 6), [availableActions]);
 
@@ -380,8 +379,8 @@ export default function AuditLogsPage() {
 
         <div className="flex items-center justify-between text-xs text-slate-500">
           <span>
-            Toplam {data?.pagination.total ?? 0} kayıt • Sayfa{" "}
-            {data?.pagination.current_page ?? filters.page} / {data?.pagination.last_page ?? "?"}
+            Toplam {auditData?.pagination.total ?? 0} kayıt • Sayfa{" "}
+            {auditData?.pagination.current_page ?? filters.page} / {auditData?.pagination.last_page ?? "?"}
           </span>
           <div className="flex items-center gap-2">
             <Button
@@ -398,10 +397,10 @@ export default function AuditLogsPage() {
               onClick={() =>
                 updateFilters(
                   "page",
-                  Math.min(data?.pagination.last_page ?? (filters.page ?? 1), (filters.page ?? 1) + 1),
+                  Math.min(auditData?.pagination.last_page ?? (filters.page ?? 1), (filters.page ?? 1) + 1),
                 )
               }
-              disabled={(filters.page ?? 1) >= (data?.pagination.last_page ?? 1) || isFetching}
+              disabled={(filters.page ?? 1) >= (auditData?.pagination.last_page ?? 1) || isFetching}
             >
               Sonraki
             </Button>
@@ -412,7 +411,7 @@ export default function AuditLogsPage() {
       {isLoading ? (
         <Skeleton className="h-64 rounded-2xl border border-slate-800/70 bg-slate-900/60" />
       ) : (
-        <AuditTable logs={data?.logs ?? []} onShowDetails={setSelectedLog} />
+        <AuditTable logs={auditData?.logs ?? []} onShowDetails={setSelectedLog} />
       )}
 
       <div className="rounded-2xl border border-slate-800/70 bg-slate-950/60 p-5 text-xs text-slate-400">
