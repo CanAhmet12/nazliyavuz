@@ -60,12 +60,8 @@ export default function AuditLogsPage() {
     query: "",
   });
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  const {
-    data: auditData,
-    isLoading,
-    isFetching,
-    refetch,
-  }: UseQueryResult<AuditLogsResponse> = useAuditLogs(filters);
+  const auditLogsQuery = useAuditLogs(filters) as UseQueryResult<AuditLogsResponse, Error>;
+  const { data: auditData, isLoading, isFetching, refetch } = auditLogsQuery;
 
   const actions = auditData?.filters?.actions;
   const targetTypes = auditData?.filters?.target_types;
