@@ -16,8 +16,6 @@ class DispatchScheduledNotificationJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
-    /** @var string */
-    public $queue = 'notifications';
     public ?ScheduledNotification $notification = null;
 
     /**
@@ -26,6 +24,7 @@ class DispatchScheduledNotificationJob implements ShouldQueue
     public function __construct(ScheduledNotification $notification)
     {
         $this->notification = $notification;
+        $this->onQueue('notifications');
     }
 
     /**
