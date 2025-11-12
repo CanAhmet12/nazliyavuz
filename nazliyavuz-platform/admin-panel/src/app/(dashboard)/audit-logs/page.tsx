@@ -71,12 +71,22 @@ export default function AuditLogsPage() {
 
   const quickActions = useMemo(() => availableActions.slice(0, 6), [availableActions]);
 
-  const updateFilters = <K extends keyof AuditLogsFilters>(key: K, value: AuditLogsFilters[K]) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-      page: key === "page" ? value : 1,
-    }));
+  const updateFilters = <K extends keyof AuditLogsFilters>(
+    key: K,
+    value: AuditLogsFilters[K],
+  ) => {
+    setFilters((prev) => {
+      const next: AuditLogsFilters = {
+        ...prev,
+        [key]: value,
+      };
+
+      if (key !== "page") {
+        next.page = 1;
+      }
+
+      return next;
+    });
   };
 
   const resetFilters = () => {
