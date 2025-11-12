@@ -431,8 +431,7 @@ export default function ReservationCalendarPage() {
         return;
       }
 
-      const referenceIso =
-        reservation.proposed_datetime ?? reservation.start ?? reservation.created_at;
+      const referenceIso = reservation.proposed_datetime ?? reservation.start ?? null;
 
       if (!referenceIso) {
         return;
