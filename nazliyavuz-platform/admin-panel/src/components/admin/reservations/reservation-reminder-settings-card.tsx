@@ -64,8 +64,8 @@ const STATUS_LABEL: Record<ReminderWorkflow["status"], string> = {
   archived: "Arşivlendi",
 };
 
-const STATUS_VARIANT: Record<ReminderWorkflow["status"], "secondary" | "success" | "info"> = {
-  draft: "secondary",
+const STATUS_VARIANT: Record<ReminderWorkflow["status"], "default" | "success" | "info"> = {
+  draft: "default",
   active: "success",
   archived: "info",
 };
@@ -535,7 +535,7 @@ export function ReservationReminderSettingsCard({
                                 <h5 className="text-sm font-semibold text-slate-100">
                                   {step.name}
                                 </h5>
-                                <Badge variant={step.enabled ? "success" : "secondary"}>
+                                <Badge variant={step.enabled ? "success" : "default"}>
                                   {step.enabled ? "Aktif" : "Pasif"}
                                 </Badge>
                                 {step.stop_on_success ? (

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/accordion";
 import type {
   AdminReservation,
+  AdminRescheduleRequest,
   ReservationStatus,
   UpdateReservationStatusPayload,
   RefundReservationPayload,
@@ -174,8 +175,7 @@ export function ReservationDetailDrawer({
   const refundAmountValue = Number(refundAmount || 0);
   const refundEligible =
     reservation &&
-    (reservation.payment_status === "paid" ||
-      reservation.payment_status === "partial_refund");
+    reservation.payment_status === "paid";
   const refunds = (reservation?.refunds ?? []).slice().sort((a, b) => {
     const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
     const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -823,7 +823,7 @@ function LessonSummaryItem({ label, value }: { label: string; value: number | st
 
 function LessonCard({ lesson }: { lesson: AdminLesson }) {
   const statusLabel = lessonStatusCopy[lesson.status] ?? lesson.status;
-  const badgeVariant = lessonStatusVariant[lesson.status] ?? "secondary";
+  const badgeVariant = lessonStatusVariant[lesson.status] ?? "default";
 
   return (
     <div className="space-y-3 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-4 text-xs text-slate-300">
@@ -1017,7 +1017,7 @@ function ReminderLogList({ logs }: { logs: AdminReminderLog[] }) {
               </span>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-              <Badge variant={log.source === "automatic" ? "info" : "secondary"}>
+              <Badge variant={log.source === "automatic" ? "info" : "default"}>
                 {log.source === "automatic" ? "Otomatik" : "Manuel"}
               </Badge>
               <ReminderChannelRow channels={log.channels ?? []} />
@@ -1118,7 +1118,7 @@ function RefundHistory({ refunds }: { refunds: ReservationRefund[] }) {
                 </p>
                 <p className="text-[11px] text-slate-500">
                   Durum:{" "}
-                  <Badge variant={refundStatusVariant[refund.status] ?? "secondary"}>
+                  <Badge variant={refundStatusVariant[refund.status] ?? "default"}>
                     {refundStatusCopy[refund.status] ?? refund.status}
                   </Badge>
                   {refund.processed_at ? (
@@ -1221,7 +1221,7 @@ const rescheduleStatusCopy: Record<string, string> = {
 
 const rescheduleStatusVariant: Record<
   string,
-  "default" | "secondary" | "info" | "success" | "warning" | "destructive"
+  "default" | "info" | "success" | "warning" | "destructive"
 > = {
   pending: "info",
   approved: "success",
@@ -1237,7 +1237,7 @@ const lessonStatusCopy: Record<string, string> = {
 
 const lessonStatusVariant: Record<
   string,
-  "default" | "secondary" | "info" | "success" | "warning" | "destructive"
+  "default" | "info" | "success" | "warning" | "destructive"
 > = {
   scheduled: "info",
   in_progress: "info",
@@ -1272,13 +1272,13 @@ const refundStatusCopy: Record<ReservationRefund["status"], string> = {
 
 const refundStatusVariant: Record<
   ReservationRefund["status"],
-  "info" | "success" | "warning" | "destructive" | "secondary"
+  "info" | "success" | "warning" | "destructive" | "default"
 > = {
   pending: "info",
   processing: "info",
   completed: "success",
   failed: "destructive",
-  cancelled: "secondary",
+  cancelled: "default",
 };
 
 function formatDate(value: string, template = "d MMM yyyy HH:mm") {

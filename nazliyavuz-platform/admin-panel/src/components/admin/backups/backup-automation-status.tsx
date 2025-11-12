@@ -70,7 +70,7 @@ function AutomationCard({ type, detail }: AutomationCardProps) {
           </span>
           <span>{getScheduleLabel(type)}</span>
         </div>
-        <Badge variant={enabled ? "secondary" : "outline"} className={enabled ? "text-emerald-300" : "text-slate-400"}>
+        <Badge variant={enabled ? "success" : "default"} className={enabled ? "text-emerald-300" : "text-slate-400"}>
           {enabled ? "Aktif" : "Pasif"}
         </Badge>
       </div>
@@ -124,7 +124,7 @@ function RestoreStatus({
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
-        <Badge variant="outline" className={cn("flex items-center gap-1", badge.className)}>
+        <Badge variant="default" className={cn("flex items-center gap-1", badge.className)}>
           {badge.icon}
           {badge.label}
         </Badge>
@@ -137,7 +137,7 @@ function RestoreStatus({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge variant="outline" className="cursor-help border-amber-500/40 text-amber-200">
+                <Badge variant="warning" className="cursor-help border-amber-500/40 text-amber-200">
                   Detay
                 </Badge>
               </TooltipTrigger>
