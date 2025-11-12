@@ -20,7 +20,17 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navigation = [
+type NavIconName =
+  | "layout-dashboard"
+  | "users"
+  | "user-check"
+  | "calendar-clock"
+  | "bell"
+  | "piggy-bank"
+  | "line-chart"
+  | "database";
+
+const navigation: Array<{ name: string; href: string; icon: NavIconName }> = [
   { name: "Dashboard", href: "/dashboard", icon: "layout-dashboard" },
   { name: "Kullanıcılar", href: "/users", icon: "users" },
   { name: "Öğretmen Onayı", href: "/teacher-approvals", icon: "user-check" },
@@ -141,15 +151,7 @@ function NavIcon({
   name,
   active,
 }: {
-  name:
-    | "layout-dashboard"
-    | "users"
-    | "user-check"
-    | "calendar-clock"
-    | "bell"
-    | "piggy-bank"
-    | "line-chart"
-    | "database";
+  name: NavIconName;
   active: boolean;
 }) {
   const className = cn(
