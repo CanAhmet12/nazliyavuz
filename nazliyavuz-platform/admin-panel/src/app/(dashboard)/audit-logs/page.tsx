@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { UseQueryResult } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
 import toast from "react-hot-toast";
@@ -64,7 +65,7 @@ export default function AuditLogsPage() {
     isLoading,
     isFetching,
     refetch,
-  } = useAuditLogs(filters);
+  }: UseQueryResult<AuditLogsResponse> = useAuditLogs(filters);
 
   const actions = auditData?.filters?.actions;
   const targetTypes = auditData?.filters?.target_types;
