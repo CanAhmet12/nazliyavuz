@@ -83,10 +83,13 @@ export const scheduledNotificationSchema = z
       in_app: z.boolean(),
     }),
     scheduledAt: z
-      .string()
+      .union([z.string(), z.undefined()])
       .optional()
       .transform((value) => {
-        const trimmed = value?.trim() ?? "";
+        if (!value || typeof value !== "string") {
+          return undefined;
+        }
+        const trimmed = value.trim();
         return trimmed.length > 0 ? trimmed : undefined;
       })
       .refine(
@@ -97,7 +100,8 @@ export const scheduledNotificationSchema = z
           return !Number.isNaN(new Date(value).valueOf());
         },
         { message: "Geçerli bir tarih seçin" },
-      ),
+      )
+      .pipe(z.union([z.string(), z.undefined()]).optional()),
     status: z.enum(["draft", "scheduled"]),
   })
   .superRefine((values, ctx) => {
