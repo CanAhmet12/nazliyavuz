@@ -49,9 +49,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { NotificationHistoryFilters } from "@/lib/api/admin-notifications";
+import type {
+  NotificationHistoryFilters,
+  NotificationHistoryResponse,
+} from "@/lib/api/admin-notifications";
 import type { AdminUser } from "@/lib/api/admin";
 import { searchAdminUsers } from "@/lib/api/admin";
+import type { UseQueryResult } from "@tanstack/react-query";
 
 const defaultFormValues: NotificationFormSchema = {
   title: "",
@@ -135,12 +139,16 @@ export default function NotificationsPage() {
     refetch: refetchAnalytics,
   } = useNotificationAnalytics();
 
+  const historyQuery = useNotificationHistory(historyFilters) as UseQueryResult<
+    NotificationHistoryResponse,
+    Error
+  >;
   const {
     data: historyData,
     isLoading: historyLoading,
     refetch: refetchHistory,
     isFetching: isHistoryFetching,
-  } = useNotificationHistory(historyFilters);
+  } = historyQuery;
 
   const {
     register,

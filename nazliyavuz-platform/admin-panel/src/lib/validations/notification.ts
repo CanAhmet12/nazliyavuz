@@ -16,21 +16,19 @@ export const notificationSchema = z.object({
     .array(z.enum(["all", "students", "teachers", "admins"]))
     .min(1, "En az bir hedef kitle seçin"),
   scheduledAt: z
-    .string()
+    .union([z.string().min(1), z.literal(""), z.undefined()])
     .optional()
     .transform((value) => {
-      const trimmed = value?.trim() ?? "";
-      return trimmed.length > 0 ? trimmed : undefined;
+      if (!value || value === "" || (typeof value === "string" && value.trim().length === 0)) {
+        return undefined;
+      }
+      const date = new Date(value as string);
+      if (Number.isNaN(date.valueOf())) {
+        return undefined;
+      }
+      return (value as string).trim();
     })
-    .refine(
-      (value) => {
-        if (!value) {
-          return true;
-        }
-        return !Number.isNaN(new Date(value).valueOf());
-      },
-      { message: "Geçerli bir tarih seçin" },
-    ),
+    .pipe(z.union([z.string(), z.undefined()]).optional()),
 });
 
 export type NotificationFormSchema = z.infer<typeof notificationSchema>;
