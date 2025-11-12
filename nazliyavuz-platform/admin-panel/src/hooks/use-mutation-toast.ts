@@ -26,11 +26,11 @@ export function useMutationToast<TData, TError = unknown, TVariables = void>(
   return useMutation<TData, TError, TVariables>({
     mutationFn,
     ...options,
-    onSuccess: (data, variables, context) => {
+    onSuccess: (data, variables, context, mutation) => {
       toast.success(successMessage ?? "İşlem başarıyla tamamlandı.");
-      onSuccess?.(data, variables, context);
+      onSuccess?.(data, variables, context, mutation);
     },
-    onError: (error, variables, context) => {
+    onError: (error, variables, context, mutation) => {
       const fallbackMessage =
         errorMessage ??
         (error instanceof Error
@@ -39,7 +39,7 @@ export function useMutationToast<TData, TError = unknown, TVariables = void>(
             ? error
             : "İşlem sırasında bir hata oluştu.");
       toast.error(fallbackMessage);
-      onError?.(error, variables, context);
+      onError?.(error, variables, context, mutation);
     },
   });
 }
