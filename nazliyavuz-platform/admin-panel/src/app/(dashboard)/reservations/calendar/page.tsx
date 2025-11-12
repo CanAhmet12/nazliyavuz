@@ -97,7 +97,7 @@ function buildAdminReservation(item: AdminCalendarReservation): AdminReservation
     status: item.status as ReservationStatus,
     scheduled_at: item.start ?? null,
     proposed_datetime: item.proposed_datetime ?? item.start ?? null,
-    created_at: item.created_at ?? new Date().toISOString(),
+    created_at: new Date().toISOString(),
     duration_minutes: item.duration_minutes ?? null,
     price: item.price ?? null,
     currency: item.currency ?? null,
