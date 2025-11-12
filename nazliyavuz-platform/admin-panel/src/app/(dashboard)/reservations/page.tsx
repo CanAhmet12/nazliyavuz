@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type {
   AdminReservation,
+  AdminReservationsFilters,
   AdminReservationsResponse,
   AdminUser,
   ReservationStatus,
@@ -113,7 +114,9 @@ type RescheduleActionInput = Omit<HandleReschedulePayload, "reservationId">;
 
 export default function ReservationsPage() {
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS });
+  const [filters, setFilters] = useState<AdminReservationsFilters>({
+    ...DEFAULT_FILTERS,
+  });
   const [selectedReservation, setSelectedReservation] = useState<AdminReservation | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
