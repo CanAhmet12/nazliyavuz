@@ -116,7 +116,7 @@ export default function NotificationsPage() {
     per_page: 10,
     search: "",
     type: "",
-    status: "",
+    status: undefined,
   });
   const [userQuery, setUserQuery] = useState("");
   const [userResults, setUserResults] = useState<AdminUser[]>([]);
@@ -1042,13 +1042,17 @@ useEffect(() => {
               <select
                 className="rounded-lg border border-slate-800/70 bg-slate-950/70 px-3 py-2 text-xs text-slate-200"
                 value={historyFilters.status ?? ""}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const nextStatus = event.target.value;
                   setHistoryFilters((prev) => ({
                     ...prev,
-                    status: event.target.value as "read" | "unread" | "",
+                    status:
+                      nextStatus === ""
+                        ? undefined
+                        : (nextStatus as "read" | "unread"),
                     page: 1,
-                  }))
-                }
+                  }));
+                }}
               >
                 <option value="">Durum (Tümü)</option>
                 <option value="read">Okundu</option>
