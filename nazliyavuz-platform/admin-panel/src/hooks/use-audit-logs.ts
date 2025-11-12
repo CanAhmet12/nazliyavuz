@@ -14,7 +14,7 @@ export function useAuditLogs(filters: AuditLogsFilters) {
   return useQuery<AuditLogsResponse>({
     queryKey: [...auditLogsQueryKey, filters],
     queryFn: () => fetchAuditLogs(filters),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
     enabled: isEnabled,
   });
 }

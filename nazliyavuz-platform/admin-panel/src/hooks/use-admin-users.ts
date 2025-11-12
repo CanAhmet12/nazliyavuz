@@ -14,7 +14,7 @@ export function useAdminUsers(filters: AdminUsersFilters) {
   return useQuery<AdminUsersResponse>({
     queryKey: [...usersQueryKey, filters],
     queryFn: () => fetchAdminUsers(filters),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
     enabled: isEnabled,
   });
 }

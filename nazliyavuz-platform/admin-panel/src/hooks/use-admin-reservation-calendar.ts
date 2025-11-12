@@ -14,7 +14,7 @@ export function useAdminReservationCalendar(filters: AdminCalendarFilters) {
   return useQuery<AdminCalendarResponse>({
     queryKey: [...reservationCalendarKey, filters],
     queryFn: () => fetchReservationCalendar(filters),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
     enabled: isEnabled,
   });
 }

@@ -14,7 +14,7 @@ export function useNotificationHistory(filters: NotificationHistoryFilters) {
   return useQuery<NotificationHistoryResponse>({
     queryKey: [...notificationHistoryKey, filters],
     queryFn: () => fetchNotificationHistory(filters),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
     enabled: isEnabled,
   });
 }

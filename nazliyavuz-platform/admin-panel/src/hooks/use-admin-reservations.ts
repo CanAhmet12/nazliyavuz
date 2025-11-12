@@ -14,7 +14,7 @@ export function useAdminReservations(filters: AdminReservationsFilters) {
   return useQuery<AdminReservationsResponse>({
     queryKey: [...reservationsQueryKey, filters],
     queryFn: () => fetchAdminReservations(filters),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
     enabled: isEnabled,
   });
 }
