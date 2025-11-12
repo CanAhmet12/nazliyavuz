@@ -41,6 +41,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { cn } from "@/lib/utils";
 import {
   type AdminCalendarReservation,
+  type AdminCalendarResponse,
   type AdminReservation,
   type ReservationStatus,
   type UpdateReservationStatusPayload,
@@ -51,6 +52,7 @@ import {
   handleAdminReschedule,
   updateReservationSchedule,
 } from "@/lib/api/admin";
+import type { UseQueryResult } from "@tanstack/react-query";
 import { useAdminReservationCalendar, reservationCalendarKey } from "@/hooks/use-admin-reservation-calendar";
 import { ReservationDetailDrawer } from "@/components/admin/reservations/reservation-detail-drawer";
 import { useMutationToast } from "@/hooks/use-mutation-toast";
@@ -138,7 +140,11 @@ export default function ReservationCalendarPage() {
     status: status || undefined,
   };
 
-  const { data, isLoading, isFetching, refetch } = useAdminReservationCalendar(filters);
+  const calendarQuery = useAdminReservationCalendar(filters) as UseQueryResult<
+    AdminCalendarResponse,
+    Error
+  >;
+  const { data, isLoading, isFetching, refetch } = calendarQuery;
 
   const statusMutation = useMutationToast(updateReservationStatus, {
     successMessage: "Rezervasyon güncellendi.",
