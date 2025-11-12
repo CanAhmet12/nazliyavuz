@@ -28,6 +28,19 @@ class AuditLog extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (AuditLog $log): void {
+            if (empty($log->target_type)) {
+                $log->target_type = 'system';
+            }
+
+            if ($log->target_id === null) {
+                $log->target_id = 0;
+            }
+        });
+    }
+
     /**
      * Get the user that performed the action
      */
