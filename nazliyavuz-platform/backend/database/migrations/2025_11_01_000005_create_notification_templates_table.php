@@ -30,6 +30,15 @@ return new class extends Migration
 
             $table->index(['channel', 'status']);
         });
+
+        if (Schema::hasTable('scheduled_notifications')) {
+            Schema::table('scheduled_notifications', function (Blueprint $table) {
+                $table->foreign('template_id')
+                    ->references('id')
+                    ->on('notification_templates')
+                    ->nullOnDelete();
+            });
+        }
     }
 
     /**
@@ -37,6 +46,12 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (Schema::hasTable('scheduled_notifications')) {
+            Schema::table('scheduled_notifications', function (Blueprint $table) {
+                $table->dropForeign(['template_id']);
+            });
+        }
+
         Schema::dropIfExists('notification_templates');
     }
 };

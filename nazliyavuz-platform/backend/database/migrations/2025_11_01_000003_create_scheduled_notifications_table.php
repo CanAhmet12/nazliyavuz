@@ -20,7 +20,8 @@ return new class extends Migration
             $table->string('target_type')->default('all'); // all, students, teachers, admins
             $table->json('target_filters')->nullable();
             $table->json('channels')->nullable(); // e.g. { "push": true, "email": false, "in_app": true }
-            $table->foreignId('template_id')->nullable()->constrained('notification_templates')->nullOnDelete();
+            // Foreign key constraint is added after notification_templates table exists
+            $table->foreignId('template_id')->nullable();
             $table->timestamp('scheduled_at')->nullable();
             $table->string('timezone', 64)->nullable();
             $table->string('status')->default('draft'); // draft, scheduled, queued, sending, sent, failed, cancelled
