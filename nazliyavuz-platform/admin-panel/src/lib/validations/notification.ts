@@ -17,9 +17,20 @@ export const notificationSchema = z.object({
     .min(1, "En az bir hedef kitle seçin"),
   scheduledAt: z
     .string()
-    .datetime()
     .optional()
-    .or(z.literal("").transform(() => undefined)),
+    .transform((value) => {
+      const trimmed = value?.trim() ?? "";
+      return trimmed.length > 0 ? trimmed : undefined;
+    })
+    .refine(
+      (value) => {
+        if (!value) {
+          return true;
+        }
+        return !Number.isNaN(new Date(value).valueOf());
+      },
+      { message: "Geçerli bir tarih seçin" },
+    ),
 });
 
 export type NotificationFormSchema = z.infer<typeof notificationSchema>;
@@ -82,9 +93,20 @@ export const scheduledNotificationSchema = z
       }),
     scheduledAt: z
       .string()
-      .datetime({ offset: true })
       .optional()
-      .or(z.literal("").transform(() => undefined)),
+      .transform((value) => {
+        const trimmed = value?.trim() ?? "";
+        return trimmed.length > 0 ? trimmed : undefined;
+      })
+      .refine(
+        (value) => {
+          if (!value) {
+            return true;
+          }
+          return !Number.isNaN(new Date(value).valueOf());
+        },
+        { message: "Geçerli bir tarih seçin" },
+      ),
     status: z.enum(["draft", "scheduled"]).default("draft"),
   })
   .superRefine((values, ctx) => {
