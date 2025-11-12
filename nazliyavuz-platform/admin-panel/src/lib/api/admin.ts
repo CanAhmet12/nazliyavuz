@@ -795,7 +795,6 @@ export type AdminCalendarReservation = {
   student_id?: number | null;
   is_reschedule_pending: boolean;
   reschedule_request?: AdminRescheduleRequest | null;
-  admin_notes?: string | null;
 };
 
 export type AdminCalendarResponse = {
