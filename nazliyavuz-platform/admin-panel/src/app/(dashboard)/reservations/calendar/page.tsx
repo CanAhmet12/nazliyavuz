@@ -588,7 +588,7 @@ export default function ReservationCalendarPage() {
                             {group.dateLabel}
                           </h3>
                         </div>
-                        <Badge variant="secondary" className="bg-slate-900/60 text-xs">
+                        <Badge variant="default" className="bg-slate-900/60 text-xs">
                           {group.items.length} rezervasyon
                         </Badge>
                       </div>
