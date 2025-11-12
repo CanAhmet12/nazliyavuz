@@ -214,7 +214,7 @@ export default function ReservationCalendarPage() {
     const map = new Map<string, AdminCalendarReservation[]>();
 
     for (const reservation of data.reservations) {
-      const start = reservation.start ?? reservation.proposed_datetime ?? reservation.created_at;
+      const start = reservation.start ?? reservation.proposed_datetime ?? null;
       const key = start ? format(parseISO(start), "yyyy-MM-dd") : "unscheduled";
       const current = map.get(key) ?? [];
       current.push(reservation);
