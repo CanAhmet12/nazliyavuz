@@ -552,7 +552,7 @@ export function ScheduledNotificationsCard({ onViewLogs }: ScheduledNotification
                               return (
                                 <Badge
                                   key={variable}
-                                  variant="outline"
+                                  variant="default"
                                   className={cn(
                                     "cursor-pointer border-slate-700 text-slate-200 hover:border-sky-500/40 hover:text-sky-300",
                                     isMissing && "border-amber-500/60 text-amber-300",
@@ -781,12 +781,12 @@ export function ScheduledNotificationsCard({ onViewLogs }: ScheduledNotification
                     <h4 className="text-sm font-semibold text-slate-100">
                       {notification.title || notification.template?.subject || notification.template?.name}
                     </h4>
-                    <Badge variant="outline" className="border-slate-700 text-slate-300">
+                    <Badge variant="default" className="border-slate-700 text-slate-300">
                       {notification.type.toUpperCase()}
                     </Badge>
-                    <Badge variant="secondary">{notification.priority}</Badge>
+                    <Badge variant="default">{notification.priority}</Badge>
                     {notification.template ? (
-                      <Badge variant="outline" className="border-sky-500/40 text-sky-300">
+                      <Badge variant="default" className="border-sky-500/40 text-sky-300">
                         Şablon: {notification.template.name}
                       </Badge>
                     ) : null}
@@ -814,13 +814,13 @@ export function ScheduledNotificationsCard({ onViewLogs }: ScheduledNotification
                 </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex gap-1">
-                    <Badge variant={notification.channels?.push ? "default" : "outline"}>
+                    <Badge variant="default" className={notification.channels?.push ? "" : "opacity-50"}>
                       Push
                     </Badge>
-                    <Badge variant={notification.channels?.email ? "default" : "outline"}>
+                    <Badge variant="default" className={notification.channels?.email ? "" : "opacity-50"}>
                       Email
                     </Badge>
-                    <Badge variant={notification.channels?.in_app ? "default" : "outline"}>
+                    <Badge variant="default" className={notification.channels?.in_app ? "" : "opacity-50"}>
                       In-App
                     </Badge>
                   </div>
