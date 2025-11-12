@@ -8,23 +8,29 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import type { AdminUser, AdminUsersResponse } from "@/lib/api/admin";
+import type {
+  AdminUser,
+  AdminUsersFilters,
+  AdminUsersResponse,
+} from "@/lib/api/admin";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { UserDetailDrawer } from "@/components/admin/users/user-detail-drawer";
 import { useMutationToast } from "@/hooks/use-mutation-toast";
 import { suspendUser, unsuspendUser } from "@/lib/api/admin";
 import { useQueryClient } from "@tanstack/react-query";
 
-const DEFAULT_FILTERS = {
+const DEFAULT_FILTERS: AdminUsersFilters = {
   role: "",
   status: "",
   search: "",
   page: 1,
   per_page: 10,
-} as const;
+};
 
 export default function UsersPage() {
-  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS });
+  const [filters, setFilters] = useState<AdminUsersFilters>({
+    ...DEFAULT_FILTERS,
+  });
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const queryClient = useQueryClient();
