@@ -102,6 +102,12 @@ class RealisticDataSeeder extends Seeder
                 ]
             );
 
+            // Ensure teacher status flags are aligned with admin panel expectations
+            $user->forceFill([
+                'teacher_status' => 'approved',
+                'status' => $user->status ?? 'active',
+            ])->save();
+
             if (!$user->teacher) {
                 $teacher = Teacher::create([
                     'user_id' => $user->id,
