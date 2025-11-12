@@ -749,7 +749,7 @@ export function NotificationTemplatesCard({ onSelectTemplate }: NotificationTemp
                             {variables.map((variable) => (
                               <Badge
                                 key={`form-${group}-${variable}`}
-                                variant="outline"
+                                variant="default"
                                 className="border-slate-700 text-slate-300"
                               >
                                 {`{{${variable}}}`}
@@ -855,7 +855,7 @@ export function NotificationTemplatesCard({ onSelectTemplate }: NotificationTemp
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <h4 className="text-sm font-semibold text-slate-100">{template.name}</h4>
-                    <Badge variant="outline" className="border-slate-700 text-slate-300">
+                    <Badge variant="default" className="border-slate-700 text-slate-300">
                       {channelLabels[template.channel]}
                     </Badge>
                     <Badge
@@ -863,8 +863,8 @@ export function NotificationTemplatesCard({ onSelectTemplate }: NotificationTemp
                         template.status === "published"
                           ? "success"
                           : template.status === "draft"
-                            ? "secondary"
-                            : "outline"
+                            ? "default"
+                            : "default"
                       }
                     >
                       {template.status === "published"
@@ -978,7 +978,7 @@ export function NotificationTemplatesCard({ onSelectTemplate }: NotificationTemp
                       {template.variables.slice(0, 6).map((variable) => (
                         <Badge
                           key={variable}
-                          variant="outline"
+                          variant="default"
                           className="border-slate-700 text-slate-300"
                         >
                           {`{{${variable}}}`}
@@ -1080,7 +1080,7 @@ export function NotificationTemplatesCard({ onSelectTemplate }: NotificationTemp
                         previewTemplate.variables.map((variable) => (
                           <Badge
                             key={variable}
-                            variant="outline"
+                            variant="default"
                             className="cursor-pointer border-slate-700 text-slate-200 hover:border-sky-500/40 hover:text-sky-300"
                             onClick={() => ensurePlaceholderRow(setPreviewPlaceholders, variable)}
                           >
@@ -1142,7 +1142,7 @@ export function NotificationTemplatesCard({ onSelectTemplate }: NotificationTemp
                               {variables.map((variable) => (
                                 <Badge
                                   key={`preview-${group}-${variable}`}
-                                  variant="outline"
+                                  variant="default"
                                   className="cursor-pointer border-slate-800 text-slate-300 hover:border-sky-500/40 hover:text-sky-200"
                                   onClick={() => ensurePlaceholderRow(setPreviewPlaceholders, variable)}
                                 >
@@ -1211,7 +1211,7 @@ export function NotificationTemplatesCard({ onSelectTemplate }: NotificationTemp
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                         Önizleme
                       </p>
-                      <Badge variant="outline" className="border-slate-800 text-slate-300">
+                      <Badge variant="default" className="border-slate-800 text-slate-300">
                         {channelLabels[
                           (previewResult?.channel ?? previewChannel ?? previewTemplate.channel) as NotificationTemplate["channel"]
                         ]}
@@ -1468,7 +1468,7 @@ export function NotificationTemplatesCard({ onSelectTemplate }: NotificationTemp
                               {variables.map((variable) => (
                                 <Badge
                                   key={`test-${group}-${variable}`}
-                                  variant="outline"
+                                  variant="default"
                                   className="cursor-pointer border-slate-800 text-slate-300 hover:border-sky-500/40 hover:text-sky-200"
                                   onClick={() => ensurePlaceholderRow(setTestPlaceholders, variable)}
                                 >
@@ -1493,7 +1493,7 @@ export function NotificationTemplatesCard({ onSelectTemplate }: NotificationTemp
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                         Test sonucu
                       </p>
-                      <Badge variant="outline" className="border-slate-800 text-slate-300">
+                      <Badge variant="default" className="border-slate-800 text-slate-300">
                         {channelLabels[
                           (testResult?.channel ?? testChannel) as NotificationTemplate["channel"]
                         ]}
