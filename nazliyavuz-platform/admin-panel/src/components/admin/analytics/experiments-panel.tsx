@@ -301,7 +301,7 @@ function ExperimentCard({ experiment, onStatusChange }: ExperimentCardProps) {
           <p className="text-sm font-semibold text-slate-100">{experiment.name}</p>
           <p className="text-xs text-slate-400">{experiment.key}</p>
         </div>
-        <Badge variant="outline" className={statusBadge.className}>
+        <Badge variant="default" className={statusBadge.className}>
           {statusBadge.label}
         </Badge>
       </header>

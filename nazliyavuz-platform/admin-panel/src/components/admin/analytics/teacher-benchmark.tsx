@@ -28,7 +28,7 @@ export function TeacherBenchmarkPanel({ data }: TeacherBenchmarkProps) {
             Onaylı öğretmen performans metrikleri, liderler ve riskli segmentler.
           </p>
         </div>
-        <Badge variant="outline" className="border-slate-700/60 text-xs text-slate-300">
+        <Badge variant="default" className="border-slate-700/60 text-xs text-slate-300">
           {formatNumber(data.summary.total_teachers)} öğretmen
         </Badge>
       </header>
@@ -138,7 +138,7 @@ function LeaderColumn({
 }: {
   title: string;
   description: string;
-  data: ReturnType<typeof formatLeader>[];
+  data: TeacherLeader[];
   icon: React.ReactNode;
   badgeVariant: BadgeVariant;
 }) {
@@ -167,7 +167,7 @@ function LeaderColumn({
                   <p className="font-semibold text-slate-100">{entry.name}</p>
                   <p className="text-[11px] text-slate-500">{entry.email}</p>
                 </div>
-                <Badge variant="secondary" className={badgeClass(badgeVariant)}>
+                <Badge variant="default" className={badgeClass(badgeVariant)}>
                   Skor: {entry.rankingScore.toFixed(1)}
                 </Badge>
               </div>

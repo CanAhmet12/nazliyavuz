@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import type { UserSegmentation } from "@/lib/api/analytics";
+import type { RetentionSegment, UserSegmentation } from "@/lib/api/analytics";
 import {
   Users,
   GraduationCap,
@@ -153,7 +153,7 @@ function TeacherStatus({ data }: { data: UserSegmentation["teacher_status"] }) {
             Öğretmenlerin onay durumlarına göre dağılımı.
           </p>
         </div>
-        <Badge variant="outline" className="border-emerald-500/40 text-emerald-200">
+        <Badge variant="default" className="border-emerald-500/40 text-emerald-200">
           Öğretmen segmentleri
         </Badge>
       </header>
@@ -200,7 +200,7 @@ function StudentActivity({
           >
             <div className="flex items-center justify-between">
               <p className="font-semibold text-slate-100">{segment.label}</p>
-              <Badge variant="secondary" className="bg-slate-900/60 text-xs text-slate-300">
+              <Badge variant="default" className="bg-slate-900/60 text-xs text-slate-300">
                 {segment.percentage.toFixed(1)}%
               </Badge>
             </div>
@@ -269,7 +269,7 @@ function MarketingPreferences({
         {data.map((item) => (
           <Badge
             key={item.key}
-            variant="outline"
+            variant="default"
             className="flex items-center gap-2 border-slate-700/60 bg-slate-900/60 px-3 py-1 text-slate-200"
           >
             {item.key === "email_notifications" ? (
@@ -323,7 +323,7 @@ function CohortTable({ cohorts }: { cohorts: UserSegmentation["cohorts"] }) {
     <section className="space-y-3 rounded-xl border border-slate-800/70 bg-slate-950/70 p-4">
       <header className="flex items-center justify-between">
         <p className="text-sm font-semibold text-slate-100">Haftalık kayıt kohortları</p>
-        <Badge variant="outline" className="border-slate-700/60 text-xs text-slate-300">
+        <Badge variant="default" className="border-slate-700/60 text-xs text-slate-300">
           Son 6 hafta
         </Badge>
       </header>
@@ -356,7 +356,7 @@ function TopCategories({ data }: { data: UserSegmentation["top_categories"] }) {
     <section className="space-y-3 rounded-xl border border-slate-800/70 bg-slate-950/70 p-4">
       <header className="flex items-center justify-between">
         <p className="text-sm font-semibold text-slate-100">En popüler kategoriler</p>
-        <Badge variant="secondary" className="bg-slate-900/70 text-xs text-slate-300">
+        <Badge variant="default" className="bg-slate-900/70 text-xs text-slate-300">
           İlk 5
         </Badge>
       </header>
