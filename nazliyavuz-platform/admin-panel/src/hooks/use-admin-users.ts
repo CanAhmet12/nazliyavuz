@@ -4,18 +4,18 @@ import {
   type AdminUsersFilters,
   type AdminUsersResponse,
 } from "@/lib/api/admin";
-import { authStore } from "@/store/auth-store";
+import { useAuthQueryEnabled } from "@/hooks/use-auth-query-enabled";
 
 export const usersQueryKey = ["admin", "users"];
 
 export function useAdminUsers(filters: AdminUsersFilters) {
-  const accessToken = authStore((state) => state.accessToken);
+  const isEnabled = useAuthQueryEnabled();
 
   return useQuery<AdminUsersResponse>({
     queryKey: [...usersQueryKey, filters],
     queryFn: () => fetchAdminUsers(filters),
     keepPreviousData: true,
-    enabled: Boolean(accessToken),
+    enabled: isEnabled,
   });
 }
 

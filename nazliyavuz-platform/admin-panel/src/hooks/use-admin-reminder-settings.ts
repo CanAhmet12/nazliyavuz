@@ -4,6 +4,7 @@ import {
   type AdminReminderSetting,
   type ReminderWorkflow,
 } from "@/lib/api/admin";
+import { useAuthQueryEnabled } from "@/hooks/use-auth-query-enabled";
 
 type ReminderSettingsQueryResult = {
   success: boolean;
@@ -14,10 +15,13 @@ type ReminderSettingsQueryResult = {
 export const reminderSettingsQueryKey = ["admin", "reservations", "reminder-settings"];
 
 export function useAdminReservationReminderSettings() {
+  const isEnabled = useAuthQueryEnabled();
+
   return useQuery<ReminderSettingsQueryResult>({
     queryKey: reminderSettingsQueryKey,
     queryFn: fetchReservationReminderSettings,
     staleTime: 60_000,
+    enabled: isEnabled,
   });
 }
 
