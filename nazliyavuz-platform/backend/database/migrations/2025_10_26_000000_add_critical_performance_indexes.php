@@ -127,12 +127,12 @@ return new class extends Migration
         Schema::table('lessons', function (Blueprint $table) {
             // Index for teacher lessons
             if (!$this->indexExists('lessons', 'lessons_teacher_datetime_index')) {
-                $table->index(['teacher_id', 'start_datetime'], 'lessons_teacher_datetime_index');
+                $table->index(['teacher_id', 'scheduled_at'], 'lessons_teacher_datetime_index');
             }
             
             // Index for student lessons
             if (!$this->indexExists('lessons', 'lessons_student_datetime_index')) {
-                $table->index(['student_id', 'start_datetime'], 'lessons_student_datetime_index');
+                $table->index(['student_id', 'scheduled_at'], 'lessons_student_datetime_index');
             }
         });
 
