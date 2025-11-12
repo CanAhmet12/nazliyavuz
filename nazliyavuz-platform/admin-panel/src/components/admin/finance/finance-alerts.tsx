@@ -1,3 +1,4 @@
+import type React from "react";
 import { Badge } from "@/components/ui/badge";
 import type { FinanceAlert } from "@/lib/api/finance";
 import { AlertTriangle, Info, ShieldAlert } from "lucide-react";
@@ -6,7 +7,7 @@ type FinanceAlertsProps = {
   alerts: FinanceAlert[];
 };
 
-const severityConfig: Record<FinanceAlert["severity"], { icon: JSX.Element; className: string }> = {
+const severityConfig: Record<FinanceAlert["severity"], { icon: React.ReactElement; className: string }> = {
   error: {
     icon: <ShieldAlert className="h-4 w-4 text-rose-300" />,
     className: "border-rose-500/40 bg-rose-500/10",
@@ -35,7 +36,7 @@ export function FinanceAlerts({ alerts }: FinanceAlertsProps) {
             Finansal verilerde tespit edilen olası tutarsızlıkları inceleyin.
           </p>
         </div>
-        <Badge variant="outline" className="border-slate-700/70 bg-slate-900/60 text-xs text-slate-300">
+        <Badge variant="default" className="border-slate-700/70 bg-slate-900/60 text-xs text-slate-300">
           {alerts.length} uyarı
         </Badge>
       </div>
@@ -58,7 +59,7 @@ export function FinanceAlerts({ alerts }: FinanceAlertsProps) {
                   </div>
                 </div>
                 {typeof alert.affected === "number" ? (
-                  <Badge variant="secondary" className="bg-slate-900/80 text-xs text-slate-200">
+                  <Badge variant="default" className="bg-slate-900/80 text-xs text-slate-200">
                     {alert.affected} kayıt
                   </Badge>
                 ) : null}
