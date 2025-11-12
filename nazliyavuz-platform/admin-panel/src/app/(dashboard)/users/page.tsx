@@ -8,7 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import type { AdminUser } from "@/lib/api/admin";
+import type { AdminUser, AdminUsersResponse } from "@/lib/api/admin";
+import type { UseQueryResult } from "@tanstack/react-query";
 import { UserDetailDrawer } from "@/components/admin/users/user-detail-drawer";
 import { useMutationToast } from "@/hooks/use-mutation-toast";
 import { suspendUser, unsuspendUser } from "@/lib/api/admin";
@@ -27,7 +28,11 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { data, isLoading, isFetching, refetch } = useAdminUsers(filters);
+  const usersQuery = useAdminUsers(filters) as UseQueryResult<
+    AdminUsersResponse,
+    Error
+  >;
+  const { data, isLoading, isFetching, refetch } = usersQuery;
 
   const users = data?.users ?? [];
   const pagination = data?.pagination;
