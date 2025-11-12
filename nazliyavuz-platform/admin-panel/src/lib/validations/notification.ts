@@ -70,24 +70,18 @@ export const scheduledNotificationSchema = z
       .optional()
       .or(z.literal("").transform(() => undefined)),
     type: z.enum(["info", "success", "warning", "error"]),
-    priority: z.enum(["low", "normal", "high", "urgent"]).optional().default("normal"),
-    targetType: z.enum(["all", "students", "teachers", "admins"]).default("all"),
+    priority: z.enum(["low", "normal", "high", "urgent"]),
+    targetType: z.enum(["all", "students", "teachers", "admins"]),
     templateId: z
       .number()
       .positive("Şablon seçimi geçersiz")
       .optional()
       .nullable(),
-    channels: z
-      .object({
-        push: z.boolean().default(true),
-        email: z.boolean().default(false),
-        in_app: z.boolean().default(true),
-      })
-      .default({
-        push: true,
-        email: false,
-        in_app: true,
-      }),
+    channels: z.object({
+      push: z.boolean(),
+      email: z.boolean(),
+      in_app: z.boolean(),
+    }),
     scheduledAt: z
       .string()
       .optional()
@@ -104,7 +98,7 @@ export const scheduledNotificationSchema = z
         },
         { message: "Geçerli bir tarih seçin" },
       ),
-    status: z.enum(["draft", "scheduled"]).default("draft"),
+    status: z.enum(["draft", "scheduled"]),
   })
   .superRefine((values, ctx) => {
     const hasTemplate = Boolean(values.templateId);
