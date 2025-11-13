@@ -80,8 +80,100 @@ export function ReservationsTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-800/60 bg-slate-950/70">
-      <table className="w-full table-fixed border-collapse text-sm text-slate-200">
+    <>
+      {/* Mobile Card View */}
+      <div className="space-y-3 md:hidden">
+        {reservations.map((reservation) => {
+          const isSelected = currentSelection.has(reservation.id);
+          const scheduled = reservation.scheduled_at ?? reservation.proposed_datetime;
+          return (
+            <div
+              key={reservation.id}
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest("input[type='checkbox']")) {
+                  return;
+                }
+                onSelect?.(reservation);
+              }}
+              className={cn(
+                "cursor-pointer rounded-xl border border-slate-800/60 bg-slate-950/70 p-4 transition-all active:scale-[0.98]",
+                selectedReservationId === reservation.id && "border-sky-500/40 bg-sky-500/10",
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-sm font-semibold text-slate-100">
+                        {reservation.title ?? reservation.subject ?? `Rezervasyon #${reservation.id}`}
+                      </h3>
+                      {reservation.category?.name && (
+                        <p className="mt-0.5 text-xs text-slate-500">{reservation.category.name}</p>
+                      )}
+                    </div>
+                    {selectable && (
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500"
+                        checked={isSelected}
+                        onChange={(event) => toggleOne(reservation.id, event.target.checked)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={reservationStatusVariants[reservation.status]} className="text-xs">
+                      {reservationStatusCopy[reservation.status]}
+                    </Badge>
+                    {reservation.payment_status && (
+                      <Badge
+                        variant={paymentStatusVariants[reservation.payment_status] ?? "default"}
+                        className="text-xs"
+                      >
+                        {paymentStatusCopy[reservation.payment_status]}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="space-y-1.5 text-xs text-slate-400">
+                    {reservation.student && (
+                      <div>
+                        <span className="text-slate-500">Öğrenci: </span>
+                        <span className="text-slate-300">{reservation.student.name}</span>
+                      </div>
+                    )}
+                    {reservation.teacher && (
+                      <div>
+                        <span className="text-slate-500">Öğretmen: </span>
+                        <span className="text-slate-300">{reservation.teacher.name}</span>
+                      </div>
+                    )}
+                    {scheduled && (
+                      <div>
+                        <span className="text-slate-500">Planlanan: </span>
+                        <span className="text-slate-300">
+                          {formatDate(scheduled)} • {formatRelativeDistance(scheduled)}
+                        </span>
+                      </div>
+                    )}
+                    {typeof reservation.price === "number" && (
+                      <div>
+                        <span className="text-slate-500">Ücret: </span>
+                        <span className="text-slate-300">
+                          {reservation.price.toFixed(2)} {reservation.currency ?? "TRY"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden overflow-hidden rounded-xl border border-slate-800/60 bg-slate-950/70 md:block">
+        <table className="w-full table-fixed border-collapse text-sm text-slate-200">
         <thead className="bg-slate-950/80 text-xs uppercase tracking-wide text-slate-400">
           <tr>
             {selectable ? (
@@ -212,7 +304,8 @@ export function ReservationsTable({
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
 

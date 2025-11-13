@@ -460,20 +460,20 @@ export default function ReservationCalendarPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="rounded-xl border border-slate-800/60 bg-slate-950/60 p-2">
-            <Calendar className="h-5 w-5 text-sky-400" />
+    <div className="space-y-4 md:space-y-6">
+      <header className="flex flex-col gap-3 rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 md:rounded-2xl md:gap-4 md:p-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-start gap-2 md:gap-3">
+          <div className="rounded-xl border border-slate-800/60 bg-slate-950/60 p-1.5 md:p-2">
+            <Calendar className="h-4 w-4 text-sky-400 md:h-5 md:w-5" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-100">Rezervasyon Takvimi</h2>
-            <p className="text-sm text-slate-400">
+            <h2 className="text-base font-semibold text-slate-100 md:text-lg">Rezervasyon Takvimi</h2>
+            <p className="mt-1 text-xs text-slate-400 md:text-sm">
               {format(range.start, "d MMM yyyy", { locale: tr })} -{" "}
               {format(range.end, "d MMM yyyy", { locale: tr })} tarihleri arası rezervasyonlar.
             </p>
             {data && (
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-[10px] text-slate-500 md:text-xs">
                 {data.count} etkinlik bulunuyor.
               </p>
             )}
@@ -482,18 +482,20 @@ export default function ReservationCalendarPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
-            className="border-slate-800 bg-slate-950 text-slate-300 hover:bg-slate-900/80"
+            size="sm"
+            className="min-h-[36px] border-slate-800 bg-slate-950 text-slate-300 active:scale-[0.98] hover:bg-slate-900/80 md:min-h-0"
             onClick={() => {
               refetch();
             }}
             disabled={isFetching}
           >
-            <RefreshCcw className="mr-2 h-4 w-4" />
-            Yenile
+            <RefreshCcw className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
+            <span className="text-xs md:text-sm">Yenile</span>
           </Button>
           <Button
             variant="ghost"
-            className="text-xs text-slate-400 hover:text-slate-200"
+            size="sm"
+            className="min-h-[36px] text-xs text-slate-400 active:scale-[0.98] hover:text-slate-200 md:min-h-0"
             onClick={() => router.push("/reservations")}
           >
             Liste görünümüne dön
@@ -501,27 +503,28 @@ export default function ReservationCalendarPage() {
         </div>
       </header>
 
-      <section className="flex flex-col gap-4 rounded-2xl border border-slate-800/60 bg-slate-950/60 p-5 md:flex-row md:items-center md:justify-between">
+      <section className="flex flex-col gap-3 rounded-xl border border-slate-800/60 bg-slate-950/60 p-4 md:rounded-2xl md:gap-4 md:flex-row md:items-center md:justify-between md:p-5">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full border border-slate-800/70 bg-slate-950/70 text-slate-300 hover:bg-slate-900/60"
+            className="min-h-[36px] min-w-[36px] rounded-full border border-slate-800/70 bg-slate-950/70 text-slate-300 active:scale-[0.98] hover:bg-slate-900/60 md:min-h-0 md:min-w-0"
             onClick={() => handleShift(-7)}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3.5 w-3.5 md:h-4 md:w-4" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full border border-slate-800/70 bg-slate-950/70 text-slate-300 hover:bg-slate-900/60"
+            className="min-h-[36px] min-w-[36px] rounded-full border border-slate-800/70 bg-slate-950/70 text-slate-300 active:scale-[0.98] hover:bg-slate-900/60 md:min-h-0 md:min-w-0"
             onClick={() => handleShift(7)}
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4" />
           </Button>
           <Button
             variant="secondary"
-            className="border-slate-700 bg-slate-900/70 text-xs text-slate-200 hover:bg-slate-800/80"
+            size="sm"
+            className="min-h-[36px] border-slate-700 bg-slate-900/70 text-xs text-slate-200 active:scale-[0.98] hover:bg-slate-800/80 md:min-h-0"
             onClick={handleToday}
           >
             Bugün
@@ -535,8 +538,9 @@ export default function ReservationCalendarPage() {
               variant={status === option.value ? "secondary" : "ghost"}
               size="sm"
               className={cn(
-                "rounded-full border border-slate-800/70 bg-slate-950/70 text-xs",
+                "min-h-[36px] rounded-full border border-slate-800/70 bg-slate-950/70 text-xs active:scale-[0.98]",
                 status === option.value && "border-sky-500/40 bg-sky-500/10 text-sky-200",
+                "md:min-h-0",
               )}
               onClick={() =>
                 setStatus((prev) => (prev === option.value ? "" : option.value))
@@ -548,15 +552,15 @@ export default function ReservationCalendarPage() {
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section className="space-y-3 md:space-y-4">
         {isLoading ? (
           <CalendarSkeleton />
         ) : calendarGroups.length === 0 ? (
-          <Card className="border border-slate-800/70 bg-slate-950/60 p-8 text-center">
-            <p className="text-sm font-medium text-slate-200">
+          <Card className="border border-slate-800/70 bg-slate-950/60 p-6 text-center md:p-8">
+            <p className="text-xs font-medium text-slate-200 md:text-sm">
               Bu tarih aralığında rezervasyon bulunamadı.
             </p>
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-[10px] text-slate-500 md:text-xs">
               Tarih aralığını veya filtreleri değiştirerek tekrar deneyebilirsiniz.
             </p>
           </Card>

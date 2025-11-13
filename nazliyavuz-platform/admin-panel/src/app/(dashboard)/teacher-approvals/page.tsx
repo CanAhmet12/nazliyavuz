@@ -53,23 +53,24 @@ export default function TeacherApprovalsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-4 md:space-y-6">
+      <header className="flex flex-col gap-3 rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 md:rounded-2xl md:gap-4 md:p-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-100">
+          <h2 className="text-base font-semibold text-slate-100 md:text-lg">
             Öğretmen Onay Süreci
           </h2>
-          <p className="text-sm text-slate-400">
+          <p className="mt-1 text-xs text-slate-400 md:text-sm">
             Bekleyen öğretmen başvurularını inceleyip karar verin.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="info">
+          <Badge variant="info" className="text-xs md:text-sm">
             {pendingTeachers.length} bekleyen başvuru
           </Badge>
           <Button
             variant="outline"
-            className="border-slate-800 bg-slate-950 text-slate-300 hover:bg-slate-900/80"
+            size="sm"
+            className="min-h-[36px] border-slate-800 bg-slate-950 text-slate-300 active:scale-[0.98] hover:bg-slate-900/80 md:min-h-0"
             onClick={() => refetchPendingTeachers()}
             disabled={isFetching}
           >
@@ -79,10 +80,9 @@ export default function TeacherApprovalsPage() {
       </header>
 
       {error && (
-        <div className="flex items-center gap-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          <AlertCircle className="h-4 w-4" />
-          Öğretmen başvuruları yüklenirken bir hata oluştu. Lütfen tekrar
-          deneyin.
+        <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2.5 text-xs text-rose-200 md:gap-3 md:px-4 md:py-3 md:text-sm">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0 md:h-4 md:w-4" />
+          <span>Öğretmen başvuruları yüklenirken bir hata oluştu. Lütfen tekrar deneyin.</span>
         </div>
       )}
 
@@ -94,7 +94,7 @@ export default function TeacherApprovalsPage() {
           isLoading={isFetching}
         />
       ) : (
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-3 md:gap-5 md:grid-cols-2">
           {pendingTeachers.map((teacher) => (
             <TeacherCard
               key={teacher.id}

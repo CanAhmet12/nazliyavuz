@@ -45,14 +45,14 @@ export default function AnalyticsPage() {
 
   if (error || !data?.analytics) {
     return (
-      <div className="space-y-4 rounded-2xl border border-rose-500/40 bg-rose-500/10 p-6 text-sm text-rose-200">
+      <div className="space-y-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-xs text-rose-200 md:rounded-2xl md:p-6 md:text-sm">
         <div className="flex items-center gap-2">
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="h-3.5 w-3.5 md:h-4 md:w-4" />
           Analitik verileri yüklenirken bir hata oluştu.
         </div>
         <button
           type="button"
-          className="rounded-full border border-rose-400/50 px-3 py-1 text-xs text-rose-100 transition-colors hover:bg-rose-500/20"
+          className="min-h-[36px] rounded-full border border-rose-400/50 px-3 py-1.5 text-xs text-rose-100 transition-all active:scale-[0.95] hover:bg-rose-500/20 md:min-h-0 md:py-1"
           onClick={() => refetch()}
         >
           Tekrar dene
@@ -64,19 +64,19 @@ export default function AnalyticsPage() {
   const analytics = data.analytics;
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-slate-100">
+    <div className="space-y-4 md:space-y-6">
+      <div className="space-y-1.5 md:space-y-2">
+        <h2 className="text-base font-semibold text-slate-100 md:text-lg">
           Analitik & Eğilimler
         </h2>
-        <p className="text-sm text-slate-400">
+        <p className="text-xs text-slate-400 md:text-sm">
           Kullanıcı büyümesi, rezervasyon aktiviteleri ve performans metrikleri.
         </p>
       </div>
 
       <UserGrowth data={analytics.user_growth} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-3 md:gap-4 lg:grid-cols-2">
         <ReservationTrend data={analytics.reservation_trends} />
         <CategoryPopularity data={analytics.category_popularity} />
       </div>

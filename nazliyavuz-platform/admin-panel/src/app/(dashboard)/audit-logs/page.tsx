@@ -116,18 +116,18 @@ export default function AuditLogsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <Dialog open={selectedLog !== null} onOpenChange={() => setSelectedLog(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-[95vw] md:max-w-3xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2 text-sm uppercase tracking-wide text-slate-400">
-                <ShieldAlert className="h-4 w-4" />
+            <DialogTitle className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <span className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-400 md:text-sm">
+                <ShieldAlert className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 {selectedLog ? selectedLog.action.replace(/_/g, " ") : "Audit kaydı"}
               </span>
-              {selectedLog ? <Badge variant="info">{formatDistanceToNow(new Date(selectedLog.created_at), { addSuffix: true, locale: tr })}</Badge> : null}
+              {selectedLog ? <Badge variant="info" className="text-xs md:text-sm">{formatDistanceToNow(new Date(selectedLog.created_at), { addSuffix: true, locale: tr })}</Badge> : null}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs md:text-sm">
               Audit kaydının detaylarını inceleyin. Metadata ve ortam bilgileri olası sorunları analiz etmenize yardımcı olur.
             </DialogDescription>
           </DialogHeader>
@@ -213,24 +213,24 @@ export default function AuditLogsPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-slate-100">Audit Kayıtları</h2>
-        <p className="text-sm text-slate-400">
+      <div className="space-y-1.5 md:space-y-2">
+        <h2 className="text-base font-semibold text-slate-100 md:text-lg">Audit Kayıtları</h2>
+        <p className="text-xs text-slate-400 md:text-sm">
           Kritik yönetici aksiyonlarını, kullanıcı işlemlerini ve sistem denetim kayıtlarını görüntüleyin.
         </p>
       </div>
 
-      <div className="space-y-4 rounded-2xl border border-slate-800/60 bg-slate-950/60 p-5">
-        <div className="grid gap-4 md:grid-cols-2">
+      <div className="space-y-3 rounded-xl border border-slate-800/60 bg-slate-950/60 p-4 md:rounded-2xl md:space-y-4 md:p-5">
+        <div className="grid gap-3 md:grid-cols-2 md:gap-4">
           <div>
             <label className="text-xs font-medium uppercase tracking-wide text-slate-500">
               Genel arama
             </label>
-            <div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-800/60 bg-slate-950/80 px-3">
-              <Search className="h-4 w-4 text-slate-600" />
+            <div className="mt-2 flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-800/60 bg-slate-950/80 px-3">
+              <Search className="h-3.5 w-3.5 shrink-0 text-slate-600 md:h-4 md:w-4" />
               <Input
-                className="border-none bg-transparent px-0 text-sm focus-visible:ring-0"
-                placeholder="Aksiyon, kullanıcı, açıklama veya metadata terimleri..."
+                className="min-h-[44px] border-none bg-transparent px-0 text-base focus-visible:ring-0 md:min-h-0 md:text-sm"
+                placeholder="Aksiyon, kullanıcı, açıklama..."
                 value={filters.query ?? ""}
                 onChange={(event) => updateFilters("query", event.target.value)}
               />

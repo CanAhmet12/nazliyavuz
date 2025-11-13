@@ -72,14 +72,14 @@ export default function FinancePage() {
     : null;
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-slate-100">Finans Paneli</h2>
-        <p className="text-sm text-slate-400">
+    <div className="space-y-4 md:space-y-6">
+      <div className="space-y-1.5 md:space-y-2">
+        <h2 className="text-base font-semibold text-slate-100 md:text-lg">Finans Paneli</h2>
+        <p className="text-xs text-slate-400 md:text-sm">
           Gelir, ödeme yöntemleri ve ücret dağılımlarını takip edin.
         </p>
         {generatedAtLabel ? (
-          <p className="text-xs text-slate-500">Veriler {generatedAtLabel} itibarıyla güncel.</p>
+          <p className="text-[10px] text-slate-500 md:text-xs">Veriler {generatedAtLabel} itibarıyla güncel.</p>
         ) : null}
       </div>
 
@@ -95,7 +95,7 @@ export default function FinancePage() {
         <ForecastSkeleton />
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid gap-3 md:gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <RevenueTrend data={revenueTrend} currency={totals.currency} />
         </div>

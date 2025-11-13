@@ -569,18 +569,18 @@ export default function ReservationsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-4 md:space-y-6">
+      <header className="flex flex-col gap-3 rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 md:rounded-2xl md:gap-4 md:p-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-100">
+          <h2 className="text-base font-semibold text-slate-100 md:text-lg">
             Rezervasyon Yönetimi
           </h2>
-          <p className="text-sm text-slate-400">
+          <p className="mt-1 text-xs text-slate-400 md:text-sm">
             Öğrenci ve öğretmenler arasındaki ders rezervasyonlarını takip edin.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="info" className="gap-2">
+          <Badge variant="info" className="gap-2 text-xs md:text-sm">
             <CalendarClock className="h-4 w-4" />
             {pagination?.total ?? 0} rezervasyon
           </Badge>
@@ -616,15 +616,15 @@ export default function ReservationsPage() {
         />
       )}
 
-      <section className="grid gap-4 rounded-2xl border border-slate-800/60 bg-slate-950/60 p-5 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 rounded-xl border border-slate-800/60 bg-slate-950/60 p-4 md:rounded-2xl md:gap-4 md:p-5 md:grid-cols-2 xl:grid-cols-4">
         <div className="space-y-2 md:col-span-2">
           <label className="text-xs font-medium uppercase tracking-wide text-slate-500">
             Arama
           </label>
-          <div className="flex items-center gap-2 rounded-xl border border-slate-800/60 bg-slate-950/80 px-3">
-            <Search className="h-4 w-4 text-slate-600" />
+          <div className="mt-2 flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-800/60 bg-slate-950/80 px-3">
+            <Search className="h-3.5 w-3.5 shrink-0 text-slate-600 md:h-4 md:w-4" />
             <Input
-              className="border-none bg-transparent px-0 text-sm focus-visible:ring-0"
+              className="min-h-[44px] border-none bg-transparent px-0 text-base focus-visible:ring-0 md:min-h-0 md:text-sm"
               placeholder="Ders, kategori veya notlarda ara..."
               value={filters.search}
               onChange={(event) =>

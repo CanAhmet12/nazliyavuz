@@ -27,8 +27,61 @@ export function BackupsTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-950/60">
-      <table className="w-full border-collapse text-sm text-slate-200">
+    <>
+      {/* Mobile Card View */}
+      <div className="space-y-3 md:hidden">
+        {backups.map((backup) => (
+          <div
+            key={backup.filename}
+            className="rounded-xl border border-slate-800/70 bg-slate-950/60 p-4"
+          >
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-100">{backup.filename}</h3>
+                {backup.filepath && (
+                  <p className="mt-1 text-xs text-slate-500">{backup.filepath}</p>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={badgeVariant[backup.type] ?? "default"} className="text-xs">
+                  {typeLabels[backup.type] ?? backup.type}
+                </Badge>
+                <span className="text-xs text-slate-400">{formatSize(backup.size)}</span>
+              </div>
+              <div className="text-xs text-slate-400">
+                {formatDistanceToNow(new Date(backup.created_at), {
+                  addSuffix: true,
+                  locale: tr,
+                })}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-[36px] flex-1 text-xs text-sky-300 active:scale-[0.98] hover:bg-sky-500/10 md:min-h-0"
+                  onClick={() => onRestore(backup)}
+                  disabled={isProcessing}
+                >
+                  Geri Yükle
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-[36px] flex-1 text-xs text-rose-400 active:scale-[0.98] hover:bg-rose-500/10 md:min-h-0"
+                  onClick={() => onDelete(backup)}
+                  disabled={isProcessing}
+                >
+                  Sil
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/60 md:block md:rounded-2xl">
+        <table className="w-full border-collapse text-sm text-slate-200">
         <thead className="bg-slate-950/80 text-xs uppercase tracking-wide text-slate-400">
           <tr>
             <th className="px-4 py-3 text-left font-medium">Dosya</th>
@@ -89,7 +142,8 @@ export function BackupsTable({
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
 

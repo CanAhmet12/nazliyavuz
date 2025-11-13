@@ -1,0 +1,19 @@
+[Unit]
+Description=NazliYavuz Admin Panel (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=can65385
+WorkingDirectory=/var/www/nazliyavuz-admin/nazliyavuz-platform/admin-panel
+Environment="PORT=3000"
+Environment="NODE_ENV=production"
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+

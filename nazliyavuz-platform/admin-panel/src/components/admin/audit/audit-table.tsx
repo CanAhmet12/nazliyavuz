@@ -18,8 +18,74 @@ export function AuditTable({ logs, onShowDetails }: AuditTableProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-950/60">
-      <table className="w-full border-collapse text-sm text-slate-200">
+    <>
+      {/* Mobile Card View */}
+      <div className="space-y-3 md:hidden">
+        {logs.map((log) => (
+          <div
+            key={log.id}
+            onClick={() => onShowDetails?.(log)}
+            className="cursor-pointer rounded-xl border border-slate-800/70 bg-slate-950/60 p-4 transition-all active:scale-[0.98]"
+          >
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <Badge variant="info" className="text-xs capitalize">
+                  {log.action.replace(/_/g, " ")}
+                </Badge>
+                <SeverityBadge severity={log.severity} />
+              </div>
+              <div className="space-y-1.5 text-xs">
+                {log.user ? (
+                  <div>
+                    <span className="text-slate-500">Kullanıcı: </span>
+                    <span className="text-slate-300">{log.user.name}</span>
+                    <span className="ml-1 text-slate-500">({log.user.email})</span>
+                  </div>
+                ) : (
+                  <div className="text-slate-500">Sistem</div>
+                )}
+                <div>
+                  <span className="text-slate-500">Zaman: </span>
+                  <span className="text-slate-300">
+                    {formatDistanceToNow(new Date(log.created_at), {
+                      addSuffix: true,
+                      locale: tr,
+                    })}
+                  </span>
+                </div>
+                {log.target_type && (
+                  <div>
+                    <span className="text-slate-500">Hedef: </span>
+                    <span className="text-slate-300">
+                      {formatTarget(log.target_type, log.target_id) ?? "-"}
+                    </span>
+                  </div>
+                )}
+                {log.description && (
+                  <div className="line-clamp-2">
+                    <span className="text-slate-500">Açıklama: </span>
+                    <span className="text-slate-300">{log.description}</span>
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                className="mt-2 text-xs font-medium text-sky-300 hover:text-sky-200"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShowDetails?.(log);
+                }}
+              >
+                Detayı Görüntüle →
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/60 md:block md:rounded-2xl">
+        <table className="w-full border-collapse text-sm text-slate-200">
         <thead className="bg-slate-950/80 text-xs uppercase tracking-wide text-slate-400">
           <tr>
             <th className="px-4 py-3 text-left font-medium">Zaman</th>
@@ -77,7 +143,8 @@ export function AuditTable({ logs, onShowDetails }: AuditTableProps) {
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
 
