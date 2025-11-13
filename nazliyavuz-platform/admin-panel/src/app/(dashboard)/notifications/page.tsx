@@ -313,9 +313,9 @@ useEffect(() => {
   const historyPagination = historyData?.pagination;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <Dialog open={metadata !== null} onOpenChange={() => setMetadata(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] md:max-w-lg">
           <DialogHeader>
             <DialogTitle>Bildirim Metadata</DialogTitle>
             <DialogDescription>
@@ -328,27 +328,29 @@ useEffect(() => {
         </DialogContent>
       </Dialog>
 
-      <header className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5 lg:flex-row lg:items-center lg:justify-between">
+      <header className="flex flex-col gap-3 rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 md:rounded-2xl md:gap-4 md:p-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-100">
+          <h2 className="text-base font-semibold text-slate-100 md:text-lg">
             Bildirim Yönetimi
           </h2>
-          <p className="text-sm text-slate-400">
+          <p className="mt-1 text-xs text-slate-400 md:text-sm">
             Platform kullanıcılarına toplu veya hedefli bildirimler gönderin,
             performansı takip edin.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Button
             variant={isBulk ? "default" : "outline"}
-            className="text-xs"
+            size="sm"
+            className="flex-1 text-xs active:scale-[0.98] sm:flex-initial"
             onClick={() => setIsBulk(true)}
           >
             Toplu bildirim
           </Button>
           <Button
             variant={!isBulk ? "default" : "outline"}
-            className="text-xs"
+            size="sm"
+            className="flex-1 text-xs active:scale-[0.98] sm:flex-initial"
             onClick={() => {
               setIsBulk(false);
               targetedReset({
@@ -379,12 +381,12 @@ useEffect(() => {
       />
       <NotificationTemplatesCard />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 md:gap-4 xl:grid-cols-4">
         {summaryLoading || !summaryCards ? (
           Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
-              className="rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5"
+              className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 md:rounded-2xl md:p-5"
             >
               <Skeleton className="h-4 w-20" />
               <Skeleton className="mt-3 h-6 w-16" />
@@ -395,20 +397,20 @@ useEffect(() => {
           summaryCards.map((card) => (
             <div
               key={card.label}
-              className="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5"
+              className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 md:rounded-2xl md:p-5"
             >
               <div className="absolute right-0 top-0 h-full w-1/3 bg-sky-500/5" />
-              <div className="relative z-10 space-y-3">
+              <div className="relative z-10 space-y-2 md:space-y-3">
                 <div className="flex items-center gap-2 text-slate-300">
-                  <card.icon className="h-4 w-4 text-sky-300" />
-                  <span className="text-xs font-medium uppercase tracking-wide">
+                  <card.icon className="h-3.5 w-3.5 text-sky-300 md:h-4 md:w-4" />
+                  <span className="text-[10px] font-medium uppercase tracking-wide md:text-xs">
                     {card.label}
                   </span>
                 </div>
-                <p className="text-2xl font-semibold text-slate-100">
+                <p className="text-xl font-semibold text-slate-100 md:text-2xl">
                   {card.value}
                 </p>
-                <p className="text-xs text-slate-500">{card.subLabel}</p>
+                <p className="text-[10px] text-slate-500 md:text-xs">{card.subLabel}</p>
               </div>
             </div>
           ))
@@ -416,7 +418,7 @@ useEffect(() => {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <div className="space-y-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5">
+        <div className="space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 md:rounded-2xl md:p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-100">
               Tip & Öncelik Dağılımı
@@ -516,12 +518,13 @@ useEffect(() => {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-3">
-        <div className="space-y-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5">
+        <div className="space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 md:rounded-2xl md:p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-100">Gönderim performansı</h3>
             <Button
               variant="ghost"
-              className="text-xs text-slate-400 hover:text-slate-200"
+              size="sm"
+              className="text-xs text-slate-400 active:scale-[0.98] hover:text-slate-200"
               onClick={() => refetchAnalytics()}
               disabled={analyticsLoading}
             >
@@ -535,7 +538,7 @@ useEffect(() => {
               <Skeleton className="h-9 w-full" />
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-2 sm:grid-cols-2 sm:gap-3">
               <StatPill label="Toplam iş" value={analytics.delivery.total_jobs.toLocaleString("tr-TR")} />
               <StatPill label="Başarılı iş" value={analytics.delivery.sent_jobs.toLocaleString("tr-TR")} />
               <StatPill
@@ -561,7 +564,7 @@ useEffect(() => {
           )}
         </div>
 
-        <div className="space-y-3 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5">
+        <div className="space-y-3 rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 md:rounded-2xl md:p-5">
           <h3 className="text-sm font-semibold text-slate-100">Kanal kullanımı</h3>
           {analyticsLoading || !analytics ? (
             <div className="space-y-2">
@@ -587,7 +590,7 @@ useEffect(() => {
           )}
         </div>
 
-        <div className="space-y-3 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5">
+        <div className="space-y-3 rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 md:rounded-2xl md:p-5">
           <h3 className="text-sm font-semibold text-slate-100">Hedef kitlesi</h3>
           {analyticsLoading || !analytics ? (
             <div className="space-y-2">

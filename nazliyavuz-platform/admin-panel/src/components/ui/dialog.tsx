@@ -29,7 +29,7 @@ export function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border border-slate-800/80 bg-slate-950/95 p-6 shadow-lg outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=open]:fade-in",
+          "fixed left-1/2 top-1/2 z-50 grid w-[95vw] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border border-slate-800/80 bg-slate-950/95 p-4 shadow-lg outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=open]:fade-in md:rounded-2xl md:p-6",
           className,
         )}
         {...props}
@@ -59,7 +59,7 @@ export function DialogTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <DialogPrimitive.Title
-      className={cn("text-base font-semibold text-slate-100", className)}
+      className={cn("text-base font-semibold text-slate-100 md:text-lg", className)}
       {...props}
     />
   );
@@ -71,7 +71,7 @@ export function DialogDescription({
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <DialogPrimitive.Description
-      className={cn("text-sm text-slate-400", className)}
+      className={cn("text-xs text-slate-400 md:text-sm", className)}
       {...props}
     />
   );

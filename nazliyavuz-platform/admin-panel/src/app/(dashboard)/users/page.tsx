@@ -83,24 +83,25 @@ export default function UsersPage() {
   const isProcessing = suspendMutation.isPending || unsuspendMutation.isPending;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 md:rounded-2xl md:p-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-100">
+          <h2 className="text-base font-semibold text-slate-100 md:text-lg">
             Kullanıcı Yönetimi
           </h2>
-          <p className="text-sm text-slate-400">
+          <p className="mt-1 text-xs text-slate-400 md:text-sm">
             Öğrenci, öğretmen ve admin hesaplarını tek yerden yönetin.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="info" className="gap-2">
-            <UsersRound className="h-4 w-4" />
+          <Badge variant="info" className="gap-2 text-xs md:text-sm">
+            <UsersRound className="h-3 w-3 md:h-4 md:w-4" />
             {pagination?.total ?? 0} kullanıcı
           </Badge>
           <Button
             variant="outline"
-            className="border-slate-800 bg-slate-950 text-slate-300 hover:bg-slate-900/80"
+            size="sm"
+            className="min-h-[36px] border-slate-800 bg-slate-950 text-slate-300 active:scale-[0.98] hover:bg-slate-900/80"
             onClick={() => refetch()}
             disabled={isFetching}
           >
@@ -109,15 +110,15 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 rounded-2xl border border-slate-800/60 bg-slate-950/60 p-5 md:grid-cols-3">
+      <div className="grid gap-3 rounded-xl border border-slate-800/60 bg-slate-950/60 p-4 md:rounded-2xl md:gap-4 md:p-5 md:grid-cols-3">
         <div className="md:col-span-2">
           <label className="text-xs font-medium uppercase tracking-wide text-slate-500">
             Arama
           </label>
-          <div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-800/60 bg-slate-950/80 px-3">
-            <Search className="h-4 w-4 text-slate-600" />
+          <div className="mt-2 flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-800/60 bg-slate-950/80 px-3">
+            <Search className="h-4 w-4 shrink-0 text-slate-600" />
             <Input
-              className="border-none bg-transparent px-0 text-sm focus-visible:ring-0"
+              className="min-h-[44px] border-none bg-transparent px-0 text-sm focus-visible:ring-0 md:min-h-0"
               placeholder="İsim, e-posta veya rol ara..."
               value={filters.search}
               onChange={(event) =>
@@ -199,15 +200,16 @@ export default function UsersPage() {
         )}
 
         {pagination && (
-          <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-xs text-slate-500">
               Toplam {pagination.total} sonuç • Sayfa {pagination.current_page} /{" "}
               {pagination.last_page}
             </span>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
-                className="text-xs"
+                size="sm"
+                className="min-h-[36px] text-xs active:scale-[0.98]"
                 onClick={() =>
                   setFilters((prev) => ({
                     ...prev,
@@ -220,7 +222,8 @@ export default function UsersPage() {
               </Button>
               <Button
                 variant="ghost"
-                className="text-xs"
+                size="sm"
+                className="min-h-[36px] text-xs active:scale-[0.98]"
                 onClick={() =>
                   setFilters((prev) => ({
                     ...prev,
@@ -264,7 +267,7 @@ function FilterChip({ children, active, onClick }: FilterChipProps) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-full border border-slate-800/70 bg-slate-950/70 px-3 py-1 text-xs text-slate-300 transition-colors hover:bg-slate-900/60 data-[active=true]:border-sky-500/40 data-[active=true]:bg-sky-500/10 data-[active=true]:text-sky-300"
+      className="min-h-[36px] rounded-full border border-slate-800/70 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-300 transition-all active:scale-[0.95] hover:bg-slate-900/60 data-[active=true]:border-sky-500/40 data-[active=true]:bg-sky-500/10 data-[active=true]:text-sky-300 md:min-h-0 md:py-1"
       data-active={active}
     >
       {children}

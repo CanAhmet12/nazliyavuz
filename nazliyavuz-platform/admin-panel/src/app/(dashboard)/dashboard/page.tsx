@@ -30,10 +30,10 @@ const summaryCards = [
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="space-y-4 md:space-y-6">
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {summaryCards.map((card) => (
-          <Card key={card.title} className="relative overflow-hidden p-6">
+          <Card key={card.title} className="relative overflow-hidden p-4 md:p-6">
             <div className="absolute inset-y-0 right-0 w-1/3 rounded-l-full bg-sky-500/5" />
             <div className="relative z-10 flex items-start justify-between">
               <div>
@@ -59,15 +59,15 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <Card className="flex flex-col gap-6 p-6">
-        <div className="flex items-center justify-between">
+      <Card className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle>Gerçek zamanlı aktiviteler</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base md:text-lg">Gerçek zamanlı aktiviteler</CardTitle>
+            <CardDescription className="text-xs md:text-sm">
               Öğretmen ve öğrencilerin sistem üzerindeki önemli aksiyonları
             </CardDescription>
           </div>
-          <button className="flex items-center gap-1 text-xs font-medium text-sky-300 hover:text-sky-200">
+          <button className="flex min-h-[44px] w-full items-center justify-center gap-1 rounded-lg border border-slate-800/60 bg-slate-950/60 px-4 text-xs font-medium text-sky-300 transition-colors active:scale-[0.98] hover:bg-slate-900/60 hover:text-sky-200 sm:w-auto">
             Tüm kayıtları görüntüle
             <ArrowUpRight className="h-3 w-3" />
           </button>
@@ -76,15 +76,15 @@ export default function DashboardPage() {
           {activityFeed.map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between px-5 py-4 text-sm text-slate-300"
+              className="flex flex-col gap-1 px-4 py-3 text-sm text-slate-300 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
             >
-              <div className="flex flex-col">
-                <span className="font-medium text-slate-100">
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="font-medium text-slate-100 truncate">
                   {item.title}
                 </span>
-                <span className="text-xs text-slate-500">{item.subtitle}</span>
+                <span className="text-xs text-slate-500 truncate">{item.subtitle}</span>
               </div>
-              <span className="text-xs text-slate-500">{item.time}</span>
+              <span className="text-xs text-slate-500 shrink-0 sm:ml-4">{item.time}</span>
             </div>
           ))}
         </div>
