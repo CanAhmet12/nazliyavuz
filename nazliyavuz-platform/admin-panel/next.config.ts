@@ -1,11 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  // Ensure static files are properly served
-  outputFileTracingIncludes: {
-    "/**": [".next/static/**/*"],
-  },
+  // Remove standalone mode to ensure static files are properly served
+  // Static files should be accessible from .next/static
 };
 
 export default nextConfig;
